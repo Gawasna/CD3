@@ -1,0 +1,24 @@
+# General
+node_modules/
+.env
+.env.local
+.DS_Store
+
+# Frontend Next.js
+frontend/.next/
+frontend/out/
+
+# Backend Prisma & Logs
+backend/logs/
+backend/coverage/
+
+# Blockchain Hardhat
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+blockchain/coverage/
+
+# Vibes docs
+docs/
+frontend/AGENTS.md
+frontend/CLAUDE.md

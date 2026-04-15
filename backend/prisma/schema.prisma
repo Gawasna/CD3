@@ -1,0 +1,252 @@
+// ============================================================
+// CD3 Blockchain Auction Platform — Prisma Schema
+// Phiên bản: 2.0 — Post-audit rewrite (2026-04-16)
+// Audit ref: docs/database/db_schema_audit_report.md
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum KycStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// DB-AM-06: type-safe category (DES-03: enum > FK cho scope đồ án)
+enum AuctionCategory {
+  ELECTRONICS
+  FASHION
+  FURNITURE
+  COLLECTIBLES
+  OTHER
+}
+
+// DB-AM-02: off-chain status mirror — đồng bộ canonical state BA Audit A-01
+enum AuctionStatus {
+  PENDING    // TX createAuction chưa confirmed on-chain
+  ACTIVE     // Đang nhận bid
+  ENDED      // Hết giờ, chờ claim/shipping
+  CANCELED   // Hủy (chưa có bid hoặc bị admin cancel)
+}
+
+// DB-SL-02: bổ sung CONFIRMED, CANCELED; DB-SL-05: remove DISPUTED khỏi shipping domain
+enum ShippingStatus {
+  PENDING     // Auction kết thúc, chờ người bán gửi hàng
+  SHIPPED     // Người bán đã gửi (confirmShipped)
+  CONFIRMED   // Người mua xác nhận nhận hàng
+  CANCELED    // Hủy do dispute giải quyết bằng REFUNDED
+}
+
+// Outcome của dispute — đồng bộ smart contract resolveDispute(bool refundBuyer)
+enum DisputeOutcome {
+  BUYER_WIN  // refundBuyer = true
+  SELLER_WIN // refundBuyer = false
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+// ---- User ----
+model User {
+  id               String    @id @default(uuid())
+  walletAddress    String    @unique @map("wallet_address")
+  displayName      String?   @map("display_name")
+  // DB-U-03: giữ avatarUrl (DES-02) cho phép cả S3 + IPFS gateway URL
+  avatarUrl        String?   @map("avatar_url")
+  kycStatus        KycStatus @default(NONE) @map("kyc_status")
+  role             Role      @default(USER)
+  // DB-U-04: Admin có thể suspend account
+  isActive         Boolean   @default(true) @map("is_active")
+  // DB-U-02: KYC audit trail — ai duyệt, lúc nào
+  kycApprovedAt    DateTime? @map("kyc_approved_at")
+  kycApprovedBy    String?   @map("kyc_approved_by") // walletAddress của Admin
+  // DB-U-01: soft delete — giữ audit trail, không xóa vật lý
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  auctions         AuctionMetadata[] @relation("SellerAuctions")
+  // DB-U-05: User là Bidder
+  bids             Bid[]
+  // Disputes raised bởi user này
+  raisedDisputes   DisputeLog[]      @relation("DisputeRaiser")
+  // Disputes resolved bởi Admin
+  resolvedDisputes DisputeLog[]      @relation("DisputeResolver")
+  // Admin action log
+  adminActions     AdminActionLog[]  @relation("AdminActions")
+  // Shipping logs user là người cập nhật
+  shippingUpdates  ShippingLog[]     @relation("ShippingUpdater")
+
+  // DB-IDX-01: Admin filter by KYC status
+  @@index([kycStatus])
+  @@map("users")
+}
+
+// ---- AuctionMetadata ----
+model AuctionMetadata {
+  id                String          @id @default(uuid())
+  sellerId          String          @map("seller_id")
+  // DB-AM-01: EVM uint256 auction ID — BigInt đủ cho auction counter on Sepolia
+  onChainAuctionId  BigInt?         @unique @map("on_chain_auction_id")
+  // DB-AM-02: off-chain status mirror
+  status            AuctionStatus   @default(PENDING) @map("status")
+  title             String
+  // DB-AM-08: Text type cho long description
+  description       String          @db.Text
+  ipfsCid           String?         @map("ipfs_cid")
+  // DB-AM-06: type-safe category
+  category          AuctionCategory @default(OTHER)
+  // DB-AM-03: giá khởi điểm — String để tránh precision loss uint256 → JSON
+  startingPriceWei  String          @map("starting_price_wei")
+  // DB-AM-05: collateral (escrow đặt cọc)
+  collateralWei     String          @map("collateral_wei")
+  // DB-AM-03: thời gian kết thúc và duration
+  endTime           DateTime        @map("end_time")
+  durationSeconds   Int             @map("duration_seconds")
+  // DB-AM-04: người thắng cuộc (set sau khi auction kết thúc)
+  winnerId          String?         @map("winner_id")
+  // DB-AM-07: TX hash của `createAuction` để trace on-chain
+  createTxHash      String?         @map("create_tx_hash")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  seller            User            @relation("SellerAuctions", fields: [sellerId], references: [id])
+  // DB-AM-09
+  bids              Bid[]
+  // DB-AM-10
+  disputes          DisputeLog[]
+  shippingLogs      ShippingLog[]
+
+  // DB-IDX-01
+  @@index([sellerId, createdAt(sort: Desc)])
+  @@index([status, endTime])
+  @@map("auction_metadata")
+}
+
+// ---- Bid — DB-MISS-01 [CRITICAL] ----
+model Bid {
+  id          String   @id @default(uuid())
+  auctionId   String   @map("auction_id")
+  bidderId    String   @map("bidder_id")
+  // DES-01: Wei amount dạng decimal String — uint256-safe, không mất precision JSON
+  amountWei   String   @map("amount_wei")
+  // txHash là dedup key — cùng TX không được insert 2 lần
+  txHash      String   @unique @map("tx_hash")
+  blockNumber BigInt?  @map("block_number")
+  // Flag bid cuối cùng (winning) — update khi auction ENDED
+  isWinning   Boolean  @default(false) @map("is_winning")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  auction     AuctionMetadata @relation(fields: [auctionId], references: [id])
+  bidder      User            @relation(fields: [bidderId], references: [id])
+
+  // DB-IDX-01: Bid history của 1 auction theo thứ tự mới nhất
+  @@index([auctionId, createdAt(sort: Desc)])
+  // "My Bids" — lịch sử đấu giá của user
+  @@index([bidderId])
+  @@map("bids")
+}
+
+// ---- ShippingLog ----
+model ShippingLog {
+  id           String         @id @default(uuid())
+  auctionId    String         @map("auction_id")
+  status       ShippingStatus
+  // DB-SL-01: FK thay vì String tự do — referential integrity
+  updatedById  String         @map("updated_by_id")
+  // DB-SL-04: ghi chú thêm (tracking number, ghi chú giao vận)
+  notes        String?        @db.Text
+  // DB-SL-03: đây là log record (immutable), đặt tên createdAt cho đúng semantics
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  auction      AuctionMetadata @relation(fields: [auctionId], references: [id])
+  updatedBy    User            @relation("ShippingUpdater", fields: [updatedById], references: [id])
+
+  @@index([auctionId])
+  @@map("shipping_logs")
+}
+
+// ---- AuthNonce — DB-MISS-02 [CRITICAL] SIWE ----
+// Chống replay attack cho Sign-In With Ethereum (EIP-4361)
+// Nonce là single-use, có TTL. DES-04: dùng PostgreSQL, không cần Redis infra thêm.
+model AuthNonce {
+  id            String    @id @default(uuid())
+  walletAddress String    @map("wallet_address")
+  nonce         String    @unique
+  expiresAt     DateTime  @map("expires_at") // TTL: 5-10 phút từ lúc issue
+  usedAt        DateTime? @map("used_at")    // Mark sau khi verify thành công
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([walletAddress])
+  // Cleanup job scan record hết hạn để DELETE
+  @@index([expiresAt])
+  @@map("auth_nonces")
+}
+
+// ---- DisputeLog — DB-MISS-03 [CRITICAL] ----
+// Audit trail tranh chấp — Admin nghe trình bày off-chain, ghi nhận resolution
+model DisputeLog {
+  id            String          @id @default(uuid())
+  auctionId     String          @map("auction_id")
+  raisedById    String          @map("raised_by_id")
+  resolvedById  String?         @map("resolved_by_id") // Admin xử lý
+  reason        String          @db.Text
+  resolution    String?         @db.Text  // Ghi chú quyết định của Admin
+  outcome       DisputeOutcome?           // NULL khi đang pending
+  // TX hash của resolveDispute() on-chain
+  resolveTxHash String?         @map("resolve_tx_hash")
+  raisedAt      DateTime        @default(now()) @map("raised_at")
+  resolvedAt    DateTime?       @map("resolved_at")
+
+  auction       AuctionMetadata @relation(fields: [auctionId], references: [id])
+  raisedBy      User            @relation("DisputeRaiser", fields: [raisedById], references: [id])
+  resolvedBy    User?           @relation("DisputeResolver", fields: [resolvedById], references: [id])
+
+  @@index([auctionId])
+  @@map("dispute_logs")
+}
+
+// ---- AdminActionLog — DB-MISS-04 [HIGH] ----
+// Forensics audit trail — mọi admin action phải được ghi lại
+// Không sửa được sau khi insert (append-only by convention)
+model AdminActionLog {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  // Ví dụ: "APPROVE_KYC", "RESOLVE_DISPUTE", "SUSPEND_USER", "CANCEL_AUCTION"
+  action     String
+  // ID của entity bị tác động (userId, auctionId, disputeId...)
+  targetId   String   @map("target_id")
+  // Loại entity: "USER", "AUCTION", "DISPUTE"
+  targetType String   @map("target_type")
+  // Metadata bổ sung dạng JSON (reason, trạng thái trước/sau...)
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin      User     @relation("AdminActions", fields: [adminId], references: [id])
+
+  @@index([adminId])
+  // Query: "Tất cả action liên quan đến User X"
+  @@index([targetType, targetId])
+  @@map("admin_action_logs")
+}

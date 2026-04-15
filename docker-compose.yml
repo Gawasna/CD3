@@ -1,0 +1,54 @@
+# Services cho môi trường dev local CD3 Blockchain Auction
+# Stack: PostgreSQL 18+ (DB engine) + Adminer (DB admin UI)
+# WSL2 / Docker Desktop on Windows
+#
+# Breaking change PG18: data directory phải mount tại /var/lib/postgresql
+# (không phải /data như PG17 trở về trước)
+# Ref: https://github.com/docker-library/postgres/commit/...
+
+services:
+  db:
+    image: postgres:latest
+    container_name: cd3_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cd3_user
+      POSTGRES_PASSWORD: cd3_password
+      POSTGRES_DB: cd3_auction
+    ports:
+      # Map ra localhost:5432 — chỉ accessible nội bộ
+      - "5432:5432"
+    volumes:
+      # PG18+: mount tại /var/lib/postgresql (parent dir), không phải /data
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - cd3_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cd3_user -d cd3_auction"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  adminer:
+    image: adminer:latest
+    container_name: cd3_adminer
+    restart: unless-stopped
+    ports:
+      # Adminer UI tại http://localhost:8080
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cd3_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cd3_network:
+    driver: bridge

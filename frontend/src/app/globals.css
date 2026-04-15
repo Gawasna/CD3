@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #F2F3F0;
+  --color-foreground: #111111;
+  --font-geist: var(--font-geist-sans);
+  --font-jetbrains: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-geist), sans-serif;
+}
