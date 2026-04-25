@@ -1,7 +1,29 @@
+'use client';
+
 import Link from 'next/link';
 import { Box, Search } from 'lucide-react';
+import { useState } from 'react';
+import ConnectWalletButton from './auth/ConnectWalletButton';
+import UserProfileDropdown from './auth/UserProfileDropdown';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
+  const router = useRouter();
+  // TODO: Replace with actual wallet connection state
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState('0x1234567890abcdef1234567890abcdef12345678');
+
+  const handleConnect = () => {
+    // TODO: Implement actual wallet connection
+    router.push('/login');
+  };
+
+  const handleDisconnect = () => {
+    // TODO: Implement actual wallet disconnection
+    setIsConnected(false);
+    router.push('/');
+  };
+
   return (
     <header className="flex items-center justify-between h-[72px] px-8 bg-[#F2F3F0] border-b border-[#CBCCC9]">
       <div className="flex items-center gap-3">
@@ -21,9 +43,11 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
-        <button className="flex items-center justify-center h-10 px-4 py-2 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-sm font-medium hover:bg-[#e07500] transition-colors">
-          Connect Wallet
-        </button>
+        {isConnected ? (
+          <UserProfileDropdown address={address} onDisconnect={handleDisconnect} />
+        ) : (
+          <ConnectWalletButton onClick={handleConnect} />
+        )}
       </div>
     </header>
   );
