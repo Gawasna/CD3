@@ -1,0 +1,24 @@
+{
+  "header": {
+    "brand": "ĐẤU GIÁ P2P",
+    "searchPlaceholder": "Tìm kiếm sản phẩm, bộ sưu tập...",
+    "connectWallet": "Kết nối ví"
+  },
+  "footer": {
+    "copyright": "© 2026 P2P Auction. Bảo lưu mọi quyền.",
+    "terms": "Điều khoản",
+    "privacy": "Bảo mật"
+  },
+  "actions": {
+    "submit": "Gửi",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "close": "Đóng",
+    "confirm": "Xác nhận",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "loading": "Đang tải..."
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "header": {
+    "brand": "P2P AUCTION",
+    "searchPlaceholder": "Search for items, collections...",
+    "connectWallet": "Connect Wallet"
+  },
+  "footer": {
+    "copyright": "© 2026 P2P Auction. All rights reserved.",
+    "terms": "Terms",
+    "privacy": "Privacy"
+  },
+  "actions": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading..."
+  }
+}

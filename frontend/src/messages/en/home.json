@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "title": "Discover Unique Assets & Vintage Items",
+    "description": "P2P Auction Blockchain Platform. Transparent, Fast, Secure.",
+    "cta": "Explore Auctions"
+  },
+  "trending": {
+    "title": "Ending Soon",
+    "viewAll": "View All →"
+  },
+  "card": {
+    "trendingItem": "Trending Item",
+    "currentBid": "Current bid"
+  }
+}
