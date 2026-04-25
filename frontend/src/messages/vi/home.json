@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "title": "Khám Phá Tài Sản Độc Đáo & Đồ Cổ",
+    "description": "Nền tảng Đấu Giá P2P trên Blockchain. Minh bạch, Nhanh chóng, An toàn.",
+    "cta": "Khám Phá Đấu Giá"
+  },
+  "trending": {
+    "title": "Sắp Kết Thúc",
+    "viewAll": "Xem Tất Cả →"
+  },
+  "card": {
+    "trendingItem": "Sản Phẩm Nổi Bật",
+    "currentBid": "Giá hiện tại"
+  }
+}

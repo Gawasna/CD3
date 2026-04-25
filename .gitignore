@@ -22,3 +22,9 @@ blockchain/coverage/
 docs/
 frontend/AGENTS.md
 frontend/CLAUDE.md
+/.vscode
+package-lock.json
+
+designs.pen
+frontend/package-lock.json
+package-lock.json

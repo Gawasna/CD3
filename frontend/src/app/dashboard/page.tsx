@@ -1,55 +1,64 @@
-export default function UserDashboard() {
-  return (
-    <div className="flex h-[max(900px,calc(100vh-72px))] bg-[#F2F3F0]">
-      {/* Sidebar */}
-      <aside className="w-[280px] bg-white border-r border-[#CBCCC9] p-8 flex flex-col gap-2 h-full shrink-0">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#E7E8E5] cursor-pointer">
-          <span className="font-jetbrains font-medium text-[#111111]">My Bids</span>
-        </div>
-        <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#E7E8E5] transition-colors cursor-pointer">
-          <span className="font-jetbrains font-medium text-[#666666]">Active Auctions</span>
-        </div>
-        <div className="flex items-center gap-3 p-3 rounded-2xl hover:bg-[#E7E8E5] transition-colors cursor-pointer">
-          <span className="font-jetbrains font-medium text-[#666666]">History</span>
-        </div>
-      </aside>
+'use client';
 
-      {/* Main Content */}
-      <main className="flex flex-col gap-8 p-12 flex-1 overflow-y-auto">
-        <h1 className="font-jetbrains text-[32px] font-extrabold text-[#111111]">My Bids</h1>
-        
-        <div className="flex flex-col gap-6 w-full max-w-4xl">
-          {/* Bid Item 1 */}
-          <div className="flex items-center justify-between p-6 bg-white border border-[#CBCCC9] rounded-2xl shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-[#E7E8E5] rounded-xl shrink-0" />
-              <div className="flex flex-col">
-                <span className="font-jetbrains font-bold text-lg text-[#111111]">Vintage Leica Camera</span>
-                <span className="font-geist text-sm text-[#666666]">Ending in 4 hours</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className="font-jetbrains font-bold text-xl text-[#111111]">0.85 ETH</span>
-              <span className="font-geist text-sm font-medium text-[#FF8400]">Highest Bidder</span>
-            </div>
+import { CheckCircle, Coins, Activity } from 'lucide-react';
+
+export default function DashboardPage() {
+  // TODO: Get real data from wallet/backend
+  const mockData = {
+    network: 'Sepolia Testnet',
+    balance: '2.45 ETH',
+    activeBids: 3,
+  };
+
+  return (
+    <div className="flex flex-col gap-6 p-8 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
+      {/* Welcome Card */}
+      <div className="flex flex-col gap-4 w-full p-6 bg-white border border-[#CBCCC9] rounded-2xl">
+        <h1 className="font-jetbrains text-2xl font-bold text-[#111111]">
+          Welcome Back!
+        </h1>
+        <p className="font-geist text-sm text-[#666666] leading-relaxed">
+          You are successfully authenticated with your wallet. You can now participate in auctions, 
+          create listings, and manage your bids.
+        </p>
+
+        {/* Stats Row */}
+        <div className="flex items-center gap-4 w-full mt-2">
+          <div className="flex flex-col gap-2 flex-1 p-4 bg-[#DFE6E1] rounded-2xl">
+            <CheckCircle className="w-6 h-6 text-[#004D1A]" />
+            <span className="font-geist text-xs text-[#004D1A]">Connected</span>
+            <span className="font-jetbrains text-base font-semibold text-[#004D1A]">
+              {mockData.network}
+            </span>
           </div>
-          
-          {/* Bid Item 2 */}
-          <div className="flex items-center justify-between p-6 bg-white border border-[#CBCCC9] rounded-2xl shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-[#E7E8E5] rounded-xl shrink-0" />
-              <div className="flex flex-col">
-                <span className="font-jetbrains font-bold text-lg text-[#111111]">Rolex Submariner</span>
-                <span className="font-geist text-sm text-[#666666]">Ending in 1 day</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className="font-jetbrains font-bold text-xl text-[#111111]">2.4 ETH</span>
-              <span className="font-geist text-sm font-medium text-[#FF5C33]">Outbid</span>
-            </div>
+
+          <div className="flex flex-col gap-2 flex-1 p-4 bg-[#E7E8E5] rounded-2xl">
+            <Coins className="w-6 h-6 text-[#111111]" />
+            <span className="font-geist text-xs text-[#666666]">Balance</span>
+            <span className="font-jetbrains text-base font-semibold text-[#111111]">
+              {mockData.balance}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 flex-1 p-4 bg-[#E7E8E5] rounded-2xl">
+            <Activity className="w-6 h-6 text-[#111111]" />
+            <span className="font-geist text-xs text-[#666666]">Active Bids</span>
+            <span className="font-jetbrains text-base font-semibold text-[#111111]">
+              {mockData.activeBids}
+            </span>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="flex flex-col gap-4 w-full p-6 bg-white border border-[#CBCCC9] rounded-2xl">
+        <h2 className="font-jetbrains text-xl font-bold text-[#111111]">
+          Recent Activity
+        </h2>
+        <p className="font-geist text-sm text-[#666666]">
+          Your recent auction activity will appear here.
+        </p>
+      </div>
     </div>
   );
 }
