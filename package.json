@@ -8,6 +8,9 @@
     ],
     "scripts": {
         "dev": "npm run dev --workspaces",
-        "build": "npm run build --workspaces"
+        "build": "npm run build --workspaces",
+        "dev:front": "npm run dev --workspace=frontend",
+        "dev:back": "npm run dev --workspace=backend",
+        "dev:blockchain": "npm run dev --workspace=blockchain"
     }
 }

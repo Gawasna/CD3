@@ -1,49 +1,55 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 
+// Config — phải import env trước để validate fail fast
+import { env } from './config/env';
+
+// Routes
+import authRoutes from './modules/auth/auth.routes';
+import userRoutes from './modules/users/user.routes';
+
+// Shared middleware
+import { errorHandler } from './shared/middleware/error-handler';
+
 const app = express();
 
-// Security middleware
+// Security headers
 app.use(helmet());
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://your-frontend-domain.com' : '*',
-  credentials: true,
-}));
+// CORS
+app.use(
+  cors({
+    origin: env.NODE_ENV === 'production' ? env.SIWE_URI : '*',
+    credentials: true,
+  }),
+);
 
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// HTTP logger
-app.use(pinoHttp({
-  autoLogging: {
-    ignore: (req) => req.url === '/healthcheck'
-  }
-}));
+// HTTP logger — skip healthcheck để không spam log
+app.use(
+  pinoHttp({
+    autoLogging: {
+      ignore: (req) => req.url === '/healthcheck',
+    },
+  }),
+);
 
-// Health check endpoint
-app.get('/healthcheck', (req, res) => {
+// Health check — không auth
+app.get('/healthcheck', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Import and use routes here
-// app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
-// app.use('/api/auctions', auctionRoutes);
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-// Global Error Handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  req.log.error(err);
-  res.status(err.status || 500).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  });
-});
+// Global error handler — PHẢI đặt cuối cùng
+app.use(errorHandler);
 
 export default app;

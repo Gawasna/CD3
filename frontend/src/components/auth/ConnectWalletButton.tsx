@@ -6,12 +6,15 @@ interface ConnectWalletButtonProps {
   onClick?: () => void;
   disabled?: boolean;
   loading?: boolean;
+  /** Label tùy chỉnh — mặc định "Connect Wallet", có thể đổi thành "Sign In" */
+  label?: string;
 }
 
-export default function ConnectWalletButton({ 
-  onClick, 
+export default function ConnectWalletButton({
+  onClick,
   disabled = false,
-  loading = false 
+  loading = false,
+  label = 'Connect Wallet',
 }: ConnectWalletButtonProps) {
   return (
     <button
@@ -22,12 +25,12 @@ export default function ConnectWalletButton({
       {loading ? (
         <>
           <div className="w-6 h-6 border-2 border-[#111111] border-t-transparent rounded-full animate-spin" />
-          <span>Connecting...</span>
+          <span>Signing...</span>
         </>
       ) : (
         <>
           <Wallet className="w-6 h-6" />
-          <span>Connect Wallet</span>
+          <span>{label}</span>
         </>
       )}
     </button>
