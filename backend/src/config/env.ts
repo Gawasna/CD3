@@ -9,7 +9,8 @@ const envSchema = z.object({
   SIWE_NONCE_TTL_MINUTES: z.coerce.number().default(10),
   SIWE_DOMAIN: z.string().default('localhost:3000'),
   SIWE_URI: z.string().default('http://localhost:3000'),
-  SIWE_CHAIN_ID: z.coerce.number().default(31337),
+  // 1337 = Ganache Desktop/CLI runtime — KHÔNG phải 31337 (Hardhat in-process test network)
+  SIWE_CHAIN_ID: z.coerce.number().default(1337),
 });
 
 const parsed = envSchema.safeParse(process.env);

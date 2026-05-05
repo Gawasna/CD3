@@ -15,7 +15,7 @@ export default defineConfig({
       SIWE_NONCE_TTL_MINUTES: '10',
       SIWE_DOMAIN: 'localhost:3000',
       SIWE_URI: 'http://localhost:3000',
-      SIWE_CHAIN_ID: '31337',
+      SIWE_CHAIN_ID: '1337',  // Ganache runtime — khớp với backend/.env và hardhat.config ganache network
     },
   },
   resolve: {

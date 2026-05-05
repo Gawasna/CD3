@@ -1,7 +1,6 @@
 import crypto from 'crypto';
-import type { PrismaClient } from '@prisma/client';
-import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
+import { SiweMessage } from 'siwe';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { ApiError } from '../../shared/utils/api-error';
@@ -53,21 +52,41 @@ export async function verifySignature(input: VerifyBody) {
     throw ApiError.unauthorized('INVALID_NONCE', 'Nonce has expired');
   }
 
-  // 5. Verify ECDSA signature — ethers.verifyMessage recover địa chỉ từ message + sig
-  let recoveredAddress: string;
+  // 5. Verify SIWE message content & signature (EIP-4361)
+  let siweMessage: SiweMessage;
   try {
-    recoveredAddress = verifyMessage(input.message, input.signature);
+    siweMessage = new SiweMessage(input.message);
   } catch {
-    throw ApiError.unauthorized('INVALID_SIGNATURE', 'Failed to recover address from signature');
+    throw ApiError.badRequest('INVALID_MESSAGE', 'Malformed SIWE message');
   }
 
-  // 6. So sánh lowercase để tránh case-sensitive mismatch (AUTH-NFR-02)
-  if (recoveredAddress.toLowerCase() !== input.wallet.toLowerCase()) {
-    throw ApiError.unauthorized('INVALID_SIGNATURE', 'Signature does not match wallet address');
+  try {
+    const verification = await siweMessage.verify({
+      signature: input.signature,
+      domain: env.SIWE_DOMAIN,
+      nonce: nonceRecord.nonce,
+    });
+
+    // 6. Validate environment-specific fields
+    if (verification.data.uri !== env.SIWE_URI) {
+      throw ApiError.unauthorized('INVALID_URI', 'SIWE URI mismatch');
+    }
+
+    if (verification.data.chainId !== env.SIWE_CHAIN_ID) {
+      throw ApiError.unauthorized('INVALID_CHAIN_ID', 'SIWE Chain ID mismatch');
+    }
+
+    // 7. Verify address lowercase match (AUTH-NFR-02)
+    if (verification.data.address.toLowerCase() !== input.wallet.toLowerCase()) {
+      throw ApiError.unauthorized('INVALID_SIGNATURE', 'Signature does not match wallet address');
+    }
+  } catch (error) {
+    throw ApiError.unauthorized('INVALID_SIGNATURE', 'SIWE verification failed');
   }
 
   // 7. Transaction: mark nonce used + upsert user (atomic)
-  const user = await prisma.$transaction(async (tx: PrismaClient) => {
+  // tx được Prisma infer là Prisma.TransactionClient — không annotate thủ công để tránh overload mismatch
+  const user = await prisma.$transaction(async (tx) => {
     await tx.authNonce.update({
       where: { id: nonceRecord.id },
       data: { usedAt: new Date() },

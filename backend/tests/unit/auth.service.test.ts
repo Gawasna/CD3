@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock prisma trước khi import service
 vi.mock('../../src/config/database', () => ({
   prisma: {
     authNonce: {
@@ -17,13 +16,11 @@ vi.mock('../../src/config/database', () => ({
   },
 }));
 
-// Mock ethers.verifyMessage
 vi.mock('ethers', () => ({
   isAddress: (addr: string) => /^0x[0-9a-fA-F]{40}$/.test(addr),
   verifyMessage: vi.fn(),
 }));
 
-// Mock env
 vi.mock('../../src/config/env', () => ({
   env: {
     SIWE_NONCE_TTL_MINUTES: 10,
@@ -35,21 +32,28 @@ vi.mock('../../src/config/env', () => ({
 import { prisma } from '../../src/config/database';
 import { verifyMessage } from 'ethers';
 import { generateNonce, verifySignature, cleanupExpiredNonces } from '../../src/modules/auth/auth.service';
-import { ApiError } from '../../src/shared/utils/api-error';
 
 const WALLET = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+const OTHER_WALLET = '0x0000000000000000000000000000000000000001';
 const NONCE = 'abc123def456abc1';
 
 describe('auth.service - generateNonce', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('tạo nonce và lưu vào DB với TTL đúng', async () => {
+  it('creates a single-use nonce record with the configured TTL', async () => {
     vi.mocked(prisma.authNonce.create).mockResolvedValue({} as never);
 
     const result = await generateNonce({ wallet: WALLET });
 
     expect(prisma.authNonce.create).toHaveBeenCalledOnce();
-    expect(result.nonce).toHaveLength(32); // 16 bytes hex = 32 chars
+    expect(prisma.authNonce.create).toHaveBeenCalledWith({
+      data: {
+        walletAddress: WALLET,
+        nonce: result.nonce,
+        expiresAt: result.expiresAt,
+      },
+    });
+    expect(result.nonce).toHaveLength(32);
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 });
@@ -59,7 +63,7 @@ describe('auth.service - verifySignature', () => {
     id: 'nonce-id',
     walletAddress: WALLET,
     nonce: NONCE,
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 phút nữa
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     usedAt: null,
     createdAt: new Date(),
   };
@@ -93,7 +97,7 @@ describe('auth.service - verifySignature', () => {
     vi.mocked(prisma.user.upsert).mockResolvedValue(validUser as never);
   });
 
-  it('happy path: signature đúng → trả token + user', async () => {
+  it('returns a JWT and upserts the user when the signature is valid', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
     vi.mocked(verifyMessage).mockReturnValue(WALLET);
 
@@ -104,9 +108,14 @@ describe('auth.service - verifySignature', () => {
     expect(prisma.authNonce.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ usedAt: expect.any(Date) }) }),
     );
+    expect(prisma.user.upsert).toHaveBeenCalledWith({
+      where: { walletAddress: WALLET },
+      update: { updatedAt: expect.any(Date) },
+      create: { walletAddress: WALLET },
+    });
   });
 
-  it('nonce không tồn tại → 401 INVALID_NONCE', async () => {
+  it('rejects when nonce does not exist', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(null);
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({
@@ -115,7 +124,7 @@ describe('auth.service - verifySignature', () => {
     });
   });
 
-  it('nonce đã dùng (replay attack) → 401 INVALID_NONCE', async () => {
+  it('rejects replayed nonce before signature verification', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue({
       ...validNonceRecord,
       usedAt: new Date(),
@@ -125,23 +134,52 @@ describe('auth.service - verifySignature', () => {
       status: 401,
       code: 'INVALID_NONCE',
     });
+    expect(verifyMessage).not.toHaveBeenCalled();
   });
 
-  it('nonce hết hạn → 401 INVALID_NONCE', async () => {
+  it('rejects nonce issued for a different wallet before signature verification', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue({
       ...validNonceRecord,
-      expiresAt: new Date(Date.now() - 1000), // đã qua 1 giây
+      walletAddress: OTHER_WALLET,
     } as never);
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({
       status: 401,
       code: 'INVALID_NONCE',
     });
+    expect(verifyMessage).not.toHaveBeenCalled();
   });
 
-  it('signature không khớp wallet → 401 INVALID_SIGNATURE', async () => {
+  it('rejects expired nonce before signature verification', async () => {
+    vi.mocked(prisma.authNonce.findUnique).mockResolvedValue({
+      ...validNonceRecord,
+      expiresAt: new Date(Date.now() - 1000),
+    } as never);
+
+    await expect(verifySignature(validInput)).rejects.toMatchObject({
+      status: 401,
+      code: 'INVALID_NONCE',
+    });
+    expect(verifyMessage).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed signatures without consuming the nonce', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
-    vi.mocked(verifyMessage).mockReturnValue('0xother000000000000000000000000000000000000');
+    vi.mocked(verifyMessage).mockImplementation(() => {
+      throw new Error('invalid signature');
+    });
+
+    await expect(verifySignature(validInput)).rejects.toMatchObject({
+      status: 401,
+      code: 'INVALID_SIGNATURE',
+    });
+    expect(prisma.authNonce.update).not.toHaveBeenCalled();
+    expect(prisma.user.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects signatures recovered from a different wallet', async () => {
+    vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
+    vi.mocked(verifyMessage).mockReturnValue(OTHER_WALLET);
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({
       status: 401,
@@ -149,7 +187,7 @@ describe('auth.service - verifySignature', () => {
     });
   });
 
-  it('user bị suspend → 403 USER_INACTIVE', async () => {
+  it('rejects suspended users', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
     vi.mocked(verifyMessage).mockReturnValue(WALLET);
     vi.mocked(prisma.user.upsert).mockResolvedValue({ ...validUser, isActive: false } as never);
@@ -162,7 +200,7 @@ describe('auth.service - verifySignature', () => {
 });
 
 describe('auth.service - cleanupExpiredNonces', () => {
-  it('xóa nonce hết hạn và trả số lượng', async () => {
+  it('deletes expired nonces and returns the deleted count', async () => {
     vi.mocked(prisma.authNonce.deleteMany).mockResolvedValue({ count: 5 });
 
     const count = await cleanupExpiredNonces();

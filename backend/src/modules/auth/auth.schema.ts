@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import { isAddress } from 'ethers';
+
+// Regex validate: 0x + đúng 40 ký tự hex — case-insensitive, không dùng ethers.isAddress
+// để tránh ethers version mismatch trong monorepo (root có thể resolve v5, backend dùng v6)
+const ETH_ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
 /**
  * Reusable wallet address validator — normalize về lowercase để tránh case-sensitive bug (AUTH-NFR-02)
  */
 const walletAddressSchema = z
   .string()
-  .refine((val) => isAddress(val), { message: 'Invalid Ethereum wallet address' })
+  .refine((val) => ETH_ADDRESS_RE.test(val), { message: 'Invalid Ethereum wallet address' })
   .transform((val) => val.toLowerCase());
 
 /** GET /api/auth/nonce query params */

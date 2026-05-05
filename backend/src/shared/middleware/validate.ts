@@ -18,8 +18,15 @@ export function validate(schema: ZodSchema, part: RequestPart = 'body') {
       return;
     }
 
-    // Ghi đè request part bằng dữ liệu đã được parse/transform
-    (req as unknown as Record<string, unknown>)[part] = result.data;
+    // Express 5: req.query là một getter (read-only), không thể gán trực tiếp req[part] = result.data.
+    // Dùng Object.defineProperty để đè lên getter đó.
+    Object.defineProperty(req, part, {
+      value: result.data,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+    
     next();
   };
 }

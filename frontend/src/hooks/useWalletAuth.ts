@@ -36,6 +36,8 @@ export function useWalletAuth() {
     }
   }, [address, isConnected, isAuthenticated, user, clearAuth]);
 
+
+
   /**
    * Bắt đầu SIWE flow: fetch nonce → build message → sign → verify
    */
@@ -96,6 +98,13 @@ export function useWalletAuth() {
       setStatus('error', apiErr?.message ?? 'Authentication failed');
     }
   }, [address, isWrongChain, signMessageAsync, setAuthenticated, setStatus]);
+
+  // Tự động trigger SIWE (ký message) ngay khi ví vừa kết nối thành công (tránh user phải bấm thêm nút Sign In)
+  useEffect(() => {
+    if (isConnected && !isAuthenticated && status === 'idle' && address) {
+      signIn();
+    }
+  }, [isConnected, isAuthenticated, status, address, signIn]);
 
   /**
    * Đăng xuất: disconnect ví + clear token
