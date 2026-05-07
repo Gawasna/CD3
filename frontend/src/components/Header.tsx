@@ -14,6 +14,7 @@ export default function Header() {
   const { openConnectModal } = useConnectModal();
 
   const {
+    isReady,
     address,
     isConnected,
     isAuthenticated,
@@ -56,9 +57,12 @@ export default function Header() {
 
       <div className="flex items-center gap-4">
         <LanguageSwitcher />
-        {isAuthenticated && user ? (
+        {!isReady ? (
+          <div className="h-14 w-[180px] bg-gray-200/50 animate-pulse rounded-full" />
+        ) : isAuthenticated && user ? (
           <UserProfileDropdown
             address={user.walletAddress}
+            user={user}
             onDisconnect={signOut}
           />
         ) : (

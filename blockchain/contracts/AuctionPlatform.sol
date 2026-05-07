@@ -21,6 +21,7 @@ contract AuctionPlatform is ReentrancyGuard {
 
     enum EscrowStatus {
         None,
+        AwaitingShipment, // Added: Waiting for seller to ship
         AwaitingDelivery,
         Disputed,
         Completed,
@@ -39,15 +40,37 @@ contract AuctionPlatform is ReentrancyGuard {
         string productCid;         // IPFS CID from Pinata
         AuctionStatus status;
         EscrowStatus escrowStatus;
+        uint256 shippedTime;       // Added: timestamp when item was shipped
+        bytes32 shipmentProofHash; // Added: proof of shipment
     }
 
     // ── State Variables ──────────────────────────────────────────────────────
 
     address public admin;
     uint256 public auctionCount;
+    uint256 public adminFeeBalance; // Added: Platform fees collected
 
     // Collateral ratio: 10% of startingPrice (in basis points: 1000 / 10000)
     uint256 public constant COLLATERAL_BPS = 1000;
+    
+    // Task 1: Minimum Bid Increment (5%)
+    uint256 public constant MIN_BID_INCREMENT_BPS = 500;
+    
+    // Task 2: Minimum Absolute Collateral
+    uint256 public constant MIN_COLLATERAL = 0.01 ether;
+    
+    // Task 3: Auto-release Timeout (14 days)
+    uint256 public constant AUTO_RELEASE_TIMEOUT = 14 days;
+    
+    // Task 4: Anti-sniping
+    uint256 public constant EXTENSION_WINDOW = 5 minutes;
+    uint256 public constant EXTENSION_DURATION = 5 minutes;
+    
+    // Task 5: Dispute Bond
+    uint256 public constant DISPUTE_BOND = 0.005 ether;
+    
+    // Task 8: Platform Fee (2%)
+    uint256 public constant PLATFORM_FEE_BPS = 200;
 
     mapping(uint256 => Auction) public auctions;
 
@@ -77,14 +100,18 @@ contract AuctionPlatform is ReentrancyGuard {
     );
 
     event AuctionCanceled(uint256 indexed auctionId);
+    
+    event ItemShipped(uint256 indexed auctionId, bytes32 shipmentProofHash);
 
     event DeliveryConfirmed(uint256 indexed auctionId, address indexed buyer);
+    
+    event AutoReleaseCompleted(uint256 indexed auctionId);
 
     event DisputeRaised(uint256 indexed auctionId, address indexed raisedBy);
 
     event DisputeResolved(
         uint256 indexed auctionId,
-        bool refundBuyer,
+        uint256 buyerRefundPercentage,
         address indexed resolvedBy
     );
 
@@ -142,8 +169,9 @@ contract AuctionPlatform is ReentrancyGuard {
         require(_duration > 0, "AuctionPlatform: duration must be > 0");
         require(bytes(_productCid).length > 0, "AuctionPlatform: product CID required");
 
-        // Collateral must be exactly 10% of starting price
-        uint256 minCollateral = (_startingPrice * COLLATERAL_BPS) / 10000;
+        // Task 2: Minimum Absolute Collateral
+        uint256 calcCollateral = (_startingPrice * COLLATERAL_BPS) / 10000;
+        uint256 minCollateral = calcCollateral > MIN_COLLATERAL ? calcCollateral : MIN_COLLATERAL;
         require(msg.value >= minCollateral, "AuctionPlatform: insufficient collateral");
 
         auctionCount++;
@@ -158,7 +186,9 @@ contract AuctionPlatform is ReentrancyGuard {
             collateral: msg.value,
             productCid: _productCid,
             status: AuctionStatus.Active,
-            escrowStatus: EscrowStatus.None
+            escrowStatus: EscrowStatus.None,
+            shippedTime: 0,
+            shipmentProofHash: bytes32(0)
         });
 
         emit AuctionCreated(
@@ -180,10 +210,19 @@ contract AuctionPlatform is ReentrancyGuard {
         require(auction.status == AuctionStatus.Active, "AuctionPlatform: auction not active");
         require(block.timestamp < auction.endTime, "AuctionPlatform: auction has ended");
         require(msg.sender != auction.seller, "AuctionPlatform: seller cannot bid");
-        require(
-            msg.value > auction.highestBid && msg.value >= auction.startingPrice,
-            "AuctionPlatform: bid too low"
-        );
+        
+        // Task 1: Minimum Bid Increment
+        if (auction.highestBid == 0) {
+            require(msg.value >= auction.startingPrice, "AuctionPlatform: bid too low");
+        } else {
+            uint256 minBid = auction.highestBid + (auction.highestBid * MIN_BID_INCREMENT_BPS) / 10000;
+            require(msg.value >= minBid, "AuctionPlatform: bid must meet minimum increment");
+        }
+
+        // Task 4: Anti-sniping
+        if (auction.endTime - block.timestamp <= EXTENSION_WINDOW) {
+            auction.endTime += EXTENSION_DURATION;
+        }
 
         // Queue previous highest bidder's refund (pull pattern)
         if (auction.highestBidder != address(0)) {
@@ -226,8 +265,8 @@ contract AuctionPlatform is ReentrancyGuard {
         auction.status = AuctionStatus.Ended;
 
         if (auction.highestBidder != address(0)) {
-            // Lock funds — awaiting delivery confirmation
-            auction.escrowStatus = EscrowStatus.AwaitingDelivery;
+            // Lock funds — awaiting shipment confirmation
+            auction.escrowStatus = EscrowStatus.AwaitingShipment;
             emit AuctionEnded(_auctionId, auction.highestBidder, auction.highestBid);
         } else {
             // No bids — return collateral to seller
@@ -265,6 +304,23 @@ contract AuctionPlatform is ReentrancyGuard {
     // ── Escrow Functions ─────────────────────────────────────────────────────
 
     /**
+     * @notice Task 6: Seller marks the item as shipped and provides proof.
+     */
+    function markShipped(uint256 _auctionId, bytes32 _shipmentProofHash) external nonReentrant onlySeller(_auctionId) auctionExists(_auctionId) {
+        Auction storage auction = auctions[_auctionId];
+        require(
+            auction.escrowStatus == EscrowStatus.AwaitingShipment,
+            "AuctionPlatform: not in AwaitingShipment state"
+        );
+
+        auction.escrowStatus = EscrowStatus.AwaitingDelivery;
+        auction.shippedTime = block.timestamp;
+        auction.shipmentProofHash = _shipmentProofHash;
+
+        emit ItemShipped(_auctionId, _shipmentProofHash);
+    }
+
+    /**
      * @notice Buyer confirms delivery. Releases funds to seller.
      * @param _auctionId Target auction
      */
@@ -278,8 +334,12 @@ contract AuctionPlatform is ReentrancyGuard {
 
         auction.escrowStatus = EscrowStatus.Completed;
 
-        // Release: highestBid + collateral → seller
-        uint256 payout = auction.highestBid + auction.collateral;
+        // Task 8: Platform Fee
+        uint256 fee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        adminFeeBalance += fee;
+
+        // Release: highestBid - fee + collateral → seller
+        uint256 payout = (auction.highestBid - fee) + auction.collateral;
         auction.highestBid = 0;
         auction.collateral = 0;
 
@@ -290,15 +350,48 @@ contract AuctionPlatform is ReentrancyGuard {
     }
 
     /**
-     * @notice Buyer raises dispute if item not delivered or misrepresented.
-     * @param _auctionId Target auction
+     * @notice Task 3: Seller claims funds if buyer fails to confirm delivery after timeout.
      */
-    function raiseDispute(uint256 _auctionId) external onlyWinner(_auctionId) auctionExists(_auctionId) {
+    function claimFunds(uint256 _auctionId) external nonReentrant onlySeller(_auctionId) auctionExists(_auctionId) {
         Auction storage auction = auctions[_auctionId];
-
         require(
             auction.escrowStatus == EscrowStatus.AwaitingDelivery,
             "AuctionPlatform: not in AwaitingDelivery state"
+        );
+        require(
+            block.timestamp >= auction.shippedTime + AUTO_RELEASE_TIMEOUT,
+            "AuctionPlatform: timeout not reached"
+        );
+
+        auction.escrowStatus = EscrowStatus.Completed;
+
+        // Task 8: Platform Fee
+        uint256 fee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        adminFeeBalance += fee;
+
+        // Release: highestBid - fee + collateral → seller
+        uint256 payout = (auction.highestBid - fee) + auction.collateral;
+        auction.highestBid = 0;
+        auction.collateral = 0;
+
+        (bool success, ) = auction.seller.call{value: payout}("");
+        require(success, "AuctionPlatform: payout to seller failed");
+
+        emit AutoReleaseCompleted(_auctionId);
+    }
+
+    /**
+     * @notice Buyer raises dispute if item not delivered or misrepresented.
+     * @param _auctionId Target auction
+     */
+    function raiseDispute(uint256 _auctionId) external payable nonReentrant onlyWinner(_auctionId) auctionExists(_auctionId) {
+        // Task 5: Dispute Bond
+        require(msg.value == DISPUTE_BOND, "AuctionPlatform: must pay dispute bond");
+        Auction storage auction = auctions[_auctionId];
+
+        require(
+            auction.escrowStatus == EscrowStatus.AwaitingDelivery || auction.escrowStatus == EscrowStatus.AwaitingShipment,
+            "AuctionPlatform: not in valid state to dispute"
         );
 
         auction.escrowStatus = EscrowStatus.Disputed;
@@ -309,14 +402,15 @@ contract AuctionPlatform is ReentrancyGuard {
     /**
      * @notice Admin resolves dispute.
      * @param _auctionId Target auction
-     * @param _refundBuyer true = buyer wins (seller loses collateral), false = seller wins
+     * @param _buyerRefundPercentage 0 to 100 representing how much of highestBid is refunded to buyer
      */
-    function resolveDispute(uint256 _auctionId, bool _refundBuyer)
+    function resolveDispute(uint256 _auctionId, uint256 _buyerRefundPercentage)
         external
         nonReentrant
         onlyAdmin
         auctionExists(_auctionId)
     {
+        require(_buyerRefundPercentage <= 100, "AuctionPlatform: percentage > 100");
         Auction storage auction = auctions[_auctionId];
 
         require(
@@ -326,23 +420,49 @@ contract AuctionPlatform is ReentrancyGuard {
 
         auction.escrowStatus = EscrowStatus.Refunded;
 
-        if (_refundBuyer) {
-            // Buyer wins: refund highestBid + collateral to buyer (as compensation)
-            uint256 totalBuyerPayout = auction.highestBid + auction.collateral;
-            auction.highestBid = 0;
-            auction.collateral = 0;
-            (bool success, ) = auction.highestBidder.call{value: totalBuyerPayout}("");
-            require(success, "AuctionPlatform: buyer payout failed");
-        } else {
-            // Seller wins (buyer acted in bad faith): release funds to seller as normal
-            uint256 payout = auction.highestBid + auction.collateral;
-            auction.highestBid = 0;
-            auction.collateral = 0;
-            (bool success, ) = auction.seller.call{value: payout}("");
-            require(success, "AuctionPlatform: seller payout failed");
+        uint256 highestBid = auction.highestBid;
+        uint256 collateral = auction.collateral;
+        auction.highestBid = 0;
+        auction.collateral = 0;
+
+        uint256 buyerRefund = (highestBid * _buyerRefundPercentage) / 100;
+        uint256 sellerShareFromBid = highestBid - buyerRefund;
+        
+        // Take platform fee from seller's share of the bid (Task 8)
+        uint256 fee = 0;
+        if (sellerShareFromBid > 0) {
+            fee = (sellerShareFromBid * PLATFORM_FEE_BPS) / 10000;
+            adminFeeBalance += fee;
+            sellerShareFromBid -= fee;
         }
 
-        emit DisputeResolved(_auctionId, _refundBuyer, msg.sender);
+        uint256 totalBuyerPayout = buyerRefund;
+        uint256 totalSellerPayout = sellerShareFromBid;
+
+        if (_buyerRefundPercentage > 0) {
+            // Task 5: Buyer wins partially or fully, return dispute bond
+            totalBuyerPayout += DISPUTE_BOND;
+            
+            // Task 7: Proportional refund of collateral
+            uint256 buyerCollateralShare = (collateral * _buyerRefundPercentage) / 100;
+            totalBuyerPayout += buyerCollateralShare;
+            totalSellerPayout += (collateral - buyerCollateralShare);
+        } else {
+            // Task 5: Buyer loses, forfeit dispute bond to admin
+            adminFeeBalance += DISPUTE_BOND;
+            totalSellerPayout += collateral;
+        }
+
+        if (totalBuyerPayout > 0) {
+            (bool successB, ) = auction.highestBidder.call{value: totalBuyerPayout}("");
+            require(successB, "AuctionPlatform: buyer payout failed");
+        }
+        if (totalSellerPayout > 0) {
+            (bool successS, ) = auction.seller.call{value: totalSellerPayout}("");
+            require(successS, "AuctionPlatform: seller payout failed");
+        }
+
+        emit DisputeResolved(_auctionId, _buyerRefundPercentage, msg.sender);
     }
 
     // ── View Functions ────────────────────────────────────────────────────────
@@ -363,7 +483,9 @@ contract AuctionPlatform is ReentrancyGuard {
             uint256 collateral,
             string memory productCid,
             AuctionStatus status,
-            EscrowStatus escrowStatus
+            EscrowStatus escrowStatus,
+            uint256 shippedTime,
+            bytes32 shipmentProofHash
         )
     {
         Auction storage a = auctions[_auctionId];
@@ -376,7 +498,9 @@ contract AuctionPlatform is ReentrancyGuard {
             a.collateral,
             a.productCid,
             a.status,
-            a.escrowStatus
+            a.escrowStatus,
+            a.shippedTime,
+            a.shipmentProofHash
         );
     }
 
@@ -384,7 +508,8 @@ contract AuctionPlatform is ReentrancyGuard {
      * @notice Calculate required collateral for a given starting price.
      */
     function requiredCollateral(uint256 _startingPrice) external pure returns (uint256) {
-        return (_startingPrice * COLLATERAL_BPS) / 10000;
+        uint256 calcCollateral = (_startingPrice * COLLATERAL_BPS) / 10000;
+        return calcCollateral > MIN_COLLATERAL ? calcCollateral : MIN_COLLATERAL;
     }
 
     // ── Admin Functions ───────────────────────────────────────────────────────
@@ -396,5 +521,16 @@ contract AuctionPlatform is ReentrancyGuard {
     function transferAdmin(address _newAdmin) external onlyAdmin {
         require(_newAdmin != address(0), "AuctionPlatform: zero address");
         admin = _newAdmin;
+    }
+    
+    /**
+     * @notice Admin withdraws collected platform fees and forfeited bonds.
+     */
+    function withdrawAdminFee() external onlyAdmin {
+        uint256 amount = adminFeeBalance;
+        require(amount > 0, "AuctionPlatform: no fees to withdraw");
+        adminFeeBalance = 0;
+        (bool success, ) = admin.call{value: amount}("");
+        require(success, "AuctionPlatform: admin withdrawal failed");
     }
 }
