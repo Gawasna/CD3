@@ -29,6 +29,14 @@ enum Role {
   ADMIN
 }
 
+enum EscrowStatus {
+  NONE
+  AWAITING_DELIVERY
+  DISPUTED
+  COMPLETED
+  REFUNDED
+}
+
 // DB-AM-06: type-safe category (DES-03: enum > FK cho scope đồ án)
 enum AuctionCategory {
   ELECTRONICS
@@ -80,11 +88,13 @@ model User {
   kycApprovedBy    String?   @map("kyc_approved_by") // walletAddress của Admin
   // DB-U-01: soft delete — giữ audit trail, không xóa vật lý
   deletedAt        DateTime? @map("deleted_at")
+  oldName          String?   @map("old_name")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relations
   auctions         AuctionMetadata[] @relation("SellerAuctions")
+  wonAuctions      AuctionMetadata[] @relation("WonAuctions")
   // DB-U-05: User là Bidder
   bids             Bid[]
   // Disputes raised bởi user này
@@ -109,6 +119,7 @@ model AuctionMetadata {
   onChainAuctionId  BigInt?         @unique @map("on_chain_auction_id")
   // DB-AM-02: off-chain status mirror
   status            AuctionStatus   @default(PENDING) @map("status")
+  escrowStatus      EscrowStatus    @default(NONE) @map("escrow_status")
   title             String
   // DB-AM-08: Text type cho long description
   description       String          @db.Text
@@ -125,12 +136,13 @@ model AuctionMetadata {
   // DB-AM-04: người thắng cuộc (set sau khi auction kết thúc)
   winnerId          String?         @map("winner_id")
   // DB-AM-07: TX hash của `createAuction` để trace on-chain
-  createTxHash      String?         @map("create_tx_hash")
+  createTxHash      String?         @unique @map("create_tx_hash")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
   // Relations
   seller            User            @relation("SellerAuctions", fields: [sellerId], references: [id])
+  winner            User?           @relation("WonAuctions", fields: [winnerId], references: [id])
   // DB-AM-09
   bids              Bid[]
   // DB-AM-10
@@ -214,7 +226,7 @@ model DisputeLog {
   resolution    String?         @db.Text  // Ghi chú quyết định của Admin
   outcome       DisputeOutcome?           // NULL khi đang pending
   // TX hash của resolveDispute() on-chain
-  resolveTxHash String?         @map("resolve_tx_hash")
+  resolveTxHash String?         @unique @map("resolve_tx_hash")
   raisedAt      DateTime        @default(now()) @map("raised_at")
   resolvedAt    DateTime?       @map("resolved_at")
 

@@ -20,6 +20,7 @@ interface AuthState {
   setStatus: (status: AuthStatus, error?: string) => void;
   clearAuth: () => void;
   setHasHydrated: (state: boolean) => void;
+  updateUser: (user: Partial<UserProfile>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -39,6 +40,11 @@ export const useAuthStore = create<AuthState>()(
       clearAuth: () => set({ token: null, user: null, status: 'idle', error: null }),
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
+
+      updateUser: (updates) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        })),
     }),
     {
       name: TOKEN_KEY,

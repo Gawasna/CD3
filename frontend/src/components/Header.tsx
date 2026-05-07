@@ -62,6 +62,7 @@ export default function Header() {
         ) : isAuthenticated && user ? (
           <UserProfileDropdown
             address={user.walletAddress}
+            user={user}
             onDisconnect={signOut}
           />
         ) : (
