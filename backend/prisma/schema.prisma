@@ -105,10 +105,31 @@ model User {
   adminActions     AdminActionLog[]  @relation("AdminActions")
   // Shipping logs user là người cập nhật
   shippingUpdates  ShippingLog[]     @relation("ShippingUpdater")
+  // KYC Request
+  kycRequest       KycRequest?       @relation("UserKycRequest")
 
   // DB-IDX-01: Admin filter by KYC status
   @@index([kycStatus])
   @@map("users")
+}
+
+// ---- KycRequest ----
+model KycRequest {
+  id              String    @id @default(uuid())
+  userId          String    @unique @map("user_id") // 1-1 relation with User for current active/pending request
+  fullName        String    @map("full_name")
+  idNumber        String    @unique @map("id_number")
+  dateOfBirth     DateTime  @map("date_of_birth")
+  address         String?
+  documentUrl     String?   @map("document_url")
+  status          KycStatus @default(PENDING)
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user            User      @relation("UserKycRequest", fields: [userId], references: [id])
+
+  @@map("kyc_requests")
 }
 
 // ---- AuctionMetadata ----

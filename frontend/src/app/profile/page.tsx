@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { profileApi } from '@/services/api/profile';
 import { useAuthStore } from '@/store/auth.store';
 import { Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
@@ -18,25 +19,24 @@ export default function ProfilePage() {
 
   const { _hasHydrated, updateUser } = useAuthStore();
 
-  useEffect(() => {
-    if (!_hasHydrated) return;
+  const { data: profileData, isLoading: isQueryLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => profileApi.getProfile(),
+    enabled: _hasHydrated,
+    refetchOnWindowFocus: true,
+  });
 
-    const fetchProfile = async () => {
-      try {
-        const res = await profileApi.getProfile();
-        const user = (res as any).user || (res as any).data || res;
-        setDisplayName(user.displayName || '');
-        setAvatarUrl(user.avatarUrl || '');
-        setKycStatus(user.kycStatus || 'NONE');
-      } catch (err) {
-        console.error('Failed to fetch profile', err);
-      } finally {
-        setIsPageLoading(false);
-      }
-    };
-    
-    fetchProfile();
-  }, [_hasHydrated]);
+  useEffect(() => {
+    if (profileData) {
+      const user = (profileData as any).user || (profileData as any).data || profileData;
+      setDisplayName(user.displayName || '');
+      setAvatarUrl(user.avatarUrl || '');
+      setKycStatus(user.kycStatus || 'NONE');
+      setIsPageLoading(false);
+    } else if (!isQueryLoading && _hasHydrated) {
+      setIsPageLoading(false);
+    }
+  }, [profileData, isQueryLoading, _hasHydrated]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -10,6 +10,8 @@ import { env } from './config/env';
 // Routes
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/user.routes';
+import kycRoutes from './modules/kyc/kyc.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 // Shared middleware
 import { errorHandler } from './shared/middleware/error-handler';
@@ -53,6 +55,8 @@ app.get('/healthcheck', (_req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/v1/kyc', kycRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // Global error handler — PHẢI đặt cuối cùng
 app.use(errorHandler);

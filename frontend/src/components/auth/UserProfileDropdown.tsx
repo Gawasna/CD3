@@ -71,6 +71,17 @@ export default function UserProfileDropdown({ address, user, onDisconnect }: Use
               <span className="font-geist text-sm text-[#111111]">Bid History</span>
             </Link>
 
+            {user?.role === 'ADMIN' && (
+              <Link
+                href="/admin/kyc"
+                className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#FEF2F2] transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Gavel className="w-5 h-5 text-[#991B1B]" />
+                <span className="font-geist text-sm text-[#991B1B] font-semibold">Admin KYC</span>
+              </Link>
+            )}
+
             <div className="w-full h-px bg-[#CBCCC9] my-1" />
 
             <button
