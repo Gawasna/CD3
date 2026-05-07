@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAccount, useSignMessage, useDisconnect } from 'wagmi';
 import { useAuthStore } from '../store/auth.store';
 import { fetchNonce, verifySignature, fetchMe } from '../services/api/auth';
@@ -13,28 +13,32 @@ const EXPECTED_CHAIN_ID = ganacheLocal.id;
  * connect → nonce → sign → verify → store token
  */
 export function useWalletAuth() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, isConnecting, isReconnecting, chainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
 
-  const { token, user, status, error, setAuthenticated, setStatus, clearAuth } = useAuthStore();
+  const { token, user, status, error, setAuthenticated, setStatus, clearAuth, _hasHydrated } = useAuthStore();
 
-  const isAuthenticated = status === 'authenticated' && !!token;
+  const isAuthenticated = !!token;
   const isSigning = status === 'signing';
   const isWrongChain = isConnected && chainId !== EXPECTED_CHAIN_ID;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isReady = mounted && _hasHydrated;
+
   // AUTH-UI-08: khi address thay đổi, clear token cũ và yêu cầu ký lại
   useEffect(() => {
-    if (!isConnected) {
-      clearAuth();
-      return;
-    }
+    if (!_hasHydrated) return;
+    // Đợi wagmi hydrate xong trạng thái ví
+    if (isConnecting || isReconnecting) return;
 
     // Nếu user đã auth nhưng đổi ví → clear
-    if (isAuthenticated && user && address && user.walletAddress !== address.toLowerCase()) {
+    if (isAuthenticated && user && address && user.walletAddress.toLowerCase() !== address.toLowerCase()) {
       clearAuth();
     }
-  }, [address, isConnected, isAuthenticated, user, clearAuth]);
+  }, [address, isConnecting, isReconnecting, isAuthenticated, user, clearAuth, _hasHydrated]);
 
 
 
@@ -101,10 +105,12 @@ export function useWalletAuth() {
 
   // Tự động trigger SIWE (ký message) ngay khi ví vừa kết nối thành công (tránh user phải bấm thêm nút Sign In)
   useEffect(() => {
-    if (isConnected && !isAuthenticated && status === 'idle' && address) {
+    if (!_hasHydrated) return;
+    // Không auto trigger nếu đang có token
+    if (isConnected && !token && status === 'idle' && address) {
       signIn();
     }
-  }, [isConnected, isAuthenticated, status, address, signIn]);
+  }, [isConnected, token, status, address, signIn, _hasHydrated]);
 
   /**
    * Đăng xuất: disconnect ví + clear token
@@ -122,6 +128,7 @@ export function useWalletAuth() {
   }, [clearAuth]);
 
   return {
+    isReady,
     address,
     isConnected,
     isAuthenticated,

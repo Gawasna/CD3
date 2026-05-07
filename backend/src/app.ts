@@ -14,7 +14,12 @@ import userRoutes from './modules/users/user.routes';
 // Shared middleware
 import { errorHandler } from './shared/middleware/error-handler';
 
+import path from 'path';
+
 const app = express();
+
+// Phân phối static file cho chức năng upload (Lấy từ storage folder ngoài project root)
+app.use('/uploads/avatars', express.static(path.join(process.cwd(), '../storage/avatars')));
 
 // Security headers
 app.use(helmet());
