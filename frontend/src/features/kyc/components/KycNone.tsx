@@ -14,7 +14,7 @@ const DEFAULT_PERSONAL_INFO = {
 
 interface KycNoneProps {
   walletAddress: string;
-  onSubmit: () => void;
+  onSubmit: (data: any) => void;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -335,7 +335,16 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
           Save draft
         </button>
         <button
-          onClick={onSubmit}
+          onClick={() => {
+            const data = {
+              fullName: personalInfo.fullName,
+              idNumber: personalInfo.idNumber,
+              dateOfBirth: new Date(personalInfo.dateOfBirth).toISOString(),
+              address: personalInfo.country,
+              documentUrl: 'https://example.com/mock-cccd.png', // mock file URL
+            };
+            onSubmit(data);
+          }}
           disabled={!consentAccepted || backStatus === 'missing'}
           className="inline-flex items-center rounded-md bg-[#FF8400] px-4.5 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#e07600] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >

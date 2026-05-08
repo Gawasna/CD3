@@ -7,6 +7,7 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ConnectWalletButton from './auth/ConnectWalletButton';
 import UserProfileDropdown from './auth/UserProfileDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './ui/NotificationBell';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 
 export default function Header() {
@@ -56,6 +57,7 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <LanguageSwitcher />
         {!isReady ? (
           <div className="h-14 w-[180px] bg-gray-200/50 animate-pulse rounded-full" />

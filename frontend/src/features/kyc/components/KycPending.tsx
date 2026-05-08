@@ -4,16 +4,13 @@ import { KycStatusBadge } from './KycStatusBadge';
 
 interface KycPendingProps {
   walletAddress: string;
-  // Dev-only demo controls
-  onApprove?: () => void;
-  onReject?: () => void;
+  onRefreshStatus?: () => void;
   onBackToDashboard?: () => void;
 }
 
 export function KycPending({
   walletAddress,
-  onApprove,
-  onReject,
+  onRefreshStatus,
   onBackToDashboard,
 }: KycPendingProps) {
   return (
@@ -96,32 +93,16 @@ export function KycPending({
         </div>
       </div>
 
-      {/* Demo controls (dev only) */}
-      <div className="rounded-lg bg-[#F9FAFB] border border-[#CBCCC9] p-4 flex flex-col gap-2.5">
-        <h3 className="font-jetbrains text-[16px] font-bold text-[#111111]">
-          Demo controls
-        </h3>
-        <p className="text-[13px] text-[#666666]">
-          Development-only actions can approve or reject this mock KYC package.
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onApprove}
-            className="inline-flex items-center rounded-md bg-[#10B981] px-3.5 py-2.5 text-[13px] font-bold text-white hover:bg-[#059669] transition-colors"
-          >
-            Approve demo
-          </button>
-          <button
-            onClick={onReject}
-            className="inline-flex items-center rounded-md bg-[#FEE2E2] px-3.5 py-2.5 text-[13px] font-bold text-[#991B1B] hover:bg-[#FECACA] transition-colors"
-          >
-            Reject: unreadable back side
-          </button>
-        </div>
-      </div>
+
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
+        <button
+          onClick={onRefreshStatus}
+          className="inline-flex items-center rounded-md bg-[#FF8400] px-4 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#e07600] transition-colors"
+        >
+          Refresh status
+        </button>
         <button
           onClick={onBackToDashboard}
           className="inline-flex items-center rounded-md bg-[#E7E8E5] px-4 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#CBCCC9] transition-colors"
