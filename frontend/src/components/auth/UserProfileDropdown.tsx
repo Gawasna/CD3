@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Gavel, History, LogOut, ChevronDown } from 'lucide-react';
+import { User, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 import type { UserProfile } from '../../services/api/auth';
@@ -45,7 +45,7 @@ export default function UserProfileDropdown({ address, user, onDisconnect }: Use
           />
           <div className="absolute right-0 top-12 z-50 w-[280px] p-2 bg-white rounded-2xl border border-[#CBCCC9] shadow-lg">
             <Link
-              href="/dashboard"
+              href="/profile"
               className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#F2F3F0] transition-colors"
               onClick={() => setIsOpen(false)}
             >
@@ -54,21 +54,12 @@ export default function UserProfileDropdown({ address, user, onDisconnect }: Use
             </Link>
 
             <Link
-              href="/dashboard/auctions"
+              href="/dashboard"
               className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#F2F3F0] transition-colors"
               onClick={() => setIsOpen(false)}
             >
-              <Gavel className="w-5 h-5 text-[#111111]" />
-              <span className="font-geist text-sm text-[#111111]">My Auctions</span>
-            </Link>
-
-            <Link
-              href="/dashboard/bids"
-              className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#F2F3F0] transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              <History className="w-5 h-5 text-[#111111]" />
-              <span className="font-geist text-sm text-[#111111]">Bid History</span>
+              <LayoutDashboard className="w-5 h-5 text-[#111111]" />
+              <span className="font-geist text-sm text-[#111111]">Dashboard</span>
             </Link>
 
             {user?.role === 'ADMIN' && (
@@ -77,7 +68,7 @@ export default function UserProfileDropdown({ address, user, onDisconnect }: Use
                 className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#FEF2F2] transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                <Gavel className="w-5 h-5 text-[#991B1B]" />
+                <User className="w-5 h-5 text-[#991B1B]" />
                 <span className="font-geist text-sm text-[#991B1B] font-semibold">Admin KYC</span>
               </Link>
             )}

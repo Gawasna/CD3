@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { Upload, Check } from 'lucide-react';
+import { useState, useRef, DragEvent } from 'react';
+import { Upload, Check, X, Image as ImageIcon, Video } from 'lucide-react';
 
 type Condition = 'new' | 'like-new' | 'used' | 'for-parts';
+
+interface MediaFile {
+  file: File;
+  preview: string;
+  type: 'image' | 'video';
+}
 
 export default function CreateAuction() {
   const [selectedCondition, setSelectedCondition] = useState<Condition>('new');
   const [shippingEnabled, setShippingEnabled] = useState(true);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const conditions: { value: Condition; label: string }[] = [
     { value: 'new', label: 'New' },
@@ -16,6 +25,86 @@ export default function CreateAuction() {
     { value: 'for-parts', label: 'For Parts' },
   ];
 
+  const validateFile = (file: File): { valid: boolean; error?: string } => {
+    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const videoTypes = ['video/mp4', 'video/quicktime']; // quicktime is .mov
+    const maxImageSize = 5 * 1024 * 1024; // 5MB
+    const maxVideoSize = 50 * 1024 * 1024; // 50MB
+
+    if (imageTypes.includes(file.type)) {
+      if (file.size > maxImageSize) {
+        return { valid: false, error: 'Image must be less than 5MB' };
+      }
+      return { valid: true };
+    } else if (videoTypes.includes(file.type)) {
+      if (file.size > maxVideoSize) {
+        return { valid: false, error: 'Video must be less than 50MB' };
+      }
+      return { valid: true };
+    } else {
+      return { valid: false, error: 'Only JPG, PNG, MP4, and MOV files are allowed' };
+    }
+  };
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+
+    const newMediaFiles: MediaFile[] = [];
+    
+    Array.from(files).forEach((file) => {
+      const validation = validateFile(file);
+      
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
+      }
+
+      const isImage = file.type.startsWith('image/');
+      const preview = URL.createObjectURL(file);
+      
+      newMediaFiles.push({
+        file,
+        preview,
+        type: isImage ? 'image' : 'video',
+      });
+    });
+
+    setMediaFiles((prev) => [...prev, ...newMediaFiles]);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFiles(e.dataTransfer.files);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFiles(e.target.files);
+  };
+
+  const removeFile = (index: number) => {
+    setMediaFiles((prev) => {
+      const newFiles = [...prev];
+      URL.revokeObjectURL(newFiles[index].preview);
+      newFiles.splice(index, 1);
+      return newFiles;
+    });
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="flex flex-col items-center p-16 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       <div className="flex flex-col gap-12 w-full max-w-[800px]">
@@ -23,11 +112,84 @@ export default function CreateAuction() {
         
         <form className="flex flex-col gap-8 bg-white border border-[#CBCCC9] rounded-2xl p-12 shadow-sm w-full">
           {/* Upload Area */}
-          <div className="flex flex-col items-center justify-center gap-4 h-[200px] w-full bg-[#E7E8E5] border border-[#CBCCC9] border-dashed rounded-2xl cursor-pointer hover:bg-[#DFE0DD] transition-colors">
-            <Upload className="w-8 h-8 text-[#666666]" />
-            <span className="font-geist text-sm text-[#666666]">
-              Click or Drag & Drop to Upload Media (JPG/PNG &lt; 5MB)
-            </span>
+          <div className="flex flex-col gap-4 w-full">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/jpg,image/png,video/mp4,video/quicktime"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            
+            <div
+              onClick={handleUploadClick}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-4 h-[200px] w-full border border-dashed rounded-2xl cursor-pointer transition-colors ${
+                isDragging
+                  ? 'bg-[#FFE5CC] border-[#FF8400]'
+                  : 'bg-[#E7E8E5] border-[#CBCCC9] hover:bg-[#DFE0DD]'
+              }`}
+            >
+              <Upload className="w-8 h-8 text-[#666666]" />
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-geist text-sm text-[#666666]">
+                  Click or Drag & Drop to Upload Media
+                </span>
+                <span className="font-geist text-xs text-[#999999]">
+                  JPG, PNG (&lt; 5MB) • MP4, MOV (&lt; 50MB)
+                </span>
+              </div>
+            </div>
+
+            {/* Preview Grid */}
+            {mediaFiles.length > 0 && (
+              <div className="grid grid-cols-4 gap-4 w-full">
+                {mediaFiles.map((media, index) => (
+                  <div
+                    key={index}
+                    className="relative aspect-square bg-[#E7E8E5] rounded-xl overflow-hidden border border-[#CBCCC9] group"
+                  >
+                    {media.type === 'image' ? (
+                      <img
+                        src={media.preview}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="relative w-full h-full">
+                        <video
+                          src={media.preview}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Video className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Remove Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(index);
+                      }}
+                      className="absolute top-2 right-2 w-6 h-6 bg-[#111111] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#FF8400]"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+
+                    {/* File Type Badge */}
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 rounded text-white font-jetbrains text-[10px] font-semibold">
+                      {media.type === 'image' ? 'IMG' : 'VID'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Item Name */}
