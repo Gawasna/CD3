@@ -1,7 +1,8 @@
 // ============================================================
 // CD3 Blockchain Auction Platform — Prisma Schema
-// Phiên bản: 2.0 — Post-audit rewrite (2026-04-16)
-// Audit ref: docs/database/db_schema_audit_report.md
+// Phiên bản: 3.0 — P1 Consensus sync (2026-05-09)
+// Audit ref: docs/artifacts/final_consensus_direction.md
+// Changes: AWAITING_SHIPMENT, FORFEITED, ShippingPayer, buyNowPrice, shipping economics
 // ============================================================
 
 generator client {
@@ -31,6 +32,9 @@ enum Role {
 
 enum EscrowStatus {
   NONE
+  // Gap DB-1 (Kiro/Antigravity): AWAITING_SHIPMENT thiếu — mirror EscrowStatus.AwaitingShipment on-chain
+  // Cần cho seller dashboard hiển thị task "cần ship hàng" và phân biệt pha chờ ship vs chờ confirm
+  AWAITING_SHIPMENT
   AWAITING_DELIVERY
   DISPUTED
   COMPLETED
@@ -52,6 +56,17 @@ enum AuctionStatus {
   ACTIVE     // Đang nhận bid
   ENDED      // Hết giờ, chờ claim/shipping
   CANCELED   // Hủy (chưa có bid hoặc bị admin cancel)
+  // Consensus C-04: FORFEITED phân biệt với CANCELED — Winner default sau khi thắng
+  // Dùng để Admin filter abuse pattern, Seller biết lý do auction kết thúc
+  FORFEITED  // Winner gọi forfeitWin() — đã chịu penalty 10%
+}
+
+// Consensus C-02 (Shipping Economics): Người trả phí vận chuyển — off-chain metadata
+// Contract không thay đổi payout logic; field này chỉ dùng cho UI display
+enum ShippingPayer {
+  BUYER    // Buyer total = winningBid + shippingCost; seller net = winningBid - platformFee
+  SELLER   // Buyer total = winningBid; seller net = winningBid - platformFee - shippingCost
+  PLATFORM // Buyer total = winningBid; seller net = winningBid - platformFee; platform trả phí ship
 }
 
 // DB-SL-02: bổ sung CONFIRMED, CANCELED; DB-SL-05: remove DISPUTED khỏi shipping domain
@@ -62,7 +77,9 @@ enum ShippingStatus {
   CANCELED    // Hủy do dispute giải quyết bằng REFUNDED
 }
 
-// Outcome của dispute — đồng bộ smart contract resolveDispute(bool refundBuyer)
+// Outcome của dispute — đồng bộ smart contract resolveDispute(uint256 _buyerRefundPercentage)
+// DB dùng binary outcome (BUYER_WIN/SELLER_WIN) để đơn giản hóa off-chain log;
+// percentage thực tế được lưu trong DisputeLog.resolution (text) nếu cần
 enum DisputeOutcome {
   BUYER_WIN  // refundBuyer = true
   SELLER_WIN // refundBuyer = false
@@ -158,6 +175,17 @@ model AuctionMetadata {
   winnerId          String?         @map("winner_id")
   // DB-AM-07: TX hash của `createAuction` để trace on-chain
   createTxHash      String?         @unique @map("create_tx_hash")
+
+  // Consensus C-01 (Buy Now Price): Ngưỡng giá "Mua Ngay" — NULL = disabled
+  // Sync với buyNowPrice trong Auction struct on-chain
+  // Khi bid >= buyNowPrice, auction tự kết thúc ngay lập tức
+  buyNowPriceWei    String?         @map("buy_now_price_wei")
+
+  // Consensus C-02 (Shipping Economics): Chi phí vận chuyển — off-chain metadata only
+  // Contract không xử lý; UI dùng để hiển thị tổng chi phí ước tính cho buyer
+  shippingCostWei   String          @default("0") @map("shipping_cost_wei")
+  shippingPayer     ShippingPayer   @default(BUYER) @map("shipping_payer")
+
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
@@ -209,6 +237,10 @@ model ShippingLog {
   updatedById  String         @map("updated_by_id")
   // DB-SL-04: ghi chú thêm (tracking number, ghi chú giao vận)
   notes        String?        @db.Text
+  // Consensus C-02 (Shipping Economics): Mock logistics metadata — không có on-chain equivalent
+  // carrierName + trackingCode làm phong phú thêm mock logistics cho prototype/demo
+  carrierName  String?        @map("carrier_name")
+  trackingCode String?        @map("tracking_code")
   // DB-SL-03: đây là log record (immutable), đặt tên createdAt cho đúng semantics
   createdAt    DateTime       @default(now()) @map("created_at")
 
