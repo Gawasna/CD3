@@ -43,7 +43,7 @@ export default function Homepage() {
         <p className="text-center font-geist text-lg text-[#666666]">
           {t('hero.description')}
         </p>
-        <Link href="/auctions" className="flex items-center justify-center h-10 px-6 py-2 gap-1.5 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity">
+        <Link href="/explore" className="flex items-center justify-center h-10 px-6 py-2 gap-1.5 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity">
           {t('hero.cta')}
         </Link>
       </section>

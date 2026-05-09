@@ -22,7 +22,7 @@ interface AuctionSectionProps {
 export default function AuctionSection({
   title,
   viewAllText,
-  viewAllHref = '/auctions',
+  viewAllHref = '/explore',
   items,
   variant,
 }: AuctionSectionProps) {

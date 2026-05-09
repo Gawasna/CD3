@@ -19,7 +19,7 @@ const mockAuctions = [
   {
     id: "1",
     title: "Rolex Submariner 2023",
-    image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400",
+    image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=400&h=300&fit=crop",
     currentBid: "2.5",
     bids: 24,
     timeLeft: "2h 34m left",
@@ -29,7 +29,7 @@ const mockAuctions = [
   {
     id: "2",
     title: "Vintage Camera Collection",
-    image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400",
+    image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400&h=300&fit=crop",
     currentBid: "1.2",
     bids: 18,
     timeLeft: "45m left",
@@ -39,7 +39,7 @@ const mockAuctions = [
   {
     id: "3",
     title: "Limited Edition Sneakers",
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
+    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop",
     currentBid: "0.8",
     bids: 32,
     timeLeft: "5h 12m left",
@@ -49,7 +49,7 @@ const mockAuctions = [
   {
     id: "4",
     title: "Abstract Digital Art",
-    image: "https://images.unsplash.com/photo-1549887534-1541e9326642?w=400",
+    image: "https://images.unsplash.com/photo-1549887534-1541e9326642?w=400&h=300&fit=crop",
     currentBid: "3.5",
     bids: 56,
     timeLeft: "1h 20m left",
@@ -59,7 +59,7 @@ const mockAuctions = [
   {
     id: "5",
     title: "Designer Handbag",
-    image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400",
+    image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&h=300&fit=crop",
     currentBid: "1.8",
     bids: 41,
     timeLeft: "3h 45m left",
@@ -69,7 +69,7 @@ const mockAuctions = [
   {
     id: "6",
     title: "Gaming Console Bundle",
-    image: "https://images.unsplash.com/photo-1486401899868-0e435ed85128?w=400",
+    image: "https://images.unsplash.com/photo-1486401899868-0e435ed85128?w=400&h=300&fit=crop",
     currentBid: "0.5",
     bids: 67,
     timeLeft: "6h 20m left",
@@ -79,7 +79,7 @@ const mockAuctions = [
   {
     id: "7",
     title: "Rare Comic Book",
-    image: "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400",
+    image: "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=300&fit=crop",
     currentBid: "2.2",
     bids: 89,
     timeLeft: "30m left",
@@ -89,7 +89,7 @@ const mockAuctions = [
   {
     id: "8",
     title: "Antique Furniture",
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400",
+    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=300&fit=crop",
     currentBid: "4.0",
     bids: 12,
     timeLeft: "4h 15m left",
@@ -99,7 +99,7 @@ const mockAuctions = [
   {
     id: "9",
     title: "Vintage Vinyl Records",
-    image: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=400",
+    image: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=400&h=300&fit=crop",
     currentBid: "0.6",
     bids: 28,
     timeLeft: "2h 50m left",
@@ -109,7 +109,7 @@ const mockAuctions = [
   {
     id: "10",
     title: "Smart Home Device",
-    image: "https://images.unsplash.com/photo-1558089687-e1c6e5b1e8e0?w=400",
+    image: "https://images.unsplash.com/photo-1558089687-e1c6e5b1e8e0?w=400&h=300&fit=crop",
     currentBid: "0.3",
     bids: 95,
     timeLeft: "7h 30m left",
@@ -119,7 +119,7 @@ const mockAuctions = [
   {
     id: "11",
     title: "Luxury Perfume Set",
-    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=400",
+    image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=300&fit=crop",
     currentBid: "1.1",
     bids: 37,
     timeLeft: "4h 05m left",
@@ -129,7 +129,7 @@ const mockAuctions = [
   {
     id: "12",
     title: "Professional Camera Lens",
-    image: "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400",
+    image: "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400&h=300&fit=crop",
     currentBid: "5.5",
     bids: 103,
     timeLeft: "15m left",
@@ -202,21 +202,21 @@ export function AuctionGrid({
     <div className="flex-1 flex flex-col gap-8">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground font-mono">
+        <h1 className="text-2xl font-bold text-[#111111] font-mono">
           Explore ({filteredAuctions.length} Items)
         </h1>
 
         <div className="flex items-center gap-4">
           {/* Sort Dropdown */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">Sort by:</span>
-            <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-full hover:bg-secondary transition-colors">
-              <span className="text-sm text-foreground">
+            <span className="text-sm text-[#666666]">Sort by:</span>
+            <button className="flex items-center gap-2 px-4 py-2 border border-[#CBCCC9] rounded-full hover:bg-[#E7E8E5] transition-colors">
+              <span className="text-sm text-[#111111]">
                 {sortBy === "ending_soon" && "Ending Soon"}
                 {sortBy === "highest_bid" && "Highest Bid"}
                 {sortBy === "most_bids" && "Most Bids"}
               </span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              <ChevronDown className="w-4 h-4 text-[#666666]" />
             </button>
           </div>
 
@@ -226,13 +226,13 @@ export function AuctionGrid({
               onClick={() => onViewModeChange("grid")}
               className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
                 viewMode === "grid"
-                  ? "bg-secondary"
-                  : "bg-transparent hover:bg-secondary/50"
+                  ? "bg-[#E7E8E5]"
+                  : "bg-transparent hover:bg-[#E7E8E5]/50"
               }`}
             >
               <Grid3x3
                 className={`w-5 h-5 ${
-                  viewMode === "grid" ? "text-foreground" : "text-muted-foreground"
+                  viewMode === "grid" ? "text-[#111111]" : "text-[#666666]"
                 }`}
               />
             </button>
@@ -240,13 +240,13 @@ export function AuctionGrid({
               onClick={() => onViewModeChange("list")}
               className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
                 viewMode === "list"
-                  ? "bg-secondary"
-                  : "bg-transparent hover:bg-secondary/50"
+                  ? "bg-[#E7E8E5]"
+                  : "bg-transparent hover:bg-[#E7E8E5]/50"
               }`}
             >
               <List
                 className={`w-5 h-5 ${
-                  viewMode === "list" ? "text-foreground" : "text-muted-foreground"
+                  viewMode === "list" ? "text-[#111111]" : "text-[#666666]"
                 }`}
               />
             </button>

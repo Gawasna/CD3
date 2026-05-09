@@ -39,31 +39,31 @@ export function ExploreFilters({
   };
 
   return (
-    <aside className="w-[280px] flex-shrink-0">
-      <div className="flex flex-col gap-8">
+    <aside className="w-[240px] flex-shrink-0">
+      <div className="flex flex-col gap-6">
         {/* Title */}
-        <h2 className="text-2xl font-bold text-foreground font-mono">Filters</h2>
+        <h2 className="text-xl font-bold text-[#111111] font-mono">Filters</h2>
 
         {/* Categories */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-sm text-muted-foreground">Categories</h3>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium text-[#666666]">Categories</h3>
           <div className="flex flex-col gap-2">
             {categories.map((category) => (
               <label
                 key={category.id}
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <div
-                  className={`w-4 h-4 rounded border border-border flex items-center justify-center ${
+                  className={`w-4 h-4 rounded border border-[#CBCCC9] flex items-center justify-center transition-colors ${
                     selectedCategories.includes(category.id)
-                      ? "bg-primary border-primary"
+                      ? "bg-[#FF8400] border-[#FF8400]"
                       : "bg-transparent"
                   }`}
                   onClick={() => toggleCategory(category.id)}
                 >
                   {selectedCategories.includes(category.id) && (
                     <svg
-                      className="w-3 h-3 text-primary-foreground"
+                      className="w-3 h-3 text-[#111111]"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -77,34 +77,34 @@ export function ExploreFilters({
                     </svg>
                   )}
                 </div>
-                <span className="text-sm text-foreground">{category.label}</span>
+                <span className="text-sm text-[#111111]">{category.label}</span>
               </label>
             ))}
           </div>
         </div>
 
         {/* Status */}
-        <div className="flex flex-col gap-4">
-          <h3 className="text-sm text-muted-foreground">Status</h3>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-medium text-[#666666]">Status</h3>
           <div className="flex flex-col gap-2">
             {statuses.map((status) => (
               <label
                 key={status.id}
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <div
-                  className={`w-4 h-4 rounded-full border border-border flex items-center justify-center ${
+                  className={`w-4 h-4 rounded-full border border-[#CBCCC9] flex items-center justify-center transition-colors ${
                     selectedStatus === status.id
-                      ? "border-primary"
-                      : "border-border"
+                      ? "border-[#FF8400]"
+                      : "border-[#CBCCC9]"
                   }`}
                   onClick={() => onStatusChange(status.id)}
                 >
                   {selectedStatus === status.id && (
-                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <div className="w-2 h-2 rounded-full bg-[#FF8400]" />
                   )}
                 </div>
-                <span className="text-sm text-foreground">{status.label}</span>
+                <span className="text-sm text-[#111111]">{status.label}</span>
               </label>
             ))}
           </div>
