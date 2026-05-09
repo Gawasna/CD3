@@ -1,0 +1,23 @@
+{
+  "title": "Khám Phá Đấu Giá",
+  "searchPlaceholder": "Tìm kiếm sản phẩm, bộ sưu tập...",
+  "connectWallet": "Kết Nối Ví",
+  "filters": "Bộ Lọc",
+  "categories": "Danh Mục",
+  "status": "Trạng Thái",
+  "sortBy": "Sắp xếp:",
+  "endingSoon": "Sắp Kết Thúc",
+  "highestBid": "Giá Cao Nhất",
+  "mostBids": "Nhiều Lượt Đấu",
+  "itemsCount": "{count} Sản Phẩm",
+  "currentBid": "Giá Hiện Tại",
+  "bids": "Lượt Đấu",
+  "live": "ĐANG DIỄN RA",
+  "ending": "SẮP KẾT THÚC",
+  "allAuctions": "Tất Cả Đấu Giá",
+  "liveAuctions": "Đấu Giá Đang Diễn",
+  "electronics": "Điện Tử",
+  "fashion": "Thời Trang",
+  "collectibles": "Sưu Tầm",
+  "art": "Nghệ Thuật"
+}

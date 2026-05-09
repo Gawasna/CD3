@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Box, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -7,11 +8,14 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ConnectWalletButton from './auth/ConnectWalletButton';
 import UserProfileDropdown from './auth/UserProfileDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './ui/NotificationBell';
+import SearchDropdown from './shared/SearchDropdown';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 
 export default function Header() {
   const t = useTranslations('common.header');
   const { openConnectModal } = useConnectModal();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const {
     isReady,
@@ -46,16 +50,21 @@ export default function Header() {
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 h-10 px-4 rounded-full border border-[#CBCCC9] w-[400px]">
-        <Search className="w-5 h-5 text-[#666666]" />
-        <input
-          type="text"
-          placeholder={t('searchPlaceholder')}
-          className="bg-transparent border-none outline-none w-full font-geist text-sm text-[#111111] placeholder:text-[#666666]"
-        />
+      <div className="relative">
+        <div className="flex items-center gap-2 h-10 px-4 rounded-full border border-[#CBCCC9] w-[400px]">
+          <Search className="w-5 h-5 text-[#666666]" />
+          <input
+            type="text"
+            placeholder={t('searchPlaceholder')}
+            className="bg-transparent border-none outline-none w-full font-geist text-sm text-[#111111] placeholder:text-[#666666]"
+            onFocus={() => setIsSearchOpen(true)}
+          />
+        </div>
+        <SearchDropdown isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <LanguageSwitcher />
         {!isReady ? (
           <div className="h-14 w-[180px] bg-gray-200/50 animate-pulse rounded-full" />

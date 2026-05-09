@@ -12,13 +12,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 export async function authFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token;
 
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+  const headers = new Headers(options?.headers);
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
+    headers,
   });
 
   // AUTH-UI-07: token hết hạn hoặc bị revoke → clear session

@@ -4,12 +4,31 @@
     "description": "P2P Auction Blockchain Platform. Transparent, Fast, Secure.",
     "cta": "Explore Auctions"
   },
-  "trending": {
-    "title": "Ending Soon",
-    "viewAll": "View All →"
+  "sections": {
+    "endingSoon": {
+      "title": "Ending Soon",
+      "viewAll": "View All →"
+    },
+    "liveAuctions": {
+      "title": "Live Auctions",
+      "viewAll": "View All →",
+      "tag": "LIVE"
+    },
+    "watching": {
+      "title": "Watching",
+      "viewAll": "View All →"
+    },
+    "upcoming": {
+      "title": "Upcoming",
+      "viewAll": "View All →",
+      "startsIn": "Starts in",
+      "starting": "Starting"
+    }
   },
   "card": {
-    "trendingItem": "Trending Item",
-    "currentBid": "Current bid"
+    "seller": "Seller",
+    "bidNow": "Bid Now",
+    "placeBid": "Place Bid",
+    "notifyMe": "Notify Me"
   }
 }

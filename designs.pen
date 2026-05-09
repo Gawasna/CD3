@@ -7236,6 +7236,307 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "GN7w3",
+      "x": 2740,
+      "y": 4037,
+      "name": "User Profile",
+      "width": 1440,
+      "height": 1000,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "bRIcX",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "header"
+        },
+        {
+          "type": "frame",
+          "id": "oRrfu",
+          "name": "main",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            48,
+            120
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "VTOk1",
+              "name": "title",
+              "fill": "$--foreground",
+              "content": "Quản lý Hồ sơ",
+              "fontFamily": "$--font-primary",
+              "fontSize": 36,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "yQUlb",
+              "name": "form",
+              "width": 800,
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 32,
+              "padding": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vv9Fc",
+                  "name": "avatarSect",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UA4OQ",
+                      "name": "avatarLbl",
+                      "fill": "$--foreground",
+                      "content": "Ảnh đại diện",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Wqgqr",
+                      "name": "avatarRow",
+                      "gap": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FZVIV",
+                          "name": "avatarImg",
+                          "width": 80,
+                          "height": 80,
+                          "fill": "#000000",
+                          "cornerRadius": "$--radius-pill"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "cbViQ",
+                          "name": "avatarBtn",
+                          "fill": "$--background",
+                          "cornerRadius": "$--radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$--border"
+                          },
+                          "padding": [
+                            10,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "RPEEq",
+                              "name": "avatarBtnTxt",
+                              "fill": "$--foreground",
+                              "content": "Tải ảnh lên",
+                              "fontFamily": "$--font-secondary",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "i0ZYc",
+                  "name": "nameSect",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MwutU",
+                      "name": "nameLbl",
+                      "fill": "$--foreground",
+                      "content": "Tên hiển thị",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jsCy0",
+                      "name": "nameInput",
+                      "width": "fill_container",
+                      "fill": "$--background",
+                      "cornerRadius": "$--radius-m",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J6ebx",
+                          "name": "nameInputTxt",
+                          "fill": "$--muted-foreground",
+                          "content": "Nhập tên hiển thị...",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "felC6",
+                  "name": "saveBtn",
+                  "width": "fill_container",
+                  "fill": "$--primary",
+                  "cornerRadius": "$--radius-m",
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yGSiW",
+                      "name": "saveBtnTxt",
+                      "fill": "$--primary-foreground",
+                      "content": "Lưu Thay đổi",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ygKRA",
+              "name": "kycSect",
+              "width": 800,
+              "fill": "$--secondary",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 32,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YgJvG",
+                  "name": "kycHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RneSf",
+                      "name": "kycTitle",
+                      "fill": "$--foreground",
+                      "content": "Xác minh danh tính (KYC)",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dvicC",
+                      "name": "kycStatusRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OdkQT",
+                          "name": "kycStatusLbl",
+                          "fill": "$--muted-foreground",
+                          "content": "Trạng thái:",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Dv5Cc",
+                          "name": "kycStatusVal",
+                          "fill": "$--foreground",
+                          "content": "NONE",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NI2fc",
+                  "name": "kycBtnWrap",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "R1OKXJ",
+                      "name": "kycBtn",
+                      "fill": "$--color-success",
+                      "cornerRadius": "$--radius-pill",
+                      "padding": [
+                        10,
+                        24
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gkhRm",
+                          "name": "kycBtnTxt",
+                          "fill": "$--primary-foreground",
+                          "content": "Yêu cầu xác minh KYC",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

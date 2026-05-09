@@ -10,11 +10,12 @@ const DEFAULT_PERSONAL_INFO = {
   dateOfBirth: '1998-01-15',
   idNumber: '012345678901',
   country: 'Vietnam',
+  address: '123 Fake Street',
 };
 
 interface KycNoneProps {
   walletAddress: string;
-  onSubmit: () => void;
+  onSubmit: (data: any) => void;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -29,14 +30,21 @@ const STEPS: { id: Step; label: string }[] = [
 export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
   const [currentStep] = useState<Step>(1);
   const [personalInfo, setPersonalInfo] = useState(DEFAULT_PERSONAL_INFO);
-  const [frontStatus, setFrontStatus] = useState<'ready' | 'missing'>('ready');
-  const [backStatus, setBackStatus] = useState<'ready' | 'missing'>('missing');
-  const [selfieReady, setSelfieReady] = useState(false);
+  const [frontImage, setFrontImage] = useState<File | null>(null);
+  const [backImage, setBackImage] = useState<File | null>(null);
+  const [selfieImage, setSelfieImage] = useState<File | null>(null);
   const [consentAccepted, setConsentAccepted] = useState(false);
 
   const handlePersonalChange = (field: keyof typeof DEFAULT_PERSONAL_INFO) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setPersonalInfo((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        setter(e.target.files[0]);
+      }
     };
 
   return (
@@ -139,6 +147,21 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             />
           </div>
         </div>
+
+        {/* Row 3: Address */}
+        <div className="flex gap-3">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <label className="text-[12px] font-bold text-[#111111]">
+              Address
+            </label>
+            <input
+              type="text"
+              value={personalInfo.address}
+              onChange={handlePersonalChange('address')}
+              className="h-10 rounded-md border border-[#CBCCC9] bg-[#F2F3F0] px-3 text-[13px] text-[#666666] outline-none focus:border-[#FF8400] focus:ring-1 focus:ring-[#FF8400] transition-colors"
+            />
+          </div>
+        </div>
       </div>
 
       {/* ID card upload card */}
@@ -165,23 +188,17 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-1.5 text-[12px] font-bold ${
-                  frontStatus === 'ready'
+                  frontImage
                     ? 'bg-[#ECFDF5] text-[#065F46]'
                     : 'bg-[#FEF3C7] text-[#92400E]'
                 }`}
               >
-                {frontStatus === 'ready' ? 'Ready: cccd-front.png' : 'Missing'}
+                {frontImage ? `Ready: ${frontImage.name}` : 'Missing'}
               </span>
-              <button
-                onClick={() =>
-                  setFrontStatus(
-                    frontStatus === 'ready' ? 'missing' : 'ready',
-                  )
-                }
-                className="text-[12px] text-[#FF8400] font-semibold hover:underline"
-              >
-                {frontStatus === 'ready' ? 'Remove' : 'Upload'}
-              </button>
+              <label className="text-[12px] text-[#FF8400] font-semibold hover:underline cursor-pointer">
+                {frontImage ? 'Change' : 'Upload'}
+                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange(setFrontImage)} />
+              </label>
             </div>
           </div>
 
@@ -197,21 +214,17 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-1.5 text-[12px] font-bold ${
-                  backStatus === 'ready'
+                  backImage
                     ? 'bg-[#ECFDF5] text-[#065F46]'
                     : 'bg-[#FEF3C7] text-[#92400E]'
                 }`}
               >
-                {backStatus === 'ready' ? 'Ready: cccd-back.png' : 'Missing'}
+                {backImage ? `Ready: ${backImage.name}` : 'Missing'}
               </span>
-              <button
-                onClick={() =>
-                  setBackStatus(backStatus === 'ready' ? 'missing' : 'ready')
-                }
-                className="text-[12px] text-[#FF8400] font-semibold hover:underline"
-              >
-                {backStatus === 'ready' ? 'Remove' : 'Upload'}
-              </button>
+              <label className="text-[12px] text-[#FF8400] font-semibold hover:underline cursor-pointer">
+                {backImage ? 'Change' : 'Upload'}
+                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange(setBackImage)} />
+              </label>
             </div>
           </div>
         </div>
@@ -251,15 +264,13 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
               Camera preview
             </span>
             <span className="text-[12px] text-[#D1D5DB]">
-              {selfieReady ? 'Selfie captured' : 'Capture selfie'}
+              {selfieImage ? 'Selfie captured/uploaded' : 'Capture selfie'}
             </span>
-            {!selfieReady && (
-              <button
-                onClick={() => setSelfieReady(true)}
-                className="mt-1 rounded px-3 py-1.5 bg-[#FF8400] text-[#111111] text-[12px] font-bold"
-              >
-                Capture
-              </button>
+            {!selfieImage && (
+              <label className="mt-1 rounded px-3 py-1.5 bg-[#FF8400] text-[#111111] text-[12px] font-bold cursor-pointer">
+                Upload
+                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange(setSelfieImage)} />
+              </label>
             )}
           </div>
 
@@ -275,12 +286,10 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             <span className="text-[12px] text-[#666666]">
               ○ No mask or sunglasses
             </span>
-            <button
-              onClick={() => setSelfieReady(true)}
-              className="text-[12px] text-[#FF8400] font-bold text-left hover:underline"
-            >
+            <label className="text-[12px] text-[#FF8400] font-bold text-left hover:underline cursor-pointer">
               Fallback: upload mock selfie
-            </button>
+              <input type="file" className="hidden" accept="image/*" onChange={handleFileChange(setSelfieImage)} />
+            </label>
           </div>
         </div>
       </div>
@@ -298,17 +307,17 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
         </span>
         <span
           className={`text-[13px] ${
-            backStatus === 'ready' ? 'text-[#065F46]' : 'text-[#92400E]'
+            backImage ? 'text-[#065F46]' : 'text-[#92400E]'
           }`}
         >
-          {backStatus === 'ready' ? '✓' : '○'} CCCD back required
+          {backImage ? '✓' : '○'} CCCD back required
         </span>
         <span
           className={`text-[13px] ${
-            selfieReady ? 'text-[#065F46]' : 'text-[#666666]'
+            selfieImage ? 'text-[#065F46]' : 'text-[#666666]'
           }`}
         >
-          {selfieReady ? '✓' : '○'} Selfie captured or uploaded
+          {selfieImage ? '✓' : '○'} Selfie captured or uploaded
         </span>
         <div className="flex items-center gap-2 mt-1">
           <input
@@ -335,8 +344,20 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
           Save draft
         </button>
         <button
-          onClick={onSubmit}
-          disabled={!consentAccepted || backStatus === 'missing'}
+          onClick={() => {
+            const formData = new FormData();
+            formData.append('fullName', personalInfo.fullName);
+            formData.append('idNumber', personalInfo.idNumber);
+            formData.append('dateOfBirth', new Date(personalInfo.dateOfBirth).toISOString());
+            formData.append('address', personalInfo.address);
+            formData.append('country', personalInfo.country);
+            if (frontImage) formData.append('idFrontImage', frontImage);
+            if (backImage) formData.append('idBackImage', backImage);
+            if (selfieImage) formData.append('selfieImage', selfieImage);
+
+            onSubmit(formData);
+          }}
+          disabled={!consentAccepted || !frontImage || !backImage || !selfieImage}
           className="inline-flex items-center rounded-md bg-[#FF8400] px-4.5 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#e07600] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Submit for review

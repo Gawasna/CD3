@@ -6,6 +6,10 @@ import { KycNone } from './components/KycNone';
 import { KycPending } from './components/KycPending';
 import { KycApproved } from './components/KycApproved';
 import { KycRejected } from './components/KycRejected';
+import { useAuthStore } from '@/store/auth.store';
+import { kycApi } from '@/services/api/kyc';
+import { fetchMe } from '@/services/api/auth';
+import { useEffect } from 'react';
 
 interface KycVerifyProps {
   /**
@@ -24,12 +28,25 @@ export function KycVerify({
 }: KycVerifyProps) {
   const [status, setStatus] = useState<KycStatus>(initialStatus);
 
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
   switch (status) {
     case 'NONE':
       return (
         <KycNone
           walletAddress={walletAddress}
-          onSubmit={() => setStatus('PENDING')}
+          onSubmit={async (data) => {
+            try {
+              await kycApi.submitKyc(data);
+              useAuthStore.getState().updateUser({ kycStatus: 'PENDING' });
+              setStatus('PENDING');
+            } catch (err: any) {
+              console.error(err);
+              alert(err.message || 'Failed to submit KYC');
+            }
+          }}
         />
       );
 
@@ -37,8 +54,19 @@ export function KycVerify({
       return (
         <KycPending
           walletAddress={walletAddress}
-          onApprove={() => setStatus('APPROVED')}
-          onReject={() => setStatus('REJECTED')}
+          onRefreshStatus={async () => {
+            try {
+              const token = useAuthStore.getState().token;
+              if (token) {
+                const user = await fetchMe(token);
+                useAuthStore.getState().updateUser(user);
+                setStatus(user.kycStatus as KycStatus);
+              }
+            } catch (err: any) {
+              console.error(err);
+              alert('Failed to refresh status');
+            }
+          }}
           onBackToDashboard={onComplete}
         />
       );
@@ -58,7 +86,7 @@ export function KycVerify({
           onSaveChanges={() => {
             // TODO: persist draft
           }}
-          onResubmit={() => setStatus('PENDING')}
+          onResubmit={() => setStatus('NONE')}
         />
       );
   }
