@@ -199,18 +199,18 @@ export function AuctionGrid({
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-8">
+    <div className="flex-1 flex flex-col gap-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#111111] font-mono">
+        <h1 className="text-xl font-bold text-[#111111] font-mono">
           Explore ({filteredAuctions.length} Items)
         </h1>
 
         <div className="flex items-center gap-4">
           {/* Sort Dropdown */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-[#666666]">Sort by:</span>
-            <button className="flex items-center gap-2 px-4 py-2 border border-[#CBCCC9] rounded-full hover:bg-[#E7E8E5] transition-colors">
+            <button className="flex items-center gap-2 px-3 py-1.5 border border-[#CBCCC9] rounded-full hover:bg-[#E7E8E5] transition-colors">
               <span className="text-sm text-[#111111]">
                 {sortBy === "ending_soon" && "Ending Soon"}
                 {sortBy === "highest_bid" && "Highest Bid"}
@@ -221,31 +221,31 @@ export function AuctionGrid({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => onViewModeChange("grid")}
-              className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                 viewMode === "grid"
                   ? "bg-[#E7E8E5]"
                   : "bg-transparent hover:bg-[#E7E8E5]/50"
               }`}
             >
               <Grid3x3
-                className={`w-5 h-5 ${
+                className={`w-4 h-4 ${
                   viewMode === "grid" ? "text-[#111111]" : "text-[#666666]"
                 }`}
               />
             </button>
             <button
               onClick={() => onViewModeChange("list")}
-              className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-colors ${
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                 viewMode === "list"
                   ? "bg-[#E7E8E5]"
                   : "bg-transparent hover:bg-[#E7E8E5]/50"
               }`}
             >
               <List
-                className={`w-5 h-5 ${
+                className={`w-4 h-4 ${
                   viewMode === "list" ? "text-[#111111]" : "text-[#666666]"
                 }`}
               />
@@ -255,7 +255,7 @@ export function AuctionGrid({
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 gap-5">
         {filteredAuctions.map((auction) => (
           <AuctionCard key={auction.id} auction={auction} />
         ))}
