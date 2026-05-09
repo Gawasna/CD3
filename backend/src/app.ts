@@ -12,6 +12,7 @@ import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/user.routes';
 import kycRoutes from './modules/kyc/kyc.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import auctionRoutes from './modules/auction/auction.routes';
 
 // Shared middleware
 import { errorHandler } from './shared/middleware/error-handler';
@@ -57,6 +58,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/v1/kyc', kycRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/auctions', auctionRoutes);
 
 // Global error handler — PHẢI đặt cuối cùng
 app.use(errorHandler);
