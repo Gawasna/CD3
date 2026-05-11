@@ -11,33 +11,38 @@
  *   - 1 AuthNonce mẫu (chưa dùng)
  */
 
-import { PrismaClient, AuctionStatus, AuctionCategory, ShippingStatus } from "@prisma/client";
+import { PrismaClient, Prisma, AuctionStatus, AuctionCategory, ShippingStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+const SEED_ADMIN_WALLET = "0x1000000000000000000000000000000000000001";
+const SEED_SELLER_WALLET = "0x1000000000000000000000000000000000000002";
+const SEED_BIDDER_1_WALLET = "0x1000000000000000000000000000000000000003";
+const SEED_BIDDER_2_WALLET = "0x1000000000000000000000000000000000000004";
 
 async function main(): Promise<void> {
   console.log("Seeding database...");
 
   // ── 1. Upsert users ──────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
-    where: { walletAddress: "0xADMIN000000000000000000000000000000000001" },
+    where: { walletAddress: SEED_ADMIN_WALLET },
     update: {},
     create: {
-      walletAddress: "0xADMIN000000000000000000000000000000000001",
+      walletAddress: SEED_ADMIN_WALLET,
       displayName: "Platform Admin",
       role: "ADMIN",
       kycStatus: "APPROVED",
       kycApprovedAt: new Date(),
-      kycApprovedBy: "0xADMIN000000000000000000000000000000000001",
+      kycApprovedBy: null,
       isActive: true,
     },
   });
 
   const seller = await prisma.user.upsert({
-    where: { walletAddress: "0xSELLER00000000000000000000000000000000001" },
+    where: { walletAddress: SEED_SELLER_WALLET },
     update: {},
     create: {
-      walletAddress: "0xSELLER00000000000000000000000000000000001",
+      walletAddress: SEED_SELLER_WALLET,
       displayName: "Alice (Seller)",
       role: "USER",
       kycStatus: "APPROVED",
@@ -48,10 +53,10 @@ async function main(): Promise<void> {
   });
 
   const bidder1 = await prisma.user.upsert({
-    where: { walletAddress: "0xBIDDER00000000000000000000000000000000001" },
+    where: { walletAddress: SEED_BIDDER_1_WALLET },
     update: {},
     create: {
-      walletAddress: "0xBIDDER00000000000000000000000000000000001",
+      walletAddress: SEED_BIDDER_1_WALLET,
       displayName: "Bob (Bidder)",
       role: "USER",
       kycStatus: "APPROVED",
@@ -62,10 +67,10 @@ async function main(): Promise<void> {
   });
 
   const bidder2 = await prisma.user.upsert({
-    where: { walletAddress: "0xBIDDER00000000000000000000000000000000002" },
+    where: { walletAddress: SEED_BIDDER_2_WALLET },
     update: {},
     create: {
-      walletAddress: "0xBIDDER00000000000000000000000000000000002",
+      walletAddress: SEED_BIDDER_2_WALLET,
       displayName: "Carol (Bidder)",
       role: "USER",
       kycStatus: "PENDING",
@@ -80,11 +85,12 @@ async function main(): Promise<void> {
 
   // Phiên ACTIVE — còn 2 ngày
   const activeAuction = await prisma.auctionMetadata.upsert({
-    where: { onChainAuctionId: BigInt(1) },
+    where: { id: "seed-auction-active-001" },
     update: {},
     create: {
+      id: "seed-auction-active-001",
       sellerId: seller.id,
-      onChainAuctionId: BigInt(1),
+      onChainAuctionId: null,
       status: AuctionStatus.ACTIVE,
       title: "Vintage Sony Walkman TPS-L2 (1979)",
       description:
@@ -94,18 +100,19 @@ async function main(): Promise<void> {
       collateralWei: "5000000000000000",      // 0.005 ETH (10%)
       endTime: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // +2 ngày
       durationSeconds: 7 * 24 * 60 * 60,     // 7 ngày
-      createTxHash: "0xmocktx_active_001_aaaa1111bbbb2222cccc3333dddd4444eeee5555",
-      ipfsCid: "QmActiveAuction001MockCidForDemoOnly",
+      createTxHash: null,
+      ipfsCid: null,
     },
   });
 
   // Phiên ENDED — đã kết thúc, bidder1 thắng
   const endedAuction = await prisma.auctionMetadata.upsert({
-    where: { onChainAuctionId: BigInt(2) },
+    where: { id: "seed-auction-ended-002" },
     update: {},
     create: {
+      id: "seed-auction-ended-002",
       sellerId: seller.id,
-      onChainAuctionId: BigInt(2),
+      onChainAuctionId: null,
       status: AuctionStatus.ENDED,
       title: "Leica M3 Chrome (1954) — Rangefinder Camera",
       description:
@@ -116,18 +123,19 @@ async function main(): Promise<void> {
       endTime: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // -1 ngày
       durationSeconds: 3 * 24 * 60 * 60,
       winnerId: bidder1.id,
-      createTxHash: "0xmocktx_ended_002_aaaa1111bbbb2222cccc3333dddd4444ffff6666",
-      ipfsCid: "QmEndedAuction002MockCidForDemoOnly",
+      createTxHash: null,
+      ipfsCid: null,
     },
   });
 
   // Phiên PENDING — TX chưa confirm on-chain
   const pendingAuction = await prisma.auctionMetadata.upsert({
-    where: { onChainAuctionId: BigInt(3) },
+    where: { id: "seed-auction-pending-003" },
     update: {},
     create: {
+      id: "seed-auction-pending-003",
       sellerId: seller.id,
-      onChainAuctionId: BigInt(3),
+      onChainAuctionId: null,
       status: AuctionStatus.PENDING,
       title: "Herman Miller Aeron Chair — Size B (2022)",
       description:
@@ -138,7 +146,7 @@ async function main(): Promise<void> {
       endTime: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), // +5 ngày
       durationSeconds: 5 * 24 * 60 * 60,
       // TX hash giả — chờ on-chain confirm
-      createTxHash: "0xmocktx_pending_003_pending_not_confirmed_yet",
+      createTxHash: null,
     },
   });
 
@@ -148,54 +156,54 @@ async function main(): Promise<void> {
 
   // Bids cho phiên ACTIVE (2 bidder đặt, bidder1 đang dẫn)
   const bid_active_1 = await prisma.bid.upsert({
-    where: { txHash: "0xtxbid_active_001_bob_first" },
+    where: { txHash: "0x0000000000000000000000000000000000000000000000000000000000000b01" },
     update: {},
     create: {
       auctionId: activeAuction.id,
       bidderId:  bidder1.id,
       amountWei: "60000000000000000", // 0.06 ETH
-      txHash:    "0xtxbid_active_001_bob_first",
-      blockNumber: BigInt(7500001),
+      txHash:    "0x0000000000000000000000000000000000000000000000000000000000000b01",
+      blockNumber: null,
       isWinning: false,
     },
   });
 
   const bid_active_2 = await prisma.bid.upsert({
-    where: { txHash: "0xtxbid_active_002_carol_outbid" },
+    where: { txHash: "0x0000000000000000000000000000000000000000000000000000000000000b02" },
     update: {},
     create: {
       auctionId: activeAuction.id,
       bidderId:  bidder2.id,
       amountWei: "75000000000000000", // 0.075 ETH
-      txHash:    "0xtxbid_active_002_carol_outbid",
-      blockNumber: BigInt(7500020),
+      txHash:    "0x0000000000000000000000000000000000000000000000000000000000000b02",
+      blockNumber: null,
       isWinning: false,
     },
   });
 
   const bid_active_3 = await prisma.bid.upsert({
-    where: { txHash: "0xtxbid_active_003_bob_leading" },
+    where: { txHash: "0x0000000000000000000000000000000000000000000000000000000000000b03" },
     update: {},
     create: {
       auctionId: activeAuction.id,
       bidderId:  bidder1.id,
       amountWei: "90000000000000000", // 0.09 ETH — đang dẫn
-      txHash:    "0xtxbid_active_003_bob_leading",
-      blockNumber: BigInt(7500045),
+      txHash:    "0x0000000000000000000000000000000000000000000000000000000000000b03",
+      blockNumber: null,
       isWinning: true,
     },
   });
 
   // Bids cho phiên ENDED (bidder1 thắng)
   const bid_ended_1 = await prisma.bid.upsert({
-    where: { txHash: "0xtxbid_ended_001_bob_wins" },
+    where: { txHash: "0x0000000000000000000000000000000000000000000000000000000000000b04" },
     update: {},
     create: {
       auctionId: endedAuction.id,
       bidderId:  bidder1.id,
       amountWei: "250000000000000000", // 0.25 ETH — bid thắng
-      txHash:    "0xtxbid_ended_001_bob_wins",
-      blockNumber: BigInt(7499800),
+      txHash:    "0x0000000000000000000000000000000000000000000000000000000000000b04",
+      blockNumber: null,
       isWinning: true,
     },
   });
@@ -211,7 +219,7 @@ async function main(): Promise<void> {
       auctionId:   endedAuction.id,
       status:      ShippingStatus.SHIPPED,
       updatedById: seller.id,
-      notes:       "Đã gửi qua Giao Hang Nhanh, mã vận đơn: GHN123456789",
+      notes:       null,
     },
   });
 
@@ -224,8 +232,8 @@ async function main(): Promise<void> {
     create: {
       walletAddress: seller.walletAddress,
       nonce:         "seed-nonce-demo-000001",
-      expiresAt:     new Date(now.getTime() + 10 * 60 * 1000), // +10 phút
-      usedAt:        null,
+      expiresAt:     new Date(now.getTime() - 10 * 60 * 1000),
+      usedAt:        new Date(now.getTime() - 5 * 60 * 1000),
     },
   });
 
@@ -239,8 +247,8 @@ async function main(): Promise<void> {
       action:     "APPROVE_KYC",
       targetId:   seller.id,
       targetType: "USER",
-      metadata:   { reason: "Documents verified during demo seed" },
-      ipAddress:  "127.0.0.1",
+      metadata:   Prisma.DbNull,
+      ipAddress:  null,
     },
   });
 

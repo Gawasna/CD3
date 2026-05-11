@@ -1,32 +1,45 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Box, Search } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ConnectWalletButton from './auth/ConnectWalletButton';
 import UserProfileDropdown from './auth/UserProfileDropdown';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useRouter } from 'next/navigation';
+import NotificationBell from './ui/NotificationBell';
+import SearchDropdown from './shared/SearchDropdown';
+import { useWalletAuth } from '@/hooks/useWalletAuth';
 
 export default function Header() {
-  const router = useRouter();
   const t = useTranslations('common.header');
-  
-  // TODO: Replace with actual wallet connection state
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState('0x1234567890abcdef1234567890abcdef12345678');
+  const { openConnectModal } = useConnectModal();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const handleConnect = () => {
-    // TODO: Implement actual wallet connection
-    router.push('/login');
+  const {
+    isReady,
+    address,
+    isConnected,
+    isAuthenticated,
+    isSigning,
+    user,
+    signIn,
+    signOut,
+  } = useWalletAuth();
+
+  // Nếu ví đã connect nhưng chưa sign → hiển thị "Sign In" thay vì "Connect Wallet"
+  const handleButtonClick = () => {
+    if (!isConnected) {
+      openConnectModal?.();
+    } else if (!isAuthenticated) {
+      signIn();
+    }
   };
 
-  const handleDisconnect = () => {
-    // TODO: Implement actual wallet disconnection
-    setIsConnected(false);
-    router.push('/');
-  };
+  const displayAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : '';
 
   return (
     <header className="flex items-center justify-between h-[72px] px-8 bg-[#F2F3F0] border-b border-[#CBCCC9]">
@@ -37,21 +50,37 @@ export default function Header() {
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 h-10 px-4 rounded-full border border-[#CBCCC9] w-[400px]">
-        <Search className="w-5 h-5 text-[#666666]" />
-        <input 
-          type="text" 
-          placeholder={t('searchPlaceholder')}
-          className="bg-transparent border-none outline-none w-full font-geist text-sm text-[#111111] placeholder:text-[#666666]"
-        />
+      <div className="relative">
+        <div className="flex items-center gap-2 h-10 px-4 rounded-full border border-[#CBCCC9] w-[400px]">
+          <Search className="w-5 h-5 text-[#666666]" />
+          <input
+            type="text"
+            placeholder={t('searchPlaceholder')}
+            className="bg-transparent border-none outline-none w-full font-geist text-sm text-[#111111] placeholder:text-[#666666]"
+            onFocus={() => setIsSearchOpen(true)}
+          />
+        </div>
+        <SearchDropdown isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
         <LanguageSwitcher />
-        {isConnected ? (
-          <UserProfileDropdown address={address} onDisconnect={handleDisconnect} />
+        {!isReady ? (
+          <div className="h-14 w-[180px] bg-gray-200/50 animate-pulse rounded-full" />
+        ) : isAuthenticated && user ? (
+          <UserProfileDropdown
+            address={user.walletAddress}
+            user={user}
+            onDisconnect={signOut}
+          />
         ) : (
-          <ConnectWalletButton onClick={handleConnect} />
+          <ConnectWalletButton
+            onClick={handleButtonClick}
+            loading={isSigning}
+            // Hiển thị "Sign In" nếu ví đã connect nhưng chưa auth
+            label={isConnected && !isAuthenticated ? 'Sign In' : undefined}
+          />
         )}
       </div>
     </header>

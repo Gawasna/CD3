@@ -5,6 +5,7 @@ import { getMessages, getLocale } from 'next-intl/server';
 import "./globals.css";
 import Header from "@/components/Header";
 import { ToastProvider } from "@/components/auth/ToastContainer";
+import { Web3Provider } from "@/contexts/WagmiProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,12 +45,14 @@ export default async function RootLayout({
         <meta name="google" content="notranslate" />
       </head>
       <body className="min-h-full flex flex-col font-geist" suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages}>
-          <ToastProvider>
-            <Header />
-            {children}
-          </ToastProvider>
-        </NextIntlClientProvider>
+        <Web3Provider>
+          <NextIntlClientProvider messages={messages}>
+            <ToastProvider>
+              <Header />
+              {children}
+            </ToastProvider>
+          </NextIntlClientProvider>
+        </Web3Provider>
       </body>
     </html>
   );

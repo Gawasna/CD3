@@ -1,0 +1,23 @@
+{
+  "title": "Explore Auctions",
+  "searchPlaceholder": "Search for items, collections...",
+  "connectWallet": "Connect Wallet",
+  "filters": "Filters",
+  "categories": "Categories",
+  "status": "Status",
+  "sortBy": "Sort by:",
+  "endingSoon": "Ending Soon",
+  "highestBid": "Highest Bid",
+  "mostBids": "Most Bids",
+  "itemsCount": "{count} Items",
+  "currentBid": "Current Bid",
+  "bids": "Bids",
+  "live": "LIVE",
+  "ending": "ENDING",
+  "allAuctions": "All Auctions",
+  "liveAuctions": "Live Auctions",
+  "electronics": "Electronics",
+  "fashion": "Fashion",
+  "collectibles": "Collectibles",
+  "art": "Art"
+}

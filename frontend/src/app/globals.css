@@ -3,6 +3,12 @@
 @theme inline {
   --color-background: #F2F3F0;
   --color-foreground: #111111;
+  --color-card: #FFFFFF;
+  --color-border: #CBCCC9;
+  --color-primary: #FF8400;
+  --color-primary-foreground: #111111;
+  --color-secondary: #E7E8E5;
+  --color-muted-foreground: #666666;
   --font-geist: var(--font-geist-sans);
   --font-jetbrains: var(--font-jetbrains-mono);
 }

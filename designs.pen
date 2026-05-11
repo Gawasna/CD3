@@ -1,11 +1,11 @@
 {
-  "version": "2.10",
+  "version": "2.11",
   "children": [
     {
       "type": "frame",
       "id": "CdCcY",
-      "x": -279.2886595697828,
-      "y": 1688.626548469275,
+      "x": -326,
+      "y": 1689,
       "name": "Homepage",
       "width": 1440,
       "fill": "$--background",
@@ -544,7 +544,7 @@
       "type": "frame",
       "id": "lybUa",
       "x": 1200,
-      "y": 1689,
+      "y": 1499,
       "name": "Header Component",
       "reusable": true,
       "width": 1440,
@@ -714,7 +714,7 @@
       "type": "frame",
       "id": "Hgy1X",
       "x": 1200,
-      "y": 1808,
+      "y": 1735,
       "name": "User Dashboard",
       "width": 1440,
       "height": "fill_container(900)",
@@ -1146,8 +1146,8 @@
     {
       "type": "frame",
       "id": "8SoGa",
-      "x": -279,
-      "y": 2771,
+      "x": -326,
+      "y": 2808,
       "name": "Explore Auctions",
       "width": 1440,
       "fill": "$--background",
@@ -2197,7 +2197,7 @@
       "type": "frame",
       "id": "eiFCQ",
       "x": 1200,
-      "y": 2771,
+      "y": 2808,
       "name": "Create Auction",
       "width": 1440,
       "fill": "$--background",
@@ -2674,8 +2674,8 @@
     {
       "type": "frame",
       "id": "Bakd7",
-      "x": -279,
-      "y": 3393,
+      "x": -326,
+      "y": 3518,
       "name": "Auction Detail",
       "width": 1440,
       "fill": "$--background",
@@ -3123,6 +3123,4410 @@
                           "fontFamily": "$--font-primary",
                           "fontSize": 16,
                           "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "b3jt8",
+      "x": 2740,
+      "y": 1689,
+      "name": "Auth - Unauthenticated",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "fP3Y6",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "header"
+        },
+        {
+          "type": "frame",
+          "id": "jFrdM",
+          "name": "mainContent",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "FH0cn",
+              "name": "heroSection",
+              "width": 600,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "FZG6C",
+                  "name": "icon",
+                  "width": 64,
+                  "height": 64,
+                  "iconFontName": "wallet",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary"
+                },
+                {
+                  "type": "text",
+                  "id": "y3Om7",
+                  "name": "title",
+                  "fill": "$--foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Connect Your Wallet",
+                  "textAlign": "center",
+                  "fontFamily": "$--font-primary",
+                  "fontSize": 32,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "H78DO",
+                  "name": "subtitle",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Sign in with Ethereum to access the CD3 auction platform. No gas fees required.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GQ5Ew",
+              "name": "ctaSection",
+              "width": 400,
+              "layout": "vertical",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "i7Z7H",
+                  "name": "connectBtn",
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "$--primary",
+                  "cornerRadius": "$--radius-pill",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Gcrmj",
+                      "name": "walletIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "wallet",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Ppb0K",
+                      "name": "btnText",
+                      "fill": "$--primary-foreground",
+                      "content": "Connect Wallet",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "8wAog",
+                  "name": "infoText",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Supports MetaMask, WalletConnect, Coinbase Wallet and more",
+                  "textAlign": "center",
+                  "fontFamily": "$--font-secondary",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KhC2b",
+              "name": "featureSection",
+              "width": 800,
+              "gap": 24,
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qdRaj",
+                  "name": "feature1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "8GpvB",
+                      "name": "f1Icon",
+                      "width": 32,
+                      "height": 32,
+                      "iconFontName": "shield-check",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "JNPro",
+                      "name": "f1Title",
+                      "fill": "$--foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Secure",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "80i3K",
+                      "name": "f1Desc",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "EIP-4361 standard authentication",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OxCus",
+                  "name": "feature2",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "maidA",
+                      "name": "f2Icon",
+                      "width": 32,
+                      "height": 32,
+                      "iconFontName": "zap",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "c0dX0",
+                      "name": "f2Title",
+                      "fill": "$--foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "No Gas Fees",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "PaxWI",
+                      "name": "f2Desc",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Signing doesn't cost anything",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "6QkzP",
+                  "name": "feature3",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "7ZEDu",
+                      "name": "f3Icon",
+                      "width": 32,
+                      "height": 32,
+                      "iconFontName": "clock",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "0VkM4",
+                      "name": "f3Title",
+                      "fill": "$--foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "One-Click",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DBvKl",
+                      "name": "f3Desc",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Quick and seamless experience",
+                      "textAlign": "center",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "F4owg",
+      "x": 4280,
+      "y": 1689,
+      "name": "Auth - Authenticated",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "PkMzy",
+          "name": "headerAuth",
+          "width": "fill_container",
+          "height": 72,
+          "fill": "$--background",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "$--border"
+          },
+          "padding": [
+            0,
+            32
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "ryQ78",
+              "name": "leftSection",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ih7TO",
+                  "name": "logoIcon",
+                  "width": 32,
+                  "height": 32,
+                  "iconFontName": "box",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary"
+                },
+                {
+                  "type": "text",
+                  "id": "odXAA",
+                  "name": "logoText",
+                  "fill": "$--foreground",
+                  "content": "P2P AUCTION",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 22,
+                  "fontWeight": "800",
+                  "letterSpacing": 1
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "kwJz6",
+              "name": "centerSection",
+              "width": 400,
+              "height": 40,
+              "cornerRadius": "$--radius-pill",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "gap": 8,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "hm8ax",
+                  "name": "searchIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--muted-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "uRkiQ",
+                  "name": "searchText",
+                  "fill": "$--muted-foreground",
+                  "content": "Search for items, collections...",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hfS3O",
+              "name": "rightSection",
+              "gap": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "N8K6g",
+                  "name": "userProfile",
+                  "height": 40,
+                  "fill": "$--secondary",
+                  "cornerRadius": "$--radius-pill",
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "LID0d",
+                      "name": "avatar",
+                      "width": 32,
+                      "height": 32,
+                      "fill": "$--primary",
+                      "cornerRadius": "$--radius-pill",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "k5E2Q",
+                          "name": "avatarIcon",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "user",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--primary-foreground"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "7ONxa",
+                      "name": "walletAddress",
+                      "fill": "$--foreground",
+                      "content": "0x1234...abcd",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "GSo6I",
+                      "name": "chevronIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "chevron-down",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--muted-foreground"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "tDiof",
+          "name": "mainArea",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": 32,
+          "children": [
+            {
+              "type": "frame",
+              "id": "D3SNa",
+              "name": "welcomeCard",
+              "width": "fill_container",
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "2UGd9",
+                  "name": "welcomeTitle",
+                  "fill": "$--foreground",
+                  "content": "Welcome Back!",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 24,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "VKPtc",
+                  "name": "welcomeDesc",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "You are successfully authenticated with your wallet. You can now participate in auctions, create listings, and manage your bids.",
+                  "lineHeight": 1.5,
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "xcG6L",
+                  "name": "statsRow",
+                  "width": "fill_container",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Sf6LF",
+                      "name": "stat1",
+                      "width": "fill_container",
+                      "fill": "$--color-success",
+                      "cornerRadius": "$--radius-m",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "yeonV",
+                          "name": "stat1Icon",
+                          "width": 24,
+                          "height": 24,
+                          "iconFontName": "check",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--color-success-foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bquRI",
+                          "name": "stat1Label",
+                          "fill": "$--color-success-foreground",
+                          "content": "Connected",
+                          "fontFamily": "Geist",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "6nSJq",
+                          "name": "stat1Value",
+                          "fill": "$--color-success-foreground",
+                          "content": "Sepolia Testnet",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "V8A4r",
+                      "name": "stat2",
+                      "width": "fill_container",
+                      "fill": "$--secondary",
+                      "cornerRadius": "$--radius-m",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "YTsRG",
+                          "name": "stat2Icon",
+                          "width": 24,
+                          "height": 24,
+                          "iconFontName": "coins",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rJ1Cp",
+                          "name": "stat2Label",
+                          "fill": "$--muted-foreground",
+                          "content": "Balance",
+                          "fontFamily": "Geist",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "An7Wi",
+                          "name": "stat2Value",
+                          "fill": "$--foreground",
+                          "content": "2.45 ETH",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PUl64",
+                      "name": "stat3",
+                      "width": "fill_container",
+                      "fill": "$--secondary",
+                      "cornerRadius": "$--radius-m",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "padding": 16,
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "h7fcM",
+                          "name": "stat3Icon",
+                          "width": 24,
+                          "height": 24,
+                          "iconFontName": "activity",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "nSU17",
+                          "name": "stat3Label",
+                          "fill": "$--muted-foreground",
+                          "content": "Active Bids",
+                          "fontFamily": "Geist",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "N2RZn",
+                          "name": "stat3Value",
+                          "fill": "$--foreground",
+                          "content": "3",
+                          "fontFamily": "JetBrains Mono",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "8zvCE",
+              "layoutPosition": "absolute",
+              "x": 1100,
+              "y": 72,
+              "name": "dropdownCard",
+              "width": 280,
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 4,
+              "padding": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Cr2Hn",
+                  "name": "dropdownItem1",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 8,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "3O7mh",
+                      "name": "item1Icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "user",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sLOc3",
+                      "name": "item1Text",
+                      "fill": "$--foreground",
+                      "content": "My Profile",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "P2oBm",
+                  "name": "dropdownItem2",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 8,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "RqBdB",
+                      "name": "item2Icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "gavel",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "acnqX",
+                      "name": "item2Text",
+                      "fill": "$--foreground",
+                      "content": "My Auctions",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "udQpx",
+                  "name": "dropdownItem3",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 8,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "IgjE6",
+                      "name": "item3Icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "history",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "y63TU",
+                      "name": "item3Text",
+                      "fill": "$--foreground",
+                      "content": "Bid History",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "aPmZv",
+                  "name": "divider",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "$--border"
+                },
+                {
+                  "type": "frame",
+                  "id": "6wJzh",
+                  "name": "dropdownItem4",
+                  "width": "fill_container",
+                  "height": 40,
+                  "cornerRadius": 8,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "6DS6N",
+                      "name": "item4Icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "log-out",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--color-warning-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Va26w",
+                      "name": "item4Text",
+                      "fill": "$--color-warning-foreground",
+                      "content": "Disconnect",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "6Fpm9",
+      "x": 2740,
+      "y": 2841,
+      "name": "Auth - Loading State",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "3HAvZ",
+          "name": "Auth - Loading State",
+          "width": 1440,
+          "height": 900,
+          "fill": "$--background",
+          "layout": "vertical",
+          "children": [
+            {
+              "id": "TH5Bu",
+              "type": "ref",
+              "ref": "lybUa",
+              "width": "fill_container",
+              "name": "headerLoading",
+              "descendants": {
+                "zKVs1": {
+                  "fill": "$--secondary"
+                },
+                "ZEeHo": {
+                  "fill": "$--muted-foreground"
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "0hDjx",
+              "name": "mainLoading",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 32,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "87jHr",
+                  "name": "loadingIcon",
+                  "width": 80,
+                  "height": 80,
+                  "fill": "$--secondary",
+                  "cornerRadius": "$--radius-pill",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Zxflo",
+                      "name": "spinner",
+                      "width": 40,
+                      "height": 40,
+                      "iconFontName": "loader",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "PB2jh",
+                  "name": "loadingTitle",
+                  "fill": "$--foreground",
+                  "content": "Connecting...",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "7FsBT",
+                  "name": "loadingDesc",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": 500,
+                  "content": "Please sign the message in your wallet to continue",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "Geist",
+                  "fontSize": 16,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "updFu",
+                  "name": "loadingSteps",
+                  "width": 400,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "nk8Fc",
+                      "name": "step1",
+                      "width": "fill_container",
+                      "fill": "$--color-success",
+                      "cornerRadius": "$--radius-m",
+                      "gap": 12,
+                      "padding": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "hZvl8",
+                          "name": "step1Check",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "check",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--color-success-foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ct8eu",
+                          "name": "step1Text",
+                          "fill": "$--color-success-foreground",
+                          "content": "Wallet connected",
+                          "fontFamily": "Geist",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VEDxn",
+                      "name": "step2",
+                      "width": "fill_container",
+                      "fill": "$--secondary",
+                      "cornerRadius": "$--radius-m",
+                      "gap": 12,
+                      "padding": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "LM1Tp",
+                          "name": "step2Spinner",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "loader",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "BPMAM",
+                          "name": "step2Text",
+                          "fill": "$--foreground",
+                          "content": "Waiting for signature...",
+                          "fontFamily": "Geist",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "8bkjF",
+                      "name": "step3",
+                      "width": "fill_container",
+                      "fill": "$--secondary",
+                      "cornerRadius": "$--radius-m",
+                      "gap": 12,
+                      "padding": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "1UpYF",
+                          "name": "step3Dot",
+                          "width": 20,
+                          "height": 20,
+                          "fill": "$--border",
+                          "cornerRadius": "$--radius-pill"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ZXud9",
+                          "name": "step3Text",
+                          "fill": "$--muted-foreground",
+                          "content": "Authenticating",
+                          "fontFamily": "Geist",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "RGmQS",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "headerLoading"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "yhlnW",
+      "x": 4280,
+      "y": 2735,
+      "name": "Auth - Error: Signature Rejected",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "PvEPd",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "headerError"
+        },
+        {
+          "type": "frame",
+          "id": "9nVhN",
+          "name": "mainError",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "99PuO",
+              "name": "errorIcon",
+              "width": 80,
+              "height": 80,
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-pill",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "8sv9c",
+                  "name": "errorIconInner",
+                  "width": 40,
+                  "height": 40,
+                  "iconFontName": "x",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--color-warning-foreground"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "gPo14",
+              "name": "errorTitle",
+              "fill": "$--foreground",
+              "content": "Signature Rejected",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 28,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "x5pDK",
+              "name": "errorDesc",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": 500,
+              "content": "You cancelled the authentication request. Please try again to access the platform.",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "QCnr1",
+              "name": "errorActions",
+              "gap": 12,
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "g4BwC",
+                  "name": "retryBtn",
+                  "width": 180,
+                  "height": 48,
+                  "fill": "$--primary",
+                  "cornerRadius": "$--radius-pill",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "9EmxX",
+                      "name": "retryIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "refresh-cw",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "vnCyd",
+                      "name": "retryText",
+                      "fill": "$--primary-foreground",
+                      "content": "Try Again",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "yKVyE",
+                  "name": "cancelBtn",
+                  "width": 180,
+                  "height": 48,
+                  "fill": "$--secondary",
+                  "cornerRadius": "$--radius-pill",
+                  "gap": 8,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "7w3hB",
+                      "name": "cancelText",
+                      "fill": "$--foreground",
+                      "content": "Cancel",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "MVmJ4",
+              "name": "toastDemo",
+              "width": 400,
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--color-warning-foreground"
+              },
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "XfinC",
+                  "name": "toastIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "alert-triangle",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--color-warning-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "xmbj3",
+                  "name": "toastText",
+                  "fill": "$--color-warning-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Authentication cancelled. Please try again.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vEMLx",
+      "x": 4280,
+      "y": 3812,
+      "name": "Auth - Error: Wrong Network",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "2vSHU",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "headerWrong"
+        },
+        {
+          "type": "frame",
+          "id": "E77xx",
+          "name": "mainWrong",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "xa7e7",
+              "name": "wrongIcon",
+              "width": 80,
+              "height": 80,
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-pill",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "p4exx",
+                  "name": "wrongIconInner",
+                  "width": 40,
+                  "height": 40,
+                  "iconFontName": "network",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--color-warning-foreground"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "VHs4f",
+              "name": "wrongTitle",
+              "fill": "$--foreground",
+              "content": "Wrong Network",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 28,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "VV2Ry",
+              "name": "wrongDesc",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": 500,
+              "content": "Please switch to Sepolia Testnet to continue using the platform.",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "Cpqmw",
+              "name": "networkCard",
+              "width": 400,
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 16,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "1bv9e",
+                  "name": "currentNet",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qAOl2",
+                      "name": "currentLabel",
+                      "fill": "$--muted-foreground",
+                      "content": "Current Network:",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "ZdMlw",
+                      "name": "currentValue",
+                      "fill": "$--foreground",
+                      "content": "Ethereum Mainnet",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c5BQa",
+                  "name": "requiredNet",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "oFfcW",
+                      "name": "requiredLabel",
+                      "fill": "$--muted-foreground",
+                      "content": "Required Network:",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XcJWK",
+                      "name": "requiredValue",
+                      "fill": "$--color-warning-foreground",
+                      "content": "Sepolia Testnet",
+                      "fontFamily": "JetBrains Mono",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DVIxf",
+              "name": "switchBtn",
+              "width": 220,
+              "height": 48,
+              "fill": "$--primary",
+              "cornerRadius": "$--radius-pill",
+              "gap": 8,
+              "padding": [
+                0,
+                24
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "LAP5N",
+                  "name": "switchIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "repeat",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "rMspW",
+                  "name": "switchText",
+                  "fill": "$--primary-foreground",
+                  "content": "Switch Network",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xs5FM",
+              "name": "wrongToast",
+              "width": 400,
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--color-warning-foreground"
+              },
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "1bMpP",
+                  "name": "wrongToastIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "wifi-off",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--color-warning-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "5VX0w",
+                  "name": "wrongToastText",
+                  "fill": "$--color-warning-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Please switch to Sepolia Testnet to continue.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "X4yhM",
+      "x": 5820,
+      "y": 3440,
+      "name": "Auth - Error: Network Error",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "14clY",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "headerNetErr"
+        },
+        {
+          "type": "frame",
+          "id": "vx5qi",
+          "name": "mainNetErr",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Ct1Jh",
+              "name": "netErrIcon",
+              "width": 80,
+              "height": 80,
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-pill",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "hnM2X",
+                  "name": "netErrIconInner",
+                  "width": 40,
+                  "height": 40,
+                  "iconFontName": "wifi-off",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--color-warning-foreground"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "Nj7Y9",
+              "name": "netErrTitle",
+              "fill": "$--foreground",
+              "content": "Connection Error",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 28,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "1lZlr",
+              "name": "netErrDesc",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": 500,
+              "content": "Unable to connect to the network. Please check your internet connection and try again.",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "GXLKK",
+              "name": "troubleCard",
+              "width": 500,
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Ygylj",
+                  "name": "troubleTitle",
+                  "fill": "$--foreground",
+                  "content": "Troubleshooting Tips:",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "7kj5V",
+                  "name": "tip1",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uHttk",
+                      "name": "tip1Bullet",
+                      "width": 6,
+                      "height": 6,
+                      "fill": "$--primary",
+                      "cornerRadius": "$--radius-pill"
+                    },
+                    {
+                      "type": "text",
+                      "id": "mVpCa",
+                      "name": "tip1Text",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Check your internet connection",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rbDAC",
+                  "name": "tip2",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "E0WIO",
+                      "name": "tip2Bullet",
+                      "width": 6,
+                      "height": 6,
+                      "fill": "$--primary",
+                      "cornerRadius": "$--radius-pill"
+                    },
+                    {
+                      "type": "text",
+                      "id": "4a0fD",
+                      "name": "tip2Text",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Ensure your wallet extension is enabled",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "YBmaR",
+                  "name": "tip3",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "0ibxQ",
+                      "name": "tip3Bullet",
+                      "width": 6,
+                      "height": 6,
+                      "fill": "$--primary",
+                      "cornerRadius": "$--radius-pill"
+                    },
+                    {
+                      "type": "text",
+                      "id": "BoSZq",
+                      "name": "tip3Text",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Try refreshing the page",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "oglod",
+              "name": "netErrBtn",
+              "width": 180,
+              "height": 48,
+              "fill": "$--primary",
+              "cornerRadius": "$--radius-pill",
+              "gap": 8,
+              "padding": [
+                0,
+                24
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "WM00C",
+                  "name": "netErrBtnIcon",
+                  "width": 20,
+                  "height": 20,
+                  "iconFontName": "refresh-cw",
+                  "iconFontFamily": "lucide",
+                  "fill": "$--primary-foreground"
+                },
+                {
+                  "type": "text",
+                  "id": "lZeCG",
+                  "name": "netErrBtnText",
+                  "fill": "$--primary-foreground",
+                  "content": "Retry",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "ZkCbA",
+      "x": 5820,
+      "y": 4537,
+      "name": "Toast Notifications Showcase",
+      "width": 1440,
+      "height": 900,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "uV1zT",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "toastHeader"
+        },
+        {
+          "type": "frame",
+          "id": "hry8K",
+          "name": "toastMain",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": 48,
+          "children": [
+            {
+              "type": "text",
+              "id": "jDn12",
+              "name": "toastTitle",
+              "fill": "$--foreground",
+              "content": "Toast Notifications",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 32,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "gJFsJ",
+              "name": "toastDesc",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": 600,
+              "content": "Various notification states for authentication flow",
+              "fontFamily": "Geist",
+              "fontSize": 16,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "QZxyk",
+              "name": "toastGrid",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "uImzn",
+                  "name": "successToast",
+                  "width": 450,
+                  "fill": "$--color-success",
+                  "cornerRadius": "$--radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--color-success-foreground"
+                  },
+                  "gap": 12,
+                  "padding": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "OHCMx",
+                      "name": "successIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "check",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--color-success-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Koewc",
+                      "name": "successText",
+                      "fill": "$--color-success-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Login successful! Welcome back.",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "atccS",
+                  "name": "warningToast",
+                  "width": 450,
+                  "fill": "$--color-warning",
+                  "cornerRadius": "$--radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--color-warning-foreground"
+                  },
+                  "gap": 12,
+                  "padding": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "V8IV6",
+                      "name": "warningIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "triangle-alert",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--color-warning-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "q6m8k",
+                      "name": "warningText",
+                      "fill": "$--color-warning-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "You cancelled the authentication request.",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "92Z0w",
+                  "name": "networkToast",
+                  "width": 450,
+                  "fill": "$--color-warning",
+                  "cornerRadius": "$--radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--color-warning-foreground"
+                  },
+                  "gap": 12,
+                  "padding": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "6J0Wd",
+                      "name": "networkIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "wifi-off",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--color-warning-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "9cqT5",
+                      "name": "networkText",
+                      "fill": "$--color-warning-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Please switch to Sepolia Testnet.",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "DlEBE",
+                  "name": "errorToast",
+                  "width": 450,
+                  "fill": "$--color-warning",
+                  "cornerRadius": "$--radius-m",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$--color-warning-foreground"
+                  },
+                  "gap": 12,
+                  "padding": 16,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "CWkJs",
+                      "name": "errorIcon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "x",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--color-warning-foreground"
+                    },
+                    {
+                      "type": "text",
+                      "id": "2WnnZ",
+                      "name": "errorText",
+                      "fill": "$--color-warning-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "System error. Unable to authenticate.",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "HHmN1",
+              "name": "previewSection",
+              "width": "fill_container",
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 32,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "FwPSK",
+                  "name": "previewTitle",
+                  "fill": "$--foreground",
+                  "content": "Toast Placement Preview",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 20,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "j7m7p",
+                  "name": "previewDesc",
+                  "fill": "$--muted-foreground",
+                  "content": "Toasts appear in the top-right corner of the screen",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZFVlk",
+                  "name": "previewBox",
+                  "width": "fill_container",
+                  "height": 300,
+                  "fill": "$--secondary",
+                  "cornerRadius": "$--radius-m",
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "0i8FI",
+                      "layoutPosition": "absolute",
+                      "x": 750,
+                      "y": 16,
+                      "name": "previewToast",
+                      "width": 380,
+                      "fill": "$--color-success",
+                      "cornerRadius": "$--radius-m",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "$--color-success-foreground"
+                      },
+                      "gap": 12,
+                      "padding": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "3HGCe",
+                          "name": "previewToastIcon",
+                          "width": 20,
+                          "height": 20,
+                          "iconFontName": "check",
+                          "iconFontFamily": "lucide",
+                          "fill": "$--color-success-foreground"
+                        },
+                        {
+                          "type": "text",
+                          "id": "62Fdi",
+                          "name": "previewToastText",
+                          "fill": "$--color-success-foreground",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Login successful! Welcome back.",
+                          "fontFamily": "Geist",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "kKkAp",
+      "x": 5820,
+      "y": 1689,
+      "name": "KYC Verify - NONE",
+      "width": 800,
+      "height": 1560,
+      "fill": "$--background",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "q9dKq",
+          "name": "Header",
+          "width": "fill_container",
+          "gap": 24,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hxQZ8",
+              "name": "Title group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "eJACw",
+                  "name": "titleA",
+                  "fill": "$--foreground",
+                  "content": "KYC Verification",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "Cc6eg",
+                  "name": "subA",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Complete the mock identity check linked to wallet 0x1234...abcd.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YqzzP",
+              "name": "Status badge",
+              "fill": "#FEE2E2",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZMIwR",
+                  "name": "badgeTextA",
+                  "fill": "#991B1B",
+                  "content": "Not verified",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "u0wmY",
+          "name": "Demo warning",
+          "width": "fill_container",
+          "fill": "#FEF3C7",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "#F59E0B"
+          },
+          "layout": "vertical",
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "Y9ppb",
+              "name": "alertTextA",
+              "fill": "#92400E",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Demo only. Do not upload real identity documents. Use sample CCCD images and a mock selfie.",
+              "fontFamily": "Geist",
+              "fontSize": 14,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "8vzFA",
+          "name": "Step progress",
+          "width": "fill_container",
+          "gap": 10,
+          "children": [
+            {
+              "type": "frame",
+              "id": "TOgTe",
+              "name": "st1A",
+              "fill": "$--primary",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "41t3k",
+                  "name": "st1TextA",
+                  "fill": "$--primary-foreground",
+                  "content": "1 Personal info",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Ha623",
+              "name": "st2A",
+              "fill": "$--secondary",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "0wRhl",
+                  "name": "st2TextA",
+                  "fill": "$--foreground",
+                  "content": "2 ID card",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "QIWbe",
+              "name": "st3A",
+              "fill": "$--secondary",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hP89H",
+                  "name": "st3TextA",
+                  "fill": "$--foreground",
+                  "content": "3 Selfie",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nUF9e",
+              "name": "st4A",
+              "fill": "$--secondary",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Mo1Zq",
+                  "name": "st4TextA",
+                  "fill": "$--foreground",
+                  "content": "4 Review",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "5qrJ0",
+          "name": "Personal information card",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "V6SDx",
+              "name": "pTitleA",
+              "fill": "$--foreground",
+              "content": "Personal information",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "Sqd2B",
+              "name": "pDescA",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Basic information used only for the mock KYC submission.",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "ATH06",
+              "name": "row1A",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hwq50",
+                  "name": "fNameA",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fVGDg",
+                      "name": "fNameLabelA",
+                      "fill": "$--foreground",
+                      "content": "Full name",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "8KA9s",
+                      "name": "fNameBoxA",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$--background",
+                      "cornerRadius": 6,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gxYtt",
+                          "name": "fNameTxtA",
+                          "fill": "$--muted-foreground",
+                          "content": "Alice Nguyen",
+                          "fontFamily": "Geist",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O6etK",
+                  "name": "dobA",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i7VlT",
+                      "name": "dobLabelA",
+                      "fill": "$--foreground",
+                      "content": "Date of birth",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "SuWIE",
+                      "name": "dobBoxA",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$--background",
+                      "cornerRadius": 6,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "a5dY0",
+                          "name": "dobTxtA",
+                          "fill": "$--muted-foreground",
+                          "content": "1998-01-15",
+                          "fontFamily": "Geist",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hODJk",
+              "name": "row2A",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Li3Zx",
+                  "name": "idNumA",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xBQqe",
+                      "name": "idNumLabelA",
+                      "fill": "$--foreground",
+                      "content": "CCCD / CMND number",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "sTa2Y",
+                      "name": "idNumBoxA",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$--background",
+                      "cornerRadius": 6,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "0iMbj",
+                          "name": "idNumTxtA",
+                          "fill": "$--muted-foreground",
+                          "content": "012345678901",
+                          "fontFamily": "Geist",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ILjJF",
+                  "name": "countryA",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CE6uE",
+                      "name": "countryLabelA",
+                      "fill": "$--foreground",
+                      "content": "Country / region",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nWziP",
+                      "name": "countryBoxA",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$--background",
+                      "cornerRadius": 6,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FH3lu",
+                          "name": "countryTxtA",
+                          "fill": "$--muted-foreground",
+                          "content": "Vietnam",
+                          "fontFamily": "Geist",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "DR4Nj",
+          "name": "ID card upload card",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "IkIdI",
+              "name": "idTitleA",
+              "fill": "$--foreground",
+              "content": "CCCD / CMND upload",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "kTAkQ",
+              "name": "idDescA",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Two separate upload slots make the required front and back side explicit.",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "QOcAn",
+              "name": "uploadRowA",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lAtjj",
+                  "name": "Front side upload",
+                  "width": "fill_container",
+                  "fill": "$--background",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "dNcYS",
+                      "name": "frontIconA",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "id-card",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Wyrwm",
+                      "name": "frontTitleA",
+                      "fill": "$--foreground",
+                      "content": "Front side",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "QfM9G",
+                      "name": "frontHelpA",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Upload mock CCCD front image. JPG, PNG or PDF up to 5MB.",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IsaCd",
+                      "name": "frontStatusA",
+                      "fill": "#ECFDF5",
+                      "cornerRadius": "$--radius-pill",
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "4jszq",
+                          "name": "frontStatusTextA",
+                          "fill": "#065F46",
+                          "content": "Ready: cccd-front.png",
+                          "fontFamily": "Geist",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "0kIx1",
+                  "name": "Back side upload",
+                  "width": "fill_container",
+                  "fill": "$--background",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Vfwdi",
+                      "name": "backIconA",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "id-card",
+                      "iconFontFamily": "lucide",
+                      "fill": "$--primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kpl9b",
+                      "name": "backTitleA",
+                      "fill": "$--foreground",
+                      "content": "Back side",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "PC6wz",
+                      "name": "backHelpA",
+                      "fill": "$--muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Upload mock CCCD back image. Required before review.",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cMjzp",
+                      "name": "backStatusA",
+                      "fill": "#FEF3C7",
+                      "cornerRadius": "$--radius-pill",
+                      "padding": [
+                        6,
+                        10
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "6VYKk",
+                          "name": "backStatusTextA",
+                          "fill": "#92400E",
+                          "content": "Missing",
+                          "fontFamily": "Geist",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tNKBS",
+              "name": "Document quality checklist",
+              "width": "fill_container",
+              "fill": "#F9FAFB",
+              "cornerRadius": 8,
+              "layout": "vertical",
+              "gap": 6,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "cFRpn",
+                  "name": "qualityTitleA",
+                  "fill": "$--foreground",
+                  "content": "Quality checklist",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "3hJPU",
+                  "name": "q1A",
+                  "fill": "#065F46",
+                  "content": "✓ All four corners visible",
+                  "fontFamily": "Geist",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "racu5",
+                  "name": "q2A",
+                  "fill": "#065F46",
+                  "content": "✓ Text is readable",
+                  "fontFamily": "Geist",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "mILE4",
+                  "name": "q3A",
+                  "fill": "$--muted-foreground",
+                  "content": "○ No glare or covered information",
+                  "fontFamily": "Geist",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kJrJF",
+          "name": "Selfie capture card",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "aqp1P",
+              "name": "selfieTitleA",
+              "fill": "$--foreground",
+              "content": "Selfie / liveness mock",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "EBrWG",
+              "name": "selfieDescA",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "User can open camera, capture a selfie, retake it, or upload a mock selfie if camera permission is blocked.",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "0KvGn",
+              "name": "selfieRowA",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xAstM",
+                  "name": "Camera preview",
+                  "width": "fill_container",
+                  "height": 160,
+                  "fill": "#111111",
+                  "cornerRadius": 8,
+                  "layout": "vertical",
+                  "gap": 10,
+                  "padding": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "LPmDm",
+                      "name": "camIconA",
+                      "width": 28,
+                      "height": 28,
+                      "iconFontName": "camera",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YmdEg",
+                      "name": "camTextA",
+                      "fill": "#FFFFFF",
+                      "content": "Camera preview",
+                      "fontFamily": "Geist",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "v5Vut",
+                      "name": "camHelpA",
+                      "fill": "#D1D5DB",
+                      "content": "Capture selfie",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "G42ny",
+                  "name": "Liveness checklist",
+                  "width": "fill_container",
+                  "fill": "$--background",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "5WWmp",
+                      "name": "liveTitleA",
+                      "fill": "$--foreground",
+                      "content": "Mock liveness checks",
+                      "fontFamily": "Geist",
+                      "fontSize": 14,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "slUp9",
+                      "name": "l1A",
+                      "fill": "#065F46",
+                      "content": "✓ Face visible",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "JKg0N",
+                      "name": "l2A",
+                      "fill": "#065F46",
+                      "content": "✓ Good lighting",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kIyDd",
+                      "name": "l3A",
+                      "fill": "$--muted-foreground",
+                      "content": "○ No mask or sunglasses",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "4Yuak",
+                      "name": "l4A",
+                      "fill": "$--primary",
+                      "content": "Fallback: upload mock selfie",
+                      "fontFamily": "Geist",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "qQX55",
+          "name": "Review checklist card",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "ps2PG",
+              "name": "reviewTitleA",
+              "fill": "$--foreground",
+              "content": "Review before submit",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "ztjeh",
+              "name": "r1A",
+              "fill": "#065F46",
+              "content": "✓ Personal information completed",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "5hOrw",
+              "name": "r2A",
+              "fill": "#065F46",
+              "content": "✓ CCCD front uploaded",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "mrRoi",
+              "name": "r3A",
+              "fill": "#92400E",
+              "content": "○ CCCD back required",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "z9QTJ",
+              "name": "r4A",
+              "fill": "#065F46",
+              "content": "✓ Selfie captured or uploaded",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "5YEMY",
+              "name": "r5A",
+              "fill": "$--muted-foreground",
+              "content": "○ Demo consent accepted",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "5bU4p",
+          "name": "Actions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "UFM4r",
+              "name": "secondaryA",
+              "fill": "$--secondary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "tz5FD",
+                  "name": "secondaryTextA",
+                  "fill": "$--foreground",
+                  "content": "Save draft",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "3w5T6",
+              "name": "primaryA",
+              "fill": "$--primary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                18
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "8PvTc",
+                  "name": "primaryTextA",
+                  "fill": "$--primary-foreground",
+                  "content": "Submit for review",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "SVGrn",
+      "x": 6720,
+      "y": 1689,
+      "name": "KYC Verify - PENDING",
+      "width": 800,
+      "height": 960,
+      "fill": "$--background",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "Gg4p9",
+          "name": "Header",
+          "width": "fill_container",
+          "gap": 24,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "hcH2N",
+              "name": "hTitleB2",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "JoA4D",
+                  "name": "titleB2",
+                  "fill": "$--foreground",
+                  "content": "KYC Verification",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "W6Bpu",
+                  "name": "subB2",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Mock application submitted for wallet 0x1234...abcd.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GlOV9",
+              "name": "badgeB2",
+              "fill": "$--color-warning",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YSX6I",
+                  "name": "badgeTextB2",
+                  "fill": "$--color-warning-foreground",
+                  "content": "Pending review",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "K91nT",
+          "name": "Pending notice",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "DgMSZ",
+              "name": "alertTitleB2",
+              "fill": "$--foreground",
+              "content": "Your mock KYC package is under review",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "dYRzd",
+              "name": "alertTextB2",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The submitted package includes personal information, CCCD front/back images, and selfie/liveness mock data.",
+              "fontFamily": "Geist",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KAoYe",
+          "name": "Submitted package",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "LEbPm",
+              "name": "sumTitleB2",
+              "fill": "$--foreground",
+              "content": "Submitted data",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "fxz0s",
+              "name": "s1B2",
+              "fill": "#065F46",
+              "content": "✓ Personal info: Alice Nguyen, Vietnam",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "APj3w",
+              "name": "s2B2",
+              "fill": "#065F46",
+              "content": "✓ CCCD front: cccd-front.png",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "ExtPG",
+              "name": "s3B2",
+              "fill": "#065F46",
+              "content": "✓ CCCD back: cccd-back.png",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "lE8uc",
+              "name": "s4B2",
+              "fill": "#065F46",
+              "content": "✓ Selfie: selfie-capture.png",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "PJcbZ",
+              "name": "s5B2",
+              "fill": "#065F46",
+              "content": "✓ Demo consent accepted",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "1fCQc",
+          "name": "Review timeline",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "67zHj",
+              "name": "tTitleB2",
+              "fill": "$--foreground",
+              "content": "Review timeline",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "GU5eb",
+              "name": "t1B2",
+              "fill": "#065F46",
+              "content": "✓ Submitted",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "Tr1NY",
+              "name": "t2B2",
+              "fill": "#065F46",
+              "content": "✓ File checks passed",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "BNCpT",
+              "name": "t3B2",
+              "fill": "#92400E",
+              "content": "⏳ Manual review",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "X0dVb",
+              "name": "t4B2",
+              "fill": "$--muted-foreground",
+              "content": "○ Result",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "f6OJj",
+          "name": "Demo controls",
+          "width": "fill_container",
+          "fill": "#F9FAFB",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "zSNuo",
+              "name": "demoTitleB2",
+              "fill": "$--foreground",
+              "content": "Demo controls",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "SNIB3",
+              "name": "demoTextB2",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Development-only actions can approve or reject this mock KYC package.",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "pv68A",
+              "name": "demoRowB2",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xbhiZ",
+                  "name": "approveBtnB2",
+                  "fill": "#10B981",
+                  "cornerRadius": 6,
+                  "padding": [
+                    10,
+                    14
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FSHPz",
+                      "name": "approveTextB2",
+                      "fill": "#FFFFFF",
+                      "content": "Approve demo",
+                      "fontFamily": "Geist",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uA8i3",
+                  "name": "rejectBtnB2",
+                  "fill": "#FEE2E2",
+                  "cornerRadius": 6,
+                  "padding": [
+                    10,
+                    14
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wgoyg",
+                      "name": "rejectTextB2",
+                      "fill": "#991B1B",
+                      "content": "Reject: unreadable back side",
+                      "fontFamily": "Geist",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Fm5qy",
+          "name": "Actions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "jTkyh",
+              "name": "backDashB2",
+              "fill": "$--secondary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "wssP3",
+                  "name": "backDashTextB2",
+                  "fill": "$--foreground",
+                  "content": "Back to dashboard",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "qXqhc",
+      "x": 7620,
+      "y": 1689,
+      "name": "KYC Verify - APPROVED",
+      "width": 800,
+      "height": 820,
+      "fill": "$--background",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "a4uRl",
+          "name": "Header",
+          "width": "fill_container",
+          "gap": 24,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "qO7J9",
+              "name": "hTitleC",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ZaMem",
+                  "name": "titleC",
+                  "fill": "$--foreground",
+                  "content": "KYC Verification",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "0CdqC",
+                  "name": "subC",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Wallet 0x1234...abcd has passed the mock verification flow.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v770J",
+              "name": "badgeC",
+              "fill": "$--color-success",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mErK6",
+                  "name": "badgeTextC",
+                  "fill": "$--color-success-foreground",
+                  "content": "Verified",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "cVUwg",
+          "name": "Approved summary",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 12,
+          "padding": 24,
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "yywiR",
+              "name": "iconC",
+              "width": 32,
+              "height": 32,
+              "iconFontName": "circle-check",
+              "iconFontFamily": "lucide",
+              "fill": "#10B981"
+            },
+            {
+              "type": "text",
+              "id": "hwfgI",
+              "name": "sTitleC",
+              "fill": "$--foreground",
+              "content": "KYC approved for demo access",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 22,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "FXATx",
+              "name": "sTextC",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "The account can now access marketplace actions that require mock identity verification.",
+              "fontFamily": "Geist",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "SrI9O",
+          "name": "Unlocked actions",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "vAfvX",
+              "name": "uTitleC",
+              "fill": "$--foreground",
+              "content": "Unlocked demo actions",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "fR94P",
+              "name": "u1C",
+              "fill": "#065F46",
+              "content": "✓ Create auction",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "fcuZp",
+              "name": "u2C",
+              "fill": "#065F46",
+              "content": "✓ Place high-value bids",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "6aFP4",
+              "name": "u3C",
+              "fill": "#065F46",
+              "content": "✓ Withdraw funds",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "DWgmf",
+              "name": "u4C",
+              "fill": "#065F46",
+              "content": "✓ Open dispute",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mFY4L",
+          "name": "Verification record",
+          "width": "fill_container",
+          "fill": "#F9FAFB",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "8zPbL",
+              "name": "recTitleC",
+              "fill": "$--foreground",
+              "content": "Verification record",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "ZB92e",
+              "name": "recTextC",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Approved from mock package: personal info, CCCD front/back, selfie/liveness, consent.",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "kglM9",
+          "name": "Actions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "LvMpL",
+              "name": "btnC",
+              "fill": "$--primary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "VObPw",
+                  "name": "btnTextC",
+                  "fill": "$--primary-foreground",
+                  "content": "Continue to dashboard",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "wBnNC",
+      "x": 8520,
+      "y": 1689,
+      "name": "KYC Verify - REJECTED",
+      "width": 800,
+      "height": 1040,
+      "fill": "$--background",
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "h4BGM",
+          "name": "Header",
+          "width": "fill_container",
+          "gap": 24,
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "frame",
+              "id": "NllFk",
+              "name": "hTitleD",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "oo2xU",
+                  "name": "titleD",
+                  "fill": "$--foreground",
+                  "content": "KYC Verification",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 28,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "LoKZh",
+                  "name": "subD",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Wallet 0x1234...abcd needs changes before the mock package can be approved.",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jwLZt",
+              "name": "badgeD",
+              "fill": "#FEE2E2",
+              "cornerRadius": "$--radius-pill",
+              "padding": [
+                8,
+                12
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Dlzel",
+                  "name": "badgeTextD",
+                  "fill": "#991B1B",
+                  "content": "Action required",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "nFa6o",
+          "name": "Rejection reason",
+          "width": "fill_container",
+          "fill": "#FEF2F2",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "#FCA5A5"
+          },
+          "layout": "vertical",
+          "gap": 8,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "5sBgO",
+              "name": "rTitleD",
+              "fill": "#991B1B",
+              "content": "Review result: rejected",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "7Ozek",
+              "name": "rTextD",
+              "fill": "#991B1B",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Reason: CCCD back side is unreadable. Replace the back-side image and retake selfie if needed.",
+              "fontFamily": "Geist",
+              "fontSize": 14,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gS6T5",
+          "name": "Fix checklist",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "ljgay",
+              "name": "fixTitleD",
+              "fill": "$--foreground",
+              "content": "Required fixes",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "LysWb",
+              "name": "f1D",
+              "fill": "#065F46",
+              "content": "✓ Personal information kept from previous submission",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "6hfxY",
+              "name": "f2D",
+              "fill": "#065F46",
+              "content": "✓ CCCD front accepted",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "41zFZ",
+              "name": "f3D",
+              "fill": "#991B1B",
+              "content": "! Replace CCCD back side",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "BwITh",
+              "name": "f4D",
+              "fill": "$--muted-foreground",
+              "content": "○ Confirm selfie/liveness still matches",
+              "fontFamily": "Geist",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gxjfr",
+          "name": "Resubmit card",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "COEPA",
+              "name": "resubTitleD",
+              "fill": "$--foreground",
+              "content": "Resubmit documents",
+              "fontFamily": "JetBrains Mono",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "XqIpZ",
+              "name": "rowD",
+              "width": "fill_container",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GeEwc",
+                  "name": "frontD",
+                  "width": "fill_container",
+                  "fill": "#F9FAFB",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "$--border"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YxUEG",
+                      "name": "frontTextD",
+                      "fill": "#065F46",
+                      "content": "Front side accepted",
+                      "fontFamily": "Geist",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "g4xDp",
+                  "name": "backD",
+                  "width": "fill_container",
+                  "fill": "#FEF2F2",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#FCA5A5"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gsDwO",
+                      "name": "backTextD",
+                      "fill": "#991B1B",
+                      "content": "Back side missing replacement",
+                      "fontFamily": "Geist",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "y7Dk5",
+          "name": "Selfie confirmation",
+          "width": "fill_container",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": {
+            "thickness": 1,
+            "fill": "$--border"
+          },
+          "gap": 12,
+          "padding": 16,
+          "children": [
+            {
+              "type": "frame",
+              "id": "th8aj",
+              "name": "selfieStatusD",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "xqJk2",
+                  "name": "selfieTitleD",
+                  "fill": "$--foreground",
+                  "content": "Selfie check",
+                  "fontFamily": "JetBrains Mono",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "OyDyw",
+                  "name": "selfieTextD",
+                  "fill": "$--muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Retake only if the replacement document changes the visible identity details.",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wthR1",
+              "name": "retakeBtnD",
+              "fill": "$--secondary",
+              "cornerRadius": 6,
+              "padding": [
+                10,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "84DIf",
+                  "name": "retakeTextD",
+                  "fill": "$--foreground",
+                  "content": "Retake selfie",
+                  "fontFamily": "Geist",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wwQPo",
+          "name": "Actions",
+          "width": "fill_container",
+          "gap": 12,
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Iq6mO",
+              "name": "secondaryD",
+              "fill": "$--secondary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ldK8x",
+                  "name": "secondaryTextD",
+                  "fill": "$--foreground",
+                  "content": "Save changes",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "h9PCl",
+              "name": "primaryD",
+              "fill": "$--primary",
+              "cornerRadius": 6,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NQjuh",
+                  "name": "primaryTextD",
+                  "fill": "$--primary-foreground",
+                  "content": "Resubmit verification",
+                  "fontFamily": "Geist",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GN7w3",
+      "x": 2740,
+      "y": 4037,
+      "name": "User Profile",
+      "width": 1440,
+      "height": 1000,
+      "fill": "$--background",
+      "layout": "vertical",
+      "children": [
+        {
+          "id": "bRIcX",
+          "type": "ref",
+          "ref": "lybUa",
+          "width": "fill_container",
+          "name": "header"
+        },
+        {
+          "type": "frame",
+          "id": "oRrfu",
+          "name": "main",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            48,
+            120
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "VTOk1",
+              "name": "title",
+              "fill": "$--foreground",
+              "content": "Quản lý Hồ sơ",
+              "fontFamily": "$--font-primary",
+              "fontSize": 36,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "yQUlb",
+              "name": "form",
+              "width": 800,
+              "fill": "$--card",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 32,
+              "padding": 48,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "vv9Fc",
+                  "name": "avatarSect",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "UA4OQ",
+                      "name": "avatarLbl",
+                      "fill": "$--foreground",
+                      "content": "Ảnh đại diện",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Wqgqr",
+                      "name": "avatarRow",
+                      "gap": 24,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FZVIV",
+                          "name": "avatarImg",
+                          "width": 80,
+                          "height": 80,
+                          "fill": "#000000",
+                          "cornerRadius": "$--radius-pill"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "cbViQ",
+                          "name": "avatarBtn",
+                          "fill": "$--background",
+                          "cornerRadius": "$--radius-m",
+                          "stroke": {
+                            "align": "inside",
+                            "thickness": 1,
+                            "fill": "$--border"
+                          },
+                          "padding": [
+                            10,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "RPEEq",
+                              "name": "avatarBtnTxt",
+                              "fill": "$--foreground",
+                              "content": "Tải ảnh lên",
+                              "fontFamily": "$--font-secondary",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "i0ZYc",
+                  "name": "nameSect",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MwutU",
+                      "name": "nameLbl",
+                      "fill": "$--foreground",
+                      "content": "Tên hiển thị",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jsCy0",
+                      "name": "nameInput",
+                      "width": "fill_container",
+                      "fill": "$--background",
+                      "cornerRadius": "$--radius-m",
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "$--border"
+                      },
+                      "padding": [
+                        12,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "J6ebx",
+                          "name": "nameInputTxt",
+                          "fill": "$--muted-foreground",
+                          "content": "Nhập tên hiển thị...",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "felC6",
+                  "name": "saveBtn",
+                  "width": "fill_container",
+                  "fill": "$--primary",
+                  "cornerRadius": "$--radius-m",
+                  "padding": [
+                    12,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yGSiW",
+                      "name": "saveBtnTxt",
+                      "fill": "$--primary-foreground",
+                      "content": "Lưu Thay đổi",
+                      "fontFamily": "$--font-secondary",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ygKRA",
+              "name": "kycSect",
+              "width": 800,
+              "fill": "$--secondary",
+              "cornerRadius": "$--radius-m",
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$--border"
+              },
+              "layout": "vertical",
+              "gap": 24,
+              "padding": 32,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "YgJvG",
+                  "name": "kycHeader",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "RneSf",
+                      "name": "kycTitle",
+                      "fill": "$--foreground",
+                      "content": "Xác minh danh tính (KYC)",
+                      "fontFamily": "$--font-primary",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dvicC",
+                      "name": "kycStatusRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OdkQT",
+                          "name": "kycStatusLbl",
+                          "fill": "$--muted-foreground",
+                          "content": "Trạng thái:",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Dv5Cc",
+                          "name": "kycStatusVal",
+                          "fill": "$--foreground",
+                          "content": "NONE",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 16,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NI2fc",
+                  "name": "kycBtnWrap",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "R1OKXJ",
+                      "name": "kycBtn",
+                      "fill": "$--color-success",
+                      "cornerRadius": "$--radius-pill",
+                      "padding": [
+                        10,
+                        24
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gkhRm",
+                          "name": "kycBtnTxt",
+                          "fill": "$--primary-foreground",
+                          "content": "Yêu cầu xác minh KYC",
+                          "fontFamily": "$--font-secondary",
+                          "fontSize": 14,
+                          "fontWeight": "600"
                         }
                       ]
                     }
