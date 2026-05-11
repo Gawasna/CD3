@@ -7,10 +7,6 @@
         "blockchain"
     ],
     "scripts": {
-<<<<<<< HEAD
-        "dev": "npm run dev --workspaces --if-present",
-        "build": "npm run build --workspaces --if-present"
-=======
         "dev": "npm run dev --workspaces",
         "build": "npm run build --workspaces",
         "dev:front": "npm run dev --workspace=frontend",
@@ -22,6 +18,5 @@
     },
     "devDependencies": {
         "@types/multer": "^2.1.0"
->>>>>>> origin/master
     }
 }
