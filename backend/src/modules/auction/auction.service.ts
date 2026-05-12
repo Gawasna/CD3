@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
-import type { RecordBidBody, RequestExtensionBody } from './auction.schema';
+import type { RecordBidBody, RequestExtensionBody, CreateAuctionBody } from './auction.schema';
 
 // ── Self-bid Validation ───────────────────────────────────────────────────
 
@@ -230,23 +230,50 @@ export async function getAuctionById(auctionId: string) {
 
 /**
  * Lấy danh sách auctions với filter và pagination.
+ * Hỗ trợ variants: ending-soon, live, upcoming cho Homepage.
  */
 export async function listAuctions(params: {
   status?: string;
+  variant?: string;
   page: number;
   limit: number;
 }) {
-  const { status, page, limit } = params;
+  const { status, variant, page, limit } = params;
   const skip = (page - 1) * limit;
 
-  const where = status ? { status: status as any } : {};
+  let where: any = {};
+
+  // Filter theo status nếu có
+  if (status) {
+    where.status = status as any;
+  }
+
+  // Xử lý variants cho Homepage
+  if (variant === 'ending-soon') {
+    // Auctions đang ACTIVE và kết thúc trong 24h tới
+    const now = new Date();
+    const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    where.status = 'ACTIVE';
+    where.endTime = {
+      gte: now,
+      lte: next24h,
+    };
+  } else if (variant === 'live') {
+    // Auctions đang ACTIVE
+    where.status = 'ACTIVE';
+  } else if (variant === 'upcoming') {
+    // Auctions PENDING (chưa confirmed on-chain)
+    where.status = 'PENDING';
+  }
 
   const [auctions, total] = await Promise.all([
     prisma.auctionMetadata.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: variant === 'ending-soon' 
+        ? { endTime: 'asc' }  // Sắp xếp theo thời gian kết thúc gần nhất
+        : { createdAt: 'desc' },
       include: {
         seller: {
           select: { id: true, walletAddress: true, displayName: true, avatarUrl: true },
@@ -321,4 +348,84 @@ export async function syncEscrowStatus(
       ...(newAuctionStatus ? { status: newAuctionStatus as any } : {}),
     },
   });
+}
+
+// ── Create Pending Auction ────────────────────────────────────────────────
+
+/**
+ * Tạo auction mới với status PENDING.
+ * Được gọi sau khi frontend gửi TX createAuction lên blockchain.
+ * 
+ * Flow:
+ *   1. Frontend upload media -> nhận mediaKeys
+ *   2. Frontend gửi TX createAuction -> nhận txHash
+ *   3. Frontend gọi API này với txHash và mediaKeys
+ *   4. Backend tạo record PENDING
+ *   5. Listener lắng nghe AuctionCreated event -> update onChainAuctionId và status ACTIVE
+ */
+export async function createPendingAuction(
+  sellerId: string,
+  input: CreateAuctionBody,
+): Promise<{ auctionId: string }> {
+  // Validate KYC status
+  const seller = await prisma.user.findUnique({
+    where: { id: sellerId },
+    select: { kycStatus: true, isActive: true },
+  });
+
+  if (!seller) {
+    throw ApiError.notFound('USER_NOT_FOUND', 'User not found');
+  }
+
+  if (!seller.isActive) {
+    throw ApiError.forbidden('USER_SUSPENDED', 'Your account has been suspended');
+  }
+
+  if (seller.kycStatus !== 'APPROVED') {
+    throw ApiError.forbidden(
+      'KYC_NOT_APPROVED',
+      'You must complete KYC verification to create auctions',
+    );
+  }
+
+  // Validate buyNowPrice > startingPrice nếu có
+  if (input.buyNowPriceWei) {
+    const buyNow = BigInt(input.buyNowPriceWei);
+    const starting = BigInt(input.startingPriceWei);
+    if (buyNow <= starting) {
+      throw ApiError.badRequest(
+        'INVALID_BUY_NOW_PRICE',
+        'Buy Now price must be greater than starting price',
+      );
+    }
+  }
+
+  // Tính endTime từ durationSeconds
+  const endTime = new Date(Date.now() + input.durationSeconds * 1000);
+
+  // Tạo auction với status PENDING
+  const auction = await prisma.auctionMetadata.create({
+    data: {
+      sellerId,
+      status: 'PENDING',
+      escrowStatus: 'NONE',
+      title: input.title,
+      description: input.description,
+      category: input.category,
+      startingPriceWei: input.startingPriceWei,
+      buyNowPriceWei: input.buyNowPriceWei ?? null,
+      collateralWei: '0', // Sẽ được update từ on-chain event nếu cần
+      endTime,
+      durationSeconds: input.durationSeconds,
+      shippingCostWei: input.shippingCostWei,
+      shippingPayer: input.shippingPayer,
+      createTxHash: input.createTxHash,
+      // Lưu mediaKeys vào ipfsCid tạm thời (hoặc có thể tạo field mới)
+      // Ở đây dùng JSON.stringify để lưu array
+      ipfsCid: JSON.stringify(input.mediaKeys),
+    },
+    select: { id: true },
+  });
+
+  return { auctionId: auction.id };
 }

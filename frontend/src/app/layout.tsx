@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import { ToastProvider } from "@/components/auth/ToastContainer";
 import { Web3Provider } from "@/contexts/WagmiProvider";
+import { QueryProvider } from "@/contexts/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,12 +47,14 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-geist" suppressHydrationWarning>
         <Web3Provider>
-          <NextIntlClientProvider messages={messages}>
-            <ToastProvider>
-              <Header />
-              {children}
-            </ToastProvider>
-          </NextIntlClientProvider>
+          <QueryProvider>
+            <NextIntlClientProvider messages={messages}>
+              <ToastProvider>
+                <Header />
+                {children}
+              </ToastProvider>
+            </NextIntlClientProvider>
+          </QueryProvider>
         </Web3Provider>
       </body>
     </html>

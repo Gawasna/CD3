@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useRef, DragEvent } from 'react';
-import { Upload, Check, X, Image as ImageIcon, Video } from 'lucide-react';
-
-type Condition = 'new' | 'like-new' | 'used' | 'for-parts';
+import { useState, useRef, DragEvent, FormEvent, useEffect } from 'react';
+import { Upload, Check, X, Video } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { parseEther } from 'viem';
+import { useRouter } from 'next/navigation';
+import { uploadAuctionMedia, createAuction, type AuctionCategory, type ShippingPayer } from '@/services/api/auction';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
 
 interface MediaFile {
   file: File;
@@ -12,22 +16,34 @@ interface MediaFile {
 }
 
 export default function CreateAuction() {
-  const [selectedCondition, setSelectedCondition] = useState<Condition>('new');
-  const [shippingEnabled, setShippingEnabled] = useState(true);
+  const router = useRouter();
+  const { address, isConnected } = useAccount();
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const conditions: { value: Condition; label: string }[] = [
-    { value: 'new', label: 'New' },
-    { value: 'like-new', label: 'Like New' },
-    { value: 'used', label: 'Used' },
-    { value: 'for-parts', label: 'For Parts' },
-  ];
+  // Form state
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<AuctionCategory>('ELECTRONICS');
+  const [startingPrice, setStartingPrice] = useState('');
+  const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [duration, setDuration] = useState('86400'); // 1 day in seconds
+  const [shippingCost, setShippingCost] = useState('0');
+  const [shippingPayer, setShippingPayer] = useState<ShippingPayer>('BUYER');
+
+  const { writeContract, data: txHash } = useWriteContract();
+  const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  const [uploadedFilenames, setUploadedFilenames] = useState<string[]>([]);
 
   const validateFile = (file: File): { valid: boolean; error?: string } => {
     const imageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    const videoTypes = ['video/mp4', 'video/quicktime']; // quicktime is .mov
+    const videoTypes = ['video/mp4', 'video/quicktime'];
     const maxImageSize = 5 * 1024 * 1024; // 5MB
     const maxVideoSize = 50 * 1024 * 1024; // 50MB
 
@@ -56,6 +72,11 @@ export default function CreateAuction() {
       
       if (!validation.valid) {
         alert(validation.error);
+        return;
+      }
+
+      if (mediaFiles.length + newMediaFiles.length >= 6) {
+        alert('Maximum 6 media files allowed');
         return;
       }
 
@@ -105,12 +126,106 @@ export default function CreateAuction() {
     fileInputRef.current?.click();
   };
 
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    if (mediaFiles.length === 0) {
+      alert('Please upload at least one media file');
+      return;
+    }
+
+    if (title.length < 10) {
+      alert('Title must be at least 10 characters');
+      return;
+    }
+
+    if (description.length < 20) {
+      alert('Description must be at least 20 characters');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+
+      // 1. Upload media files
+      const { filenames } = await uploadAuctionMedia(mediaFiles.map((m) => m.file));
+      setUploadedFilenames(filenames);
+
+      setIsUploading(false);
+      setIsCreating(true);
+
+      // 2. Create auction on blockchain
+      const startingPriceWei = parseEther(startingPrice);
+      const buyNowPriceWei = buyNowPrice ? parseEther(buyNowPrice) : BigInt(0);
+      const durationSeconds = parseInt(duration);
+
+      // Calculate collateral (20% of starting price, min 0.01 ETH)
+      const collateral = startingPriceWei * BigInt(2000) / BigInt(10000);
+      const minCollateral = parseEther('0.01');
+      const requiredCollateral = collateral > minCollateral ? collateral : minCollateral;
+
+      writeContract({
+        address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+        abi: AuctionPlatformABI.abi,
+        functionName: 'createAuction',
+        args: [
+          startingPriceWei,
+          BigInt(durationSeconds),
+          JSON.stringify(filenames), // productCid - store filenames as JSON
+          buyNowPriceWei,
+        ],
+        value: requiredCollateral,
+      });
+    } catch (error: any) {
+      console.error('Error creating auction:', error);
+      alert(error.message || 'Failed to create auction');
+      setIsUploading(false);
+      setIsCreating(false);
+    }
+  };
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isTxConfirmed && txHash && uploadedFilenames.length > 0) {
+      (async () => {
+        try {
+          // 3. Register auction in backend
+          const { auctionId } = await createAuction({
+            title,
+            description,
+            category,
+            startingPriceWei: parseEther(startingPrice).toString(),
+            buyNowPriceWei: buyNowPrice ? parseEther(buyNowPrice).toString() : undefined,
+            durationSeconds: parseInt(duration),
+            shippingCostWei: parseEther(shippingCost).toString(),
+            shippingPayer,
+            createTxHash: txHash,
+            mediaKeys: uploadedFilenames,
+          });
+
+          alert('Auction created successfully!');
+          router.push(`/auctions/${auctionId}`);
+        } catch (error: any) {
+          console.error('Error registering auction:', error);
+          alert(error.message || 'Failed to register auction in backend');
+        } finally {
+          setIsCreating(false);
+        }
+      })();
+    }
+  }, [isTxConfirmed, txHash, uploadedFilenames]);
+
   return (
     <div className="flex flex-col items-center p-16 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       <div className="flex flex-col gap-12 w-full max-w-[800px]">
         <h1 className="font-jetbrains text-4xl font-extrabold text-[#111111]">Create New Auction</h1>
         
-        <form className="flex flex-col gap-8 bg-white border border-[#CBCCC9] rounded-2xl p-12 shadow-sm w-full">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8 bg-white border border-[#CBCCC9] rounded-2xl p-12 shadow-sm w-full">
           {/* Upload Area */}
           <div className="flex flex-col gap-4 w-full">
             <input
@@ -139,7 +254,7 @@ export default function CreateAuction() {
                   Click or Drag & Drop to Upload Media
                 </span>
                 <span className="font-geist text-xs text-[#999999]">
-                  JPG, PNG (&lt; 5MB) • MP4, MOV (&lt; 50MB)
+                  JPG, PNG (&lt; 5MB) • MP4, MOV (&lt; 50MB) • Max 6 files
                 </span>
               </div>
             </div>
@@ -170,7 +285,6 @@ export default function CreateAuction() {
                       </div>
                     )}
                     
-                    {/* Remove Button */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -182,7 +296,6 @@ export default function CreateAuction() {
                       <X className="w-4 h-4 text-white" />
                     </button>
 
-                    {/* File Type Badge */}
                     <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 rounded text-white font-jetbrains text-[10px] font-semibold">
                       {media.type === 'image' ? 'IMG' : 'VID'}
                     </div>
@@ -194,112 +307,131 @@ export default function CreateAuction() {
 
           {/* Item Name */}
           <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Item Name</label>
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Item Name *</label>
             <input 
-              type="text" 
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              minLength={10}
               className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-              placeholder="e.g. Vintage Camera" 
+              placeholder="e.g. Vintage Camera (min 10 characters)" 
             />
           </div>
 
           {/* Category */}
           <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Category</label>
-            <select className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full appearance-none">
-              <option value="">Select category</option>
-              <option value="electronics">Electronics</option>
-              <option value="watches">Watches & Jewelry</option>
-              <option value="fashion">Fashion & Accessories</option>
-              <option value="collectibles">Collectibles</option>
-              <option value="art">Art</option>
-              <option value="other">Other</option>
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Category *</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as AuctionCategory)}
+              required
+              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full appearance-none"
+            >
+              <option value="ELECTRONICS">Electronics</option>
+              <option value="FASHION">Fashion & Accessories</option>
+              <option value="FURNITURE">Furniture</option>
+              <option value="COLLECTIBLES">Collectibles</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
 
           {/* Description */}
           <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Description & Details</label>
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Description & Details *</label>
             <textarea 
               rows={5}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              minLength={20}
               className="p-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist resize-none w-full" 
-              placeholder="Describe your item in detail..." 
+              placeholder="Describe your item in detail (min 20 characters)..." 
             />
-          </div>
-
-          {/* Condition */}
-          <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Condition</label>
-            <div className="flex gap-3">
-              {conditions.map((condition) => (
-                <button
-                  key={condition.value}
-                  type="button"
-                  onClick={() => setSelectedCondition(condition.value)}
-                  className={`px-5 py-2.5 rounded-full font-jetbrains text-sm font-semibold transition-colors ${
-                    selectedCondition === condition.value
-                      ? 'bg-[#FF8400] text-[#111111]'
-                      : 'bg-[#E7E8E5] text-[#111111] border border-[#CBCCC9] hover:bg-[#CBCCC9]'
-                  }`}
-                >
-                  {condition.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Price and Duration */}
           <div className="flex gap-6 w-full">
             <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Starting Price (ETH)</label>
+              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Starting Price (ETH) *</label>
               <input 
                 type="number" 
-                step="0.01"
+                step="0.001"
+                value={startingPrice}
+                onChange={(e) => setStartingPrice(e.target.value)}
+                required
+                min="0.001"
                 className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
                 placeholder="0.00" 
               />
             </div>
             <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration (1 hr - 30 days)</label>
-              <select className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full">
-                <option>1 Day</option>
-                <option>3 Days</option>
-                <option>7 Days</option>
-                <option>14 Days</option>
-                <option>30 Days</option>
-              </select>
+              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Buy Now Price (ETH)</label>
+              <input 
+                type="number" 
+                step="0.001"
+                value={buyNowPrice}
+                onChange={(e) => setBuyNowPrice(e.target.value)}
+                min="0"
+                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
+                placeholder="Optional" 
+              />
             </div>
           </div>
 
-          {/* Shipping Options */}
+          {/* Duration */}
           <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Options</label>
-            <button
-              type="button"
-              onClick={() => setShippingEnabled(!shippingEnabled)}
-              className="flex items-center gap-3"
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
+            <select
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              required
+              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
             >
-              <div
-                className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-                  shippingEnabled
-                    ? 'bg-[#FF8400]'
-                    : 'bg-white border border-[#CBCCC9]'
-                }`}
+              <option value="86400">1 Day</option>
+              <option value="259200">3 Days</option>
+              <option value="604800">7 Days</option>
+              <option value="1209600">14 Days</option>
+              <option value="2592000">30 Days</option>
+            </select>
+          </div>
+
+          {/* Shipping */}
+          <div className="flex gap-6 w-full">
+            <div className="flex flex-col gap-2 flex-1">
+              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Cost (ETH)</label>
+              <input 
+                type="number" 
+                step="0.001"
+                value={shippingCost}
+                onChange={(e) => setShippingCost(e.target.value)}
+                min="0"
+                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
+                placeholder="0.00" 
+              />
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Paid By</label>
+              <select
+                value={shippingPayer}
+                onChange={(e) => setShippingPayer(e.target.value as ShippingPayer)}
+                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
               >
-                {shippingEnabled && <Check className="w-3.5 h-3.5 text-[#111111]" />}
-              </div>
-              <span className="font-geist text-sm text-[#111111]">
-                I will handle shipping
-              </span>
-            </button>
+                <option value="BUYER">Buyer</option>
+                <option value="SELLER">Seller</option>
+                <option value="PLATFORM">Platform</option>
+              </select>
+            </div>
           </div>
 
           {/* Submit Button */}
           <div className="flex justify-end pt-4 w-full">
             <button 
-              type="submit" 
-              className="h-10 px-6 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity"
+              type="submit"
+              disabled={isUploading || isCreating || !isConnected}
+              className="h-10 px-6 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Mint & Create
+              {isUploading ? 'Uploading...' : isCreating ? 'Creating...' : 'Create Auction'}
             </button>
           </div>
         </form>
