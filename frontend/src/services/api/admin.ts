@@ -6,7 +6,9 @@ export interface KycRequestItem {
   fullName: string;
   idNumber: string;
   dateOfBirth: string;
-  documentUrl: string | null;
+  frontIdUrl: string | null;
+  backIdUrl: string | null;
+  selfieUrl: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NONE';
   createdAt: string;
   user: {

@@ -59,6 +59,25 @@ export default function AdminKycDashboard() {
     window.open(fullUrl, '_blank');
   };
 
+  const handleViewAllDocuments = (req: any) => {
+    const docs = [
+      { label: 'Front ID', url: req.frontIdUrl },
+      { label: 'Back ID', url: req.backIdUrl },
+      { label: 'Selfie', url: req.selfieUrl },
+    ].filter(doc => doc.url);
+
+    if (docs.length === 0) {
+      alert('Không có tài liệu để xem.');
+      return;
+    }
+
+    // Mở tất cả documents trong tabs mới
+    docs.forEach(doc => {
+      const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${doc.url}`;
+      window.open(fullUrl, '_blank');
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6 p-8 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       <div className="flex items-center justify-between">
@@ -135,17 +154,48 @@ export default function AdminKycDashboard() {
                       </span>
                     </td>
                     <td className="p-4">
-                      {req.documentUrl ? (
-                        <button 
-                          onClick={() => handleViewDocument(req.documentUrl)}
-                          className="flex items-center gap-2 px-3 py-1 text-sm text-[#004D1A] hover:bg-[#DFE6E1] rounded-lg transition-colors"
-                          title="View Document"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span className="font-geist">View ID</span>
-                        </button>
+                      {req.frontIdUrl || req.backIdUrl || req.selfieUrl ? (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleViewAllDocuments(req)}
+                            className="flex items-center gap-2 px-3 py-1 text-sm text-[#004D1A] hover:bg-[#DFE6E1] rounded-lg transition-colors"
+                            title="View All Documents"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span className="font-geist">View All</span>
+                          </button>
+                          <div className="flex gap-1">
+                            {req.frontIdUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.frontIdUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Front ID"
+                              >
+                                Front
+                              </button>
+                            )}
+                            {req.backIdUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.backIdUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Back ID"
+                              >
+                                Back
+                              </button>
+                            )}
+                            {req.selfieUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.selfieUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Selfie"
+                              >
+                                Selfie
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       ) : (
-                        <span className="text-xs text-[#999999]">No document</span>
+                        <span className="text-xs text-[#999999]">No documents</span>
                       )}
                     </td>
                     <td className="p-4 text-right">

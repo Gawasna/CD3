@@ -5,7 +5,9 @@ export interface KycSubmitData {
   idNumber: string;
   dateOfBirth: string;
   address?: string;
-  documentUrl: string;
+  frontIdUrl: string;
+  backIdUrl: string;
+  selfieUrl: string;
 }
 
 export const kycApi = {

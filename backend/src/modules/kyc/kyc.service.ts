@@ -26,7 +26,9 @@ export async function submitKyc(userId: string, input: KycSubmitInput) {
         idNumber: input.idNumber,
         dateOfBirth: new Date(input.dateOfBirth),
         address: input.address,
-        documentUrl: input.documentUrl,
+        frontIdUrl: input.frontIdUrl,
+        backIdUrl: input.backIdUrl,
+        selfieUrl: input.selfieUrl,
         status: 'PENDING',
         rejectionReason: null,
       },
@@ -36,7 +38,9 @@ export async function submitKyc(userId: string, input: KycSubmitInput) {
         idNumber: input.idNumber,
         dateOfBirth: new Date(input.dateOfBirth),
         address: input.address,
-        documentUrl: input.documentUrl,
+        frontIdUrl: input.frontIdUrl,
+        backIdUrl: input.backIdUrl,
+        selfieUrl: input.selfieUrl,
         status: 'PENDING',
       }
     });

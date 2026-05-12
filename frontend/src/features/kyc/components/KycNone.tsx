@@ -21,7 +21,9 @@ interface KycNoneProps {
     idNumber: string;
     dateOfBirth: string;
     address: string;
-    documentUrl: string;
+    frontIdUrl: string;
+    backIdUrl: string;
+    selfieUrl: string;
   }) => void;
 }
 
@@ -41,7 +43,9 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
   const [backImage, setBackImage] = useState<File | null>(null);
   const [selfieImage, setSelfieImage] = useState<File | null>(null);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [frontIdUrl, setFrontIdUrl] = useState<string | null>(null);
+  const [backIdUrl, setBackIdUrl] = useState<string | null>(null);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const handlePersonalChange = (field: keyof typeof DEFAULT_PERSONAL_INFO) =>
@@ -49,26 +53,27 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
       setPersonalInfo((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) =>
+  const handleFileChange = (
+    setter: React.Dispatch<React.SetStateAction<File | null>>,
+    urlSetter: React.Dispatch<React.SetStateAction<string | null>>
+  ) =>
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
         const file = e.target.files[0];
         setter(file);
         
         // Upload document ngay lập tức
-        if (setter === setFrontImage) {
-          setIsUploading(true);
-          try {
-            const response = await kycApi.uploadDocument(file);
-            setDocumentUrl(response.data.documentUrl);
-            alert('Document uploaded successfully!');
-          } catch (error: any) {
-            console.error('Upload failed:', error);
-            alert(error.message || 'Failed to upload document');
-            setter(null);
-          } finally {
-            setIsUploading(false);
-          }
+        setIsUploading(true);
+        try {
+          const response = await kycApi.uploadDocument(file);
+          urlSetter(response.data.documentUrl);
+          alert('Document uploaded successfully!');
+        } catch (error: any) {
+          console.error('Upload failed:', error);
+          alert(error.message || 'Failed to upload document');
+          setter(null);
+        } finally {
+          setIsUploading(false);
         }
       }
     };
@@ -229,7 +234,7 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
                   type="file" 
                   className="hidden" 
                   accept="image/*,.pdf" 
-                  onChange={handleFileChange(setFrontImage)}
+                  onChange={handleFileChange(setFrontImage, setFrontIdUrl)}
                   disabled={isUploading}
                 />
               </label>
@@ -257,7 +262,13 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
               </span>
               <label className="text-[12px] text-[#FF8400] font-semibold hover:underline cursor-pointer">
                 {backImage ? 'Change' : 'Upload'}
-                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange(setBackImage)} />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*,.pdf" 
+                  onChange={handleFileChange(setBackImage, setBackIdUrl)}
+                  disabled={isUploading}
+                />
               </label>
             </div>
           </div>
@@ -303,7 +314,13 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             {!selfieImage && (
               <label className="mt-1 rounded px-3 py-1.5 bg-[#FF8400] text-[#111111] text-[12px] font-bold cursor-pointer">
                 Upload
-                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange(setSelfieImage)} />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleFileChange(setSelfieImage, setSelfieUrl)}
+                  disabled={isUploading}
+                />
               </label>
             )}
           </div>
@@ -322,7 +339,13 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             </span>
             <label className="text-[12px] text-[#FF8400] font-bold text-left hover:underline cursor-pointer">
               Fallback: upload mock selfie
-              <input type="file" className="hidden" accept="image/*" onChange={handleFileChange(setSelfieImage)} />
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileChange(setSelfieImage, setSelfieUrl)}
+                disabled={isUploading}
+              />
             </label>
           </div>
         </div>
@@ -338,10 +361,24 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
         </span>
         <span
           className={`text-[13px] ${
-            documentUrl ? 'text-[#065F46]' : 'text-[#92400E]'
+            frontIdUrl ? 'text-[#065F46]' : 'text-[#92400E]'
           }`}
         >
-          {documentUrl ? '✓' : '○'} ID document uploaded (required)
+          {frontIdUrl ? '✓' : '○'} Front ID uploaded (required)
+        </span>
+        <span
+          className={`text-[13px] ${
+            backIdUrl ? 'text-[#065F46]' : 'text-[#92400E]'
+          }`}
+        >
+          {backIdUrl ? '✓' : '○'} Back ID uploaded (required)
+        </span>
+        <span
+          className={`text-[13px] ${
+            selfieUrl ? 'text-[#065F46]' : 'text-[#666666]'
+          }`}
+        >
+          {selfieUrl ? '✓' : '○'} Selfie captured or uploaded (required)
         </span>
         <div className="flex items-center gap-2 mt-1">
           <input
@@ -374,12 +411,14 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
               idNumber: personalInfo.idNumber,
               dateOfBirth: new Date(personalInfo.dateOfBirth).toISOString(),
               address: personalInfo.address,
-              documentUrl: documentUrl!,
+              frontIdUrl: frontIdUrl!,
+              backIdUrl: backIdUrl!,
+              selfieUrl: selfieUrl!,
             };
 
             onSubmit(data);
           }}
-          disabled={!consentAccepted || !documentUrl || isUploading}
+          disabled={!consentAccepted || !frontIdUrl || !backIdUrl || !selfieUrl || isUploading}
           className="inline-flex items-center rounded-md bg-[#FF8400] px-4.5 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#e07600] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isUploading ? 'Uploading...' : 'Submit for review'}

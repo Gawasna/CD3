@@ -138,7 +138,10 @@ model KycRequest {
   idNumber        String    @unique @map("id_number")
   dateOfBirth     DateTime  @map("date_of_birth")
   address         String?
-  documentUrl     String?   @map("document_url")
+  // Multi-document support: Front ID, Back ID, Selfie
+  frontIdUrl      String?   @map("front_id_url")
+  backIdUrl       String?   @map("back_id_url")
+  selfieUrl       String?   @map("selfie_url")
   status          KycStatus @default(PENDING)
   rejectionReason String?   @map("rejection_reason")
   createdAt       DateTime  @default(now()) @map("created_at")

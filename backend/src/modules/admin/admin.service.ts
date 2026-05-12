@@ -28,6 +28,15 @@ export class AdminService {
   }
 
   /**
+   * Helper: Xóa tất cả documents của KYC request
+   */
+  private deleteAllKycDocuments(frontIdUrl: string | null, backIdUrl: string | null, selfieUrl: string | null) {
+    this.deleteKycDocument(frontIdUrl);
+    this.deleteKycDocument(backIdUrl);
+    this.deleteKycDocument(selfieUrl);
+  }
+
+  /**
    * Lấy danh sách các yêu cầu KYC (có thể filter theo status)
    */
   async getKycRequests(page: number, limit: number, status: string = 'PENDING') {
@@ -118,8 +127,8 @@ export class AdminService {
       return updatedRequest;
     });
 
-    // 4. Xóa document sau khi approve thành công (bảo vệ privacy)
-    this.deleteKycDocument(request.documentUrl);
+    // 4. Xóa tất cả documents sau khi approve thành công (bảo vệ privacy)
+    this.deleteAllKycDocuments(request.frontIdUrl, request.backIdUrl, request.selfieUrl);
 
     return result;
   }
@@ -174,8 +183,8 @@ export class AdminService {
       return updatedRequest;
     });
 
-    // 4. Xóa document sau khi reject thành công (bảo vệ privacy)
-    this.deleteKycDocument(request.documentUrl);
+    // 4. Xóa tất cả documents sau khi reject thành công (bảo vệ privacy)
+    this.deleteAllKycDocuments(request.frontIdUrl, request.backIdUrl, request.selfieUrl);
 
     return result;
   }
