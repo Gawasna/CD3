@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, DragEvent, FormEvent, useEffect } from 'react';
-import { Upload, Check, X, Video } from 'lucide-react';
+import { Upload, Check, X, Video, AlertCircle } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { parseEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { uploadAuctionMedia, createAuction, type AuctionCategory, type ShippingPayer } from '@/services/api/auction';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
+import { useAuthStore } from '@/store/auth.store';
 
 interface MediaFile {
   file: File;
@@ -18,11 +19,23 @@ interface MediaFile {
 export default function CreateAuction() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
+  const { user } = useAuthStore();
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check KYC status
+  const isKycApproved = user?.kycStatus === 'APPROVED';
+
+  // Redirect if not connected or KYC not approved
+  useEffect(() => {
+    if (!isConnected) {
+      router.push('/auth-demo');
+    }
+  }, [isConnected, router]);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -128,24 +141,30 @@ export default function CreateAuction() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!isConnected || !address) {
-      alert('Please connect your wallet first');
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    if (!isKycApproved) {
+      setError('You must complete KYC verification to create auctions. Please visit the KYC page.');
       return;
     }
 
     if (mediaFiles.length === 0) {
-      alert('Please upload at least one media file');
+      setError('Please upload at least one media file');
       return;
     }
 
     if (title.length < 10) {
-      alert('Title must be at least 10 characters');
+      setError('Title must be at least 10 characters');
       return;
     }
 
     if (description.length < 20) {
-      alert('Description must be at least 20 characters');
+      setError('Description must be at least 20 characters');
       return;
     }
 
@@ -183,7 +202,7 @@ export default function CreateAuction() {
       });
     } catch (error: any) {
       console.error('Error creating auction:', error);
-      alert(error.message || 'Failed to create auction');
+      setError(error.message || 'Failed to create auction');
       setIsUploading(false);
       setIsCreating(false);
     }
@@ -194,6 +213,7 @@ export default function CreateAuction() {
     if (isTxConfirmed && txHash && uploadedFilenames.length > 0) {
       (async () => {
         try {
+          setError(null);
           // 3. Register auction in backend
           const { auctionId } = await createAuction({
             title,
@@ -208,11 +228,11 @@ export default function CreateAuction() {
             mediaKeys: uploadedFilenames,
           });
 
-          alert('Auction created successfully!');
+          // Success - redirect to auction page
           router.push(`/auctions/${auctionId}`);
         } catch (error: any) {
           console.error('Error registering auction:', error);
-          alert(error.message || 'Failed to register auction in backend');
+          setError(`Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`);
         } finally {
           setIsCreating(false);
         }
@@ -224,6 +244,54 @@ export default function CreateAuction() {
     <div className="flex flex-col items-center p-16 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       <div className="flex flex-col gap-12 w-full max-w-[800px]">
         <h1 className="font-jetbrains text-4xl font-extrabold text-[#111111]">Create New Auction</h1>
+        
+        {/* KYC Warning */}
+        {!isKycApproved && (
+          <div className="flex items-start gap-3 p-4 bg-[#FFF3CD] border border-[#FFC107] rounded-2xl">
+            <AlertCircle className="w-5 h-5 text-[#856404] flex-shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-2">
+              <p className="font-jetbrains text-sm font-semibold text-[#856404]">
+                KYC Verification Required
+              </p>
+              <p className="font-geist text-sm text-[#856404]">
+                You must complete KYC verification before creating auctions. 
+                <a href="/kyc" className="underline ml-1 hover:text-[#FF8400]">
+                  Complete KYC now
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-start gap-3 p-4 bg-[#F8D7DA] border border-[#F5C2C7] rounded-2xl">
+            <AlertCircle className="w-5 h-5 text-[#842029] flex-shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-2">
+              <p className="font-jetbrains text-sm font-semibold text-[#842029]">
+                Error
+              </p>
+              <p className="font-geist text-sm text-[#842029]">
+                {error}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Success Message - Transaction Confirmed */}
+        {isTxConfirmed && !error && (
+          <div className="flex items-start gap-3 p-4 bg-[#D1E7DD] border border-[#BADBCC] rounded-2xl">
+            <Check className="w-5 h-5 text-[#0F5132] flex-shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-2">
+              <p className="font-jetbrains text-sm font-semibold text-[#0F5132]">
+                Transaction Confirmed
+              </p>
+              <p className="font-geist text-sm text-[#0F5132]">
+                Your auction is being registered. Please wait...
+              </p>
+            </div>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-8 bg-white border border-[#CBCCC9] rounded-2xl p-12 shadow-sm w-full">
           {/* Upload Area */}
@@ -428,10 +496,10 @@ export default function CreateAuction() {
           <div className="flex justify-end pt-4 w-full">
             <button 
               type="submit"
-              disabled={isUploading || isCreating || !isConnected}
+              disabled={isUploading || isCreating || !isConnected || !isKycApproved}
               className="h-10 px-6 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? 'Uploading...' : isCreating ? 'Creating...' : 'Create Auction'}
+              {isUploading ? 'Uploading Media...' : isCreating ? 'Creating Auction...' : !isKycApproved ? 'KYC Required' : 'Create Auction'}
             </button>
           </div>
         </form>

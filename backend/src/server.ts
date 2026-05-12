@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import app from './app';
 import pino from 'pino';
+import { startAuctionCreatedListener, stopAuctionCreatedListener } from './listeners/auction-created.listener';
+import { startCleanupJob } from './listeners/cleanup-pending-auctions';
 
 // Initialize logger
 const logger = pino({
@@ -16,13 +18,32 @@ const logger = pino({
 
 const PORT = process.env.PORT || 3001;
 
+let stopCleanup: (() => void) | undefined;
+
 const server = app.listen(PORT, () => {
   logger.info(`Server is running on port ${PORT} in ${process.env.NODE_ENV} mode.`);
+  
+  // Start blockchain event listener
+  try {
+    startAuctionCreatedListener();
+    logger.info('Blockchain event listener started');
+  } catch (error) {
+    logger.error(error, 'Failed to start blockchain event listener');
+  }
+
+  // Start cleanup job
+  try {
+    stopCleanup = startCleanupJob();
+  } catch (error) {
+    logger.error(error, 'Failed to start cleanup job');
+  }
 });
 
 // Handle generic unhandled rejections
 process.on('unhandledRejection', (err: any) => {
   logger.error(err, 'Unhandled Rejection. Shutting down...');
+  stopAuctionCreatedListener();
+  stopCleanup?.();
   server.close(() => {
     process.exit(1);
   });
@@ -30,6 +51,17 @@ process.on('unhandledRejection', (err: any) => {
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received. Shutting down gracefully...');
+  stopAuctionCreatedListener();
+  stopCleanup?.();
+  server.close(() => {
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received. Shutting down gracefully...');
+  stopAuctionCreatedListener();
+  stopCleanup?.();
   server.close(() => {
     process.exit(0);
   });
