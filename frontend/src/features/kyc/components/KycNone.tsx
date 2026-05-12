@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { IdCard, Camera } from 'lucide-react';
 import { KycStatusBadge } from './KycStatusBadge';
+import { kycApi } from '@/services/api/kyc';
 
 // Mock default form values từ design
 const DEFAULT_PERSONAL_INFO = {
@@ -15,7 +16,13 @@ const DEFAULT_PERSONAL_INFO = {
 
 interface KycNoneProps {
   walletAddress: string;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: {
+    fullName: string;
+    idNumber: string;
+    dateOfBirth: string;
+    address: string;
+    documentUrl: string;
+  }) => void;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -34,6 +41,8 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
   const [backImage, setBackImage] = useState<File | null>(null);
   const [selfieImage, setSelfieImage] = useState<File | null>(null);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handlePersonalChange = (field: keyof typeof DEFAULT_PERSONAL_INFO) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,9 +50,26 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
     };
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
-        setter(e.target.files[0]);
+        const file = e.target.files[0];
+        setter(file);
+        
+        // Upload document ngay lập tức
+        if (setter === setFrontImage) {
+          setIsUploading(true);
+          try {
+            const response = await kycApi.uploadDocument(file);
+            setDocumentUrl(response.data.documentUrl);
+            alert('Document uploaded successfully!');
+          } catch (error: any) {
+            console.error('Upload failed:', error);
+            alert(error.message || 'Failed to upload document');
+            setter(null);
+          } finally {
+            setIsUploading(false);
+          }
+        }
       }
     };
 
@@ -188,16 +214,24 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-1.5 text-[12px] font-bold ${
-                  frontImage
+                  isUploading
+                    ? 'bg-[#FEF3C7] text-[#92400E]'
+                    : frontImage
                     ? 'bg-[#ECFDF5] text-[#065F46]'
                     : 'bg-[#FEF3C7] text-[#92400E]'
                 }`}
               >
-                {frontImage ? `Ready: ${frontImage.name}` : 'Missing'}
+                {isUploading ? 'Uploading...' : frontImage ? `Ready: ${frontImage.name}` : 'Missing'}
               </span>
               <label className="text-[12px] text-[#FF8400] font-semibold hover:underline cursor-pointer">
                 {frontImage ? 'Change' : 'Upload'}
-                <input type="file" className="hidden" accept="image/*,.pdf" onChange={handleFileChange(setFrontImage)} />
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*,.pdf" 
+                  onChange={handleFileChange(setFrontImage)}
+                  disabled={isUploading}
+                />
               </label>
             </div>
           </div>
@@ -302,22 +336,12 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
         <span className="text-[13px] text-[#065F46]">
           ✓ Personal information completed
         </span>
-        <span className="text-[13px] text-[#065F46]">
-          ✓ CCCD front uploaded
-        </span>
         <span
           className={`text-[13px] ${
-            backImage ? 'text-[#065F46]' : 'text-[#92400E]'
+            documentUrl ? 'text-[#065F46]' : 'text-[#92400E]'
           }`}
         >
-          {backImage ? '✓' : '○'} CCCD back required
-        </span>
-        <span
-          className={`text-[13px] ${
-            selfieImage ? 'text-[#065F46]' : 'text-[#666666]'
-          }`}
-        >
-          {selfieImage ? '✓' : '○'} Selfie captured or uploaded
+          {documentUrl ? '✓' : '○'} ID document uploaded (required)
         </span>
         <div className="flex items-center gap-2 mt-1">
           <input
@@ -345,22 +369,20 @@ export function KycNone({ walletAddress, onSubmit }: KycNoneProps) {
         </button>
         <button
           onClick={() => {
-            const formData = new FormData();
-            formData.append('fullName', personalInfo.fullName);
-            formData.append('idNumber', personalInfo.idNumber);
-            formData.append('dateOfBirth', new Date(personalInfo.dateOfBirth).toISOString());
-            formData.append('address', personalInfo.address);
-            formData.append('country', personalInfo.country);
-            if (frontImage) formData.append('idFrontImage', frontImage);
-            if (backImage) formData.append('idBackImage', backImage);
-            if (selfieImage) formData.append('selfieImage', selfieImage);
+            const data = {
+              fullName: personalInfo.fullName,
+              idNumber: personalInfo.idNumber,
+              dateOfBirth: new Date(personalInfo.dateOfBirth).toISOString(),
+              address: personalInfo.address,
+              documentUrl: documentUrl!,
+            };
 
-            onSubmit(formData);
+            onSubmit(data);
           }}
-          disabled={!consentAccepted || !frontImage || !backImage || !selfieImage}
+          disabled={!consentAccepted || !documentUrl || isUploading}
           className="inline-flex items-center rounded-md bg-[#FF8400] px-4.5 py-3 text-[14px] font-bold text-[#111111] hover:bg-[#e07600] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Submit for review
+          {isUploading ? 'Uploading...' : 'Submit for review'}
         </button>
       </div>
     </div>

@@ -24,6 +24,7 @@ const app = express();
 // Phân phối static file cho chức năng upload (Lấy từ storage folder ngoài project root)
 app.use('/uploads/avatars', express.static(path.join(process.cwd(), '../storage/avatars')));
 app.use('/uploads/auctions', express.static(path.join(process.cwd(), '../storage/auctions')));
+app.use('/uploads/kyc', express.static(path.join(process.cwd(), '../storage/kyc')));
 
 // Security headers
 app.use(helmet());

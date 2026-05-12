@@ -6,9 +6,10 @@ import { ApiError } from '../utils/api-error';
 // Cấu hình các thư mục lưu trữ
 const AVATAR_DIR = path.join(process.cwd(), '../storage/avatars');
 const AUCTION_DIR = path.join(process.cwd(), '../storage/auctions');
+const KYC_DIR = path.join(process.cwd(), '../storage/kyc');
 
 // Đảm bảo các thư mục tồn tại
-[AVATAR_DIR, AUCTION_DIR].forEach((dir) => {
+[AVATAR_DIR, AUCTION_DIR, KYC_DIR].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -79,4 +80,32 @@ export const uploadAuctionMiddleware = multer({
     fileSize: 50 * 1024 * 1024, // Max overall limit 50MB (cho video)
   },
   fileFilter: auctionFilter,
+});
+
+// ── KYC Document Upload Configuration ────────────────────────────────────
+
+const kycStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, KYC_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `kyc-${req.user?.id || 'anon'}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const kycFilter = (req: any, file: any, cb: any) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(ApiError.badRequest('INVALID_FILE_TYPE', 'KYC document chỉ hỗ trợ JPEG, PNG, WEBP, PDF'));
+  }
+};
+
+export const uploadKycMiddleware = multer({
+  storage: kycStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: kycFilter,
 });

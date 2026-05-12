@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/services/api/admin';
-import { CheckCircle, XCircle, Search, User as UserIcon, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Search, User as UserIcon, RefreshCw, Eye } from 'lucide-react';
 
 export default function AdminKycDashboard() {
   const [page, setPage] = useState(1);
@@ -47,6 +47,16 @@ export default function AdminKycDashboard() {
       return;
     }
     rejectMutation.mutate({ id, reason: rejectReason });
+  };
+
+  const handleViewDocument = (documentUrl: string | null) => {
+    if (!documentUrl) {
+      alert('Không có tài liệu để xem.');
+      return;
+    }
+    // Mở document trong tab mới
+    const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${documentUrl}`;
+    window.open(fullUrl, '_blank');
   };
 
   return (
@@ -93,6 +103,7 @@ export default function AdminKycDashboard() {
                   <th className="p-4 font-semibold">ID Number</th>
                   <th className="p-4 font-semibold">Submitted At</th>
                   <th className="p-4 font-semibold">Status</th>
+                  <th className="p-4 font-semibold">Document</th>
                   <th className="p-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -122,6 +133,20 @@ export default function AdminKycDashboard() {
                       }`}>
                         {req.status}
                       </span>
+                    </td>
+                    <td className="p-4">
+                      {req.documentUrl ? (
+                        <button 
+                          onClick={() => handleViewDocument(req.documentUrl)}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-[#004D1A] hover:bg-[#DFE6E1] rounded-lg transition-colors"
+                          title="View Document"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="font-geist">View ID</span>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-[#999999]">No document</span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       {req.status === 'PENDING' && (
