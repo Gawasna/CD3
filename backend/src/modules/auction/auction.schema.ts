@@ -40,3 +40,24 @@ export const requestExtensionBodySchema = z.object({
 });
 
 export type RequestExtensionBody = z.infer<typeof requestExtensionBodySchema>;
+
+// ── Create Auction ────────────────────────────────────────────────────────
+
+/**
+ * Body khi tạo auction mới.
+ * Đồng bộ với Prisma enum AuctionCategory.
+ */
+export const createAuctionBodySchema = z.object({
+  title: z.string().min(10, 'Title must be at least 10 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters'),
+  category: z.enum(['ELECTRONICS', 'FASHION', 'FURNITURE', 'COLLECTIBLES', 'OTHER']),
+  startingPriceWei: z.string().regex(/^[0-9]+$/, 'startingPriceWei must be a non-negative integer string'),
+  buyNowPriceWei: z.string().regex(/^[0-9]+$/, 'buyNowPriceWei must be a non-negative integer string').optional(),
+  durationSeconds: z.number().int().min(3600, 'Duration must be at least 1 hour (3600 seconds)'),
+  shippingCostWei: z.string().regex(/^[0-9]+$/, 'shippingCostWei must be a non-negative integer string'),
+  shippingPayer: z.enum(['BUYER', 'SELLER', 'PLATFORM']),
+  createTxHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'createTxHash must be a valid 32-byte hex string'),
+  mediaKeys: z.array(z.string()).min(1, 'At least one media file is required').max(6, 'Maximum 6 media files allowed'),
+});
+
+export type CreateAuctionBody = z.infer<typeof createAuctionBodySchema>;

@@ -27,3 +27,6 @@ frontend/CLAUDE.md
 # Lock files
 designs.pen
 *.jpg
+/images
+/storage/avatars
+/storage/auctions

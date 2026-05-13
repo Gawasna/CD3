@@ -11,6 +11,9 @@ const envSchema = z.object({
   SIWE_URI: z.string().default('http://localhost:3000'),
   // 1337 = Ganache Desktop/CLI runtime — KHÔNG phải 31337 (Hardhat in-process test network)
   SIWE_CHAIN_ID: z.coerce.number().default(1337),
+  // Blockchain listener config
+  RPC_URL: z.string().url('RPC_URL must be a valid URL').default('http://127.0.0.1:8545'),
+  CONTRACT_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'CONTRACT_ADDRESS must be a valid Ethereum address'),
 });
 
 const parsed = envSchema.safeParse(process.env);

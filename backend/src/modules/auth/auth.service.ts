@@ -16,7 +16,7 @@ export async function generateNonce(input: NonceQuery) {
 
   await prisma.authNonce.create({
     data: {
-      walletAddress: input.wallet,
+      walletAddress: input.wallet.toLowerCase(),
       nonce,
       expiresAt,
     },
@@ -38,7 +38,7 @@ export async function verifySignature(input: VerifyBody) {
   }
 
   // 2. Kiểm tra nonce thuộc đúng wallet
-  if (nonceRecord.walletAddress !== input.wallet) {
+  if (nonceRecord.walletAddress.toLowerCase() !== input.wallet.toLowerCase()) {
     throw ApiError.unauthorized('INVALID_NONCE', 'Nonce wallet mismatch');
   }
 
@@ -85,7 +85,8 @@ export async function verifySignature(input: VerifyBody) {
   }
 
   // 7. Transaction: mark nonce used + upsert user (atomic)
-  // tx được Prisma infer là Prisma.TransactionClient — không annotate thủ công để tránh overload mismatch
+  const walletNormalized = input.wallet.toLowerCase();
+
   const user = await prisma.$transaction(async (tx) => {
     await tx.authNonce.update({
       where: { id: nonceRecord.id },
@@ -93,9 +94,9 @@ export async function verifySignature(input: VerifyBody) {
     });
 
     return tx.user.upsert({
-      where: { walletAddress: input.wallet },
+      where: { walletAddress: walletNormalized },
       update: { updatedAt: new Date() },
-      create: { walletAddress: input.wallet },
+      create: { walletAddress: walletNormalized },
     });
   });
 

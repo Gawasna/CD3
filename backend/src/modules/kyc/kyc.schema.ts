@@ -5,7 +5,9 @@ export const kycSubmitSchema = z.object({
   idNumber: z.string().min(9, 'ID number must be at least 9 characters').max(20, 'ID number is too long'),
   dateOfBirth: z.string().datetime({ message: 'Invalid date format, expected ISO 8601' }).or(z.date()),
   address: z.string().min(5, 'Address is too short').max(255, 'Address is too long').optional(),
-  documentUrl: z.string().url('Invalid URL format').optional(),
+  frontIdUrl: z.string().min(1, 'Front ID document is required'),
+  backIdUrl: z.string().min(1, 'Back ID document is required'),
+  selfieUrl: z.string().min(1, 'Selfie is required'),
 });
 
 export type KycSubmitInput = z.infer<typeof kycSubmitSchema>;

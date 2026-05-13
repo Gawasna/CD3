@@ -3,40 +3,109 @@ import path from 'path';
 import fs from 'fs';
 import { ApiError } from '../utils/api-error';
 
-// Lưu trữ ảnh vào thư mục root của dự án (ngang hàng frontend, backend)
-const uploadDir = path.join(process.cwd(), '../storage/avatars');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Cấu hình các thư mục lưu trữ
+const AVATAR_DIR = path.join(process.cwd(), '../storage/avatars');
+const AUCTION_DIR = path.join(process.cwd(), '../storage/auctions');
+const KYC_DIR = path.join(process.cwd(), '../storage/kyc');
 
-// Cấu hình storage lưu vào ổ cứng
-const storage = multer.diskStorage({
+// Đảm bảo các thư mục tồn tại
+[AVATAR_DIR, AUCTION_DIR, KYC_DIR].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
+// ── Avatar Upload Configuration ──────────────────────────────────────────
+
+const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, AVATAR_DIR);
   },
   filename: (req, file, cb) => {
-    // Tạo tên file ngẫu nhiên để tránh trùng lặp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${req.user?.id || 'anon'}-${uniqueSuffix}${ext}`);
+    cb(null, `avatar-${req.user?.id || 'anon'}-${uniqueSuffix}${ext}`);
   },
 });
 
-// Validator chặn định dạng và dung lượng file
-const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (allowedMimeTypes.includes(file.mimetype)) {
+const avatarFilter = (req: any, file: any, cb: any) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(ApiError.badRequest('INVALID_FILE_TYPE', 'Chỉ cho phép định dạng JPEG, PNG, WEBP'));
+    cb(ApiError.badRequest('INVALID_FILE_TYPE', 'Avatar chỉ hỗ trợ JPEG, PNG, WEBP'));
   }
 };
 
-// Limit 5MB
 export const uploadAvatarMiddleware = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: avatarFilter,
+});
+
+// ── Auction Media Upload Configuration ───────────────────────────────────
+
+const auctionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, AUCTION_DIR);
   },
-  fileFilter,
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `auction-${uniqueSuffix}${ext}`);
+  },
+});
+
+const auctionFilter = (req: any, file: any, cb: any) => {
+  const imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const videoTypes = ['video/mp4', 'video/quicktime'];
+  
+  if (imageTypes.includes(file.mimetype) || videoTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(ApiError.badRequest('INVALID_FILE_TYPE', 'Chỉ hỗ trợ ảnh (JPG, PNG, WEBP) và video (MP4, MOV)'));
+  }
+};
+
+/**
+ * P2 Consensus Gap UI-5: Hỗ trợ upload đa phương tiện cho đấu giá.
+ * Giới hạn file được xử lý linh hoạt trong route:
+ * - Image < 5MB
+ * - Video < 50MB (handled by dynamic limit or separate check if needed)
+ * Ở đây set limit 50MB chung, validation cụ thể hơn sẽ ở controller hoặc custom filter.
+ */
+export const uploadAuctionMiddleware = multer({
+  storage: auctionStorage,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // Max overall limit 50MB (cho video)
+  },
+  fileFilter: auctionFilter,
+});
+
+// ── KYC Document Upload Configuration ────────────────────────────────────
+
+const kycStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, KYC_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `kyc-${req.user?.id || 'anon'}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const kycFilter = (req: any, file: any, cb: any) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(ApiError.badRequest('INVALID_FILE_TYPE', 'KYC document chỉ hỗ trợ JPEG, PNG, WEBP, PDF'));
+  }
+};
+
+export const uploadKycMiddleware = multer({
+  storage: kycStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: kycFilter,
 });

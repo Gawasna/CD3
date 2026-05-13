@@ -5,11 +5,13 @@ import {
   getAuctionById,
   listAuctions,
   syncEscrowStatus,
+  createPendingAuction,
 } from './auction.service';
 import type {
   AuctionIdParam,
   RecordBidBody,
   RequestExtensionBody,
+  CreateAuctionBody,
 } from './auction.schema';
 
 // ── GET /api/v1/auctions ──────────────────────────────────────────────────
@@ -23,8 +25,9 @@ export async function getAuctions(
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const status = req.query.status as string | undefined;
+    const variant = req.query.variant as string | undefined;
 
-    const result = await listAuctions({ status, page, limit });
+    const result = await listAuctions({ status, variant, page, limit });
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -120,6 +123,54 @@ export async function patchEscrowStatus(
 
     await syncEscrowStatus(req.params.auctionId, escrowStatus, auctionStatus);
     res.status(200).json({ message: 'Escrow status synced' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── POST /api/v1/auctions ─────────────────────────────────────────────────
+
+/**
+ * Tạo auction mới.
+ * Yêu cầu KYC APPROVED.
+ */
+export async function postAuction(
+  req: Request<unknown, unknown, CreateAuctionBody>,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    req.log.info({ body: req.body, user: req.user?.id }, 'Creating pending auction');
+    const result = await createPendingAuction(req.user!.id, req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    req.log.error(err, 'Failed to create pending auction');
+    next(err);
+  }
+}
+
+// ── POST /api/v1/auctions/media ───────────────────────────────────────────
+
+/**
+ * Upload media files cho auction.
+ * Trả về danh sách filenames để frontend gửi trong createAuction.
+ */
+export async function postAuctionMedia(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+      res.status(400).json({
+        code: 'NO_FILES',
+        message: 'No files uploaded',
+      });
+      return;
+    }
+
+    const filenames = req.files.map((file) => file.filename);
+    res.status(200).json({ filenames });
   } catch (err) {
     next(err);
   }

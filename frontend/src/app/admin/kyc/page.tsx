@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/services/api/admin';
-import { CheckCircle, XCircle, Search, User as UserIcon, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Search, User as UserIcon, RefreshCw, Eye } from 'lucide-react';
+import { withRole } from '@/shared/hoc/withRole';
+import { Role } from '@prisma/client';
 
-export default function AdminKycDashboard() {
+function AdminKycDashboard() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [rejectReason, setRejectReason] = useState('');
@@ -47,6 +49,35 @@ export default function AdminKycDashboard() {
       return;
     }
     rejectMutation.mutate({ id, reason: rejectReason });
+  };
+
+  const handleViewDocument = (documentUrl: string | null) => {
+    if (!documentUrl) {
+      alert('Không có tài liệu để xem.');
+      return;
+    }
+    // Mở document trong tab mới
+    const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${documentUrl}`;
+    window.open(fullUrl, '_blank');
+  };
+
+  const handleViewAllDocuments = (req: any) => {
+    const docs = [
+      { label: 'Front ID', url: req.frontIdUrl },
+      { label: 'Back ID', url: req.backIdUrl },
+      { label: 'Selfie', url: req.selfieUrl },
+    ].filter(doc => doc.url);
+
+    if (docs.length === 0) {
+      alert('Không có tài liệu để xem.');
+      return;
+    }
+
+    // Mở tất cả documents trong tabs mới
+    docs.forEach(doc => {
+      const fullUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${doc.url}`;
+      window.open(fullUrl, '_blank');
+    });
   };
 
   return (
@@ -93,6 +124,7 @@ export default function AdminKycDashboard() {
                   <th className="p-4 font-semibold">ID Number</th>
                   <th className="p-4 font-semibold">Submitted At</th>
                   <th className="p-4 font-semibold">Status</th>
+                  <th className="p-4 font-semibold">Document</th>
                   <th className="p-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
@@ -122,6 +154,51 @@ export default function AdminKycDashboard() {
                       }`}>
                         {req.status}
                       </span>
+                    </td>
+                    <td className="p-4">
+                      {req.frontIdUrl || req.backIdUrl || req.selfieUrl ? (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleViewAllDocuments(req)}
+                            className="flex items-center gap-2 px-3 py-1 text-sm text-[#004D1A] hover:bg-[#DFE6E1] rounded-lg transition-colors"
+                            title="View All Documents"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span className="font-geist">View All</span>
+                          </button>
+                          <div className="flex gap-1">
+                            {req.frontIdUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.frontIdUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Front ID"
+                              >
+                                Front
+                              </button>
+                            )}
+                            {req.backIdUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.backIdUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Back ID"
+                              >
+                                Back
+                              </button>
+                            )}
+                            {req.selfieUrl && (
+                              <button
+                                onClick={() => handleViewDocument(req.selfieUrl)}
+                                className="px-2 py-1 text-xs text-[#666666] hover:text-[#004D1A] hover:bg-[#F9FAFB] rounded transition-colors"
+                                title="Selfie"
+                              >
+                                Selfie
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#999999]">No documents</span>
+                      )}
                     </td>
                     <td className="p-4 text-right">
                       {req.status === 'PENDING' && (
@@ -205,3 +282,5 @@ export default function AdminKycDashboard() {
     </div>
   );
 }
+
+export default withRole(AdminKycDashboard, [Role.ADMIN]);

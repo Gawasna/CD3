@@ -41,14 +41,14 @@ export function AuctionCard({ auction }: AuctionCardProps) {
   return (
     <div
       onClick={handleClick}
-      className="flex flex-col w-[280px] bg-white border border-[#CBCCC9] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer"
+      className="flex flex-col bg-white border border-[#CBCCC9] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer"
     >
       {/* Image */}
-      <div className="relative w-full h-[200px] overflow-hidden">
+      <div className="relative w-full h-[180px] overflow-hidden">
         {isPlaceholder || imageError ? (
           // Placeholder gradient
           <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(auction.category)} flex items-center justify-center`}>
-            <ImageIcon className="w-16 h-16 text-white/50" />
+            <ImageIcon className="w-12 h-12 text-white/50" />
           </div>
         ) : (
           // Real image
@@ -65,17 +65,17 @@ export function AuctionCard({ auction }: AuctionCardProps) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-2.5 p-3.5">
         {/* Title */}
-        <h3 className="text-base font-semibold text-[#111111] font-mono line-clamp-1">
+        <h3 className="text-sm font-semibold text-[#111111] font-mono line-clamp-1">
           {auction.title}
         </h3>
 
         {/* Meta Info */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Status Badge */}
           <span
-            className={`px-3 py-1 rounded-full text-[11px] font-bold font-mono ${
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${
               auction.status === "live"
                 ? "bg-[#DFE6E1] text-[#004D1A]"
                 : "bg-[#E9E3D8] text-[#804200]"
@@ -85,9 +85,9 @@ export function AuctionCard({ auction }: AuctionCardProps) {
           </span>
 
           {/* Time Left */}
-          <div className="flex items-center gap-1.5">
-            <Clock3 className="w-3.5 h-3.5 text-[#666666]" />
-            <span className="text-[13px] text-[#666666]">
+          <div className="flex items-center gap-1">
+            <Clock3 className="w-3 h-3 text-[#666666]" />
+            <span className="text-xs text-[#666666]">
               {auction.timeLeft}
             </span>
           </div>
@@ -99,17 +99,17 @@ export function AuctionCard({ auction }: AuctionCardProps) {
         {/* Price & Bids */}
         <div className="flex items-center justify-between">
           {/* Current Bid */}
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-[#666666]">Current Bid</span>
-            <span className="text-lg font-bold text-[#FF8400] font-mono">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-[#666666]">Current Bid</span>
+            <span className="text-base font-bold text-[#FF8400] font-mono">
               {auction.currentBid} ETH
             </span>
           </div>
 
           {/* Bids Count */}
-          <div className="flex flex-col gap-1 items-end">
-            <span className="text-xs text-[#666666]">Bids</span>
-            <span className="text-lg font-bold text-[#111111] font-mono">
+          <div className="flex flex-col gap-0.5 items-end">
+            <span className="text-[10px] text-[#666666]">Bids</span>
+            <span className="text-base font-bold text-[#111111] font-mono">
               {auction.bids}
             </span>
           </div>

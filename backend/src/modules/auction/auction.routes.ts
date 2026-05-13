@@ -1,20 +1,23 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { validate } from '../../shared/middleware/validate';
-import { auctionIdParamSchema, recordBidBodySchema, requestExtensionBodySchema } from './auction.schema';
+import { uploadAuctionMiddleware } from '../../shared/middleware/upload';
+import { auctionIdParamSchema, recordBidBodySchema, requestExtensionBodySchema, createAuctionBodySchema } from './auction.schema';
 import {
   getAuctions,
   getAuction,
   postBid,
   postDeliveryExtension,
   patchEscrowStatus,
+  postAuction,
+  postAuctionMedia,
 } from './auction.controller';
 
 const router = Router();
 
 // ── Public routes (no auth) ───────────────────────────────────────────────
 
-// GET /api/v1/auctions?status=ACTIVE&page=1&limit=20
+// GET /api/v1/auctions?status=ACTIVE&variant=ending-soon&page=1&limit=20
 router.get('/', getAuctions);
 
 // GET /api/v1/auctions/:auctionId
@@ -25,6 +28,24 @@ router.get(
 );
 
 // ── Authenticated routes ──────────────────────────────────────────────────
+
+// POST /api/v1/auctions/media
+// Upload media files trước khi tạo auction
+router.post(
+  '/media',
+  authenticate,
+  uploadAuctionMiddleware.array('media', 6),
+  postAuctionMedia,
+);
+
+// POST /api/v1/auctions
+// Tạo auction mới (yêu cầu KYC APPROVED)
+router.post(
+  '/',
+  authenticate,
+  validate(createAuctionBodySchema, 'body'),
+  postAuction,
+);
 
 // POST /api/v1/auctions/:auctionId/bids
 // Relay: ghi bid vào off-chain mirror sau khi BidPlaced event confirm on-chain.

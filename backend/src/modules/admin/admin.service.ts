@@ -1,8 +1,41 @@
 import { prisma } from '../../config/database';
 import { Prisma, KycStatus } from '@prisma/client';
 import { ApiError } from '../../shared/utils/api-error';
+import fs from 'fs';
+import path from 'path';
 
 export class AdminService {
+  /**
+   * Helper: Xóa file KYC document để bảo vệ privacy
+   */
+  private deleteKycDocument(documentUrl: string | null) {
+    if (!documentUrl) return;
+
+    try {
+      // documentUrl format: /uploads/kyc/kyc-userId-timestamp.ext
+      // Chuyển thành absolute path
+      const filename = path.basename(documentUrl);
+      const filePath = path.join(process.cwd(), '../storage/kyc', filename);
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`[KYC Cleanup] Deleted document: ${filename}`);
+      }
+    } catch (error) {
+      console.error('[KYC Cleanup] Failed to delete document:', error);
+      // Không throw error để không làm gián đoạn flow chính
+    }
+  }
+
+  /**
+   * Helper: Xóa tất cả documents của KYC request
+   */
+  private deleteAllKycDocuments(frontIdUrl: string | null, backIdUrl: string | null, selfieUrl: string | null) {
+    this.deleteKycDocument(frontIdUrl);
+    this.deleteKycDocument(backIdUrl);
+    this.deleteKycDocument(selfieUrl);
+  }
+
   /**
    * Lấy danh sách các yêu cầu KYC (có thể filter theo status)
    */
@@ -60,7 +93,7 @@ export class AdminService {
     });
 
     // Thực hiện atomic transaction
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Cập nhật KycRequest
       const updatedRequest = await tx.kycRequest.update({
         where: { id: kycId },
@@ -93,6 +126,11 @@ export class AdminService {
 
       return updatedRequest;
     });
+
+    // 4. Xóa tất cả documents sau khi approve thành công (bảo vệ privacy)
+    this.deleteAllKycDocuments(request.frontIdUrl, request.backIdUrl, request.selfieUrl);
+
+    return result;
   }
 
   /**
@@ -112,7 +150,7 @@ export class AdminService {
     }
 
     // Thực hiện atomic transaction
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Cập nhật KycRequest
       const updatedRequest = await tx.kycRequest.update({
         where: { id: kycId },
@@ -144,5 +182,10 @@ export class AdminService {
 
       return updatedRequest;
     });
+
+    // 4. Xóa tất cả documents sau khi reject thành công (bảo vệ privacy)
+    this.deleteAllKycDocuments(request.frontIdUrl, request.backIdUrl, request.selfieUrl);
+
+    return result;
   }
 }

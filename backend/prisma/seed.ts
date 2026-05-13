@@ -15,10 +15,10 @@ import { PrismaClient, Prisma, AuctionStatus, AuctionCategory, ShippingStatus } 
 
 const prisma = new PrismaClient();
 
-const SEED_ADMIN_WALLET = "0x1000000000000000000000000000000000000001";
-const SEED_SELLER_WALLET = "0x1000000000000000000000000000000000000002";
-const SEED_BIDDER_1_WALLET = "0x1000000000000000000000000000000000000003";
-const SEED_BIDDER_2_WALLET = "0x1000000000000000000000000000000000000004";
+const SEED_ADMIN_WALLET = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+const SEED_SELLER_WALLET = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8";
+const SEED_BIDDER_1_WALLET = "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc";
+const SEED_BIDDER_2_WALLET = "0x90f79bf6eb2c4f870365e785982e1f101e93b906";
 
 async function main(): Promise<void> {
   console.log("Seeding database...");
@@ -26,7 +26,10 @@ async function main(): Promise<void> {
   // ── 1. Upsert users ──────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { walletAddress: SEED_ADMIN_WALLET },
-    update: {},
+    update: {
+      role: "ADMIN",
+      kycStatus: "APPROVED",
+    },
     create: {
       walletAddress: SEED_ADMIN_WALLET,
       displayName: "Platform Admin",
@@ -75,6 +78,24 @@ async function main(): Promise<void> {
       role: "USER",
       kycStatus: "PENDING",
       isActive: true,
+    },
+  });
+
+  // ── 1.1. Create KYC Request for PENDING user (Carol) ─────────────────────
+  // DB-MISS-01 FIX: Phải có bản ghi KycRequest thì Admin mới thấy trong dashboard
+  await prisma.kycRequest.upsert({
+    where: { userId: bidder2.id },
+    update: {},
+    create: {
+      userId: bidder2.id,
+      fullName: "Carol Danvers",
+      idNumber: "ID-CAROL-001",
+      dateOfBirth: new Date("1995-01-01"),
+      address: "123 Kree Street, Hala",
+      status: "PENDING",
+      frontIdUrl: "/uploads/kyc/seed-front.png",
+      backIdUrl: "/uploads/kyc/seed-back.png",
+      selfieUrl: "/uploads/kyc/seed-selfie.png",
     },
   });
 
