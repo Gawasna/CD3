@@ -6,15 +6,24 @@ export async function submitKyc(userId: string, input: KycSubmitInput) {
   // Check if user already has a pending or approved KYC
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { kycStatus: true }
+    select: { 
+      kycStatus: true,
+      kycRequest: true // Check if request record actually exists
+    }
   });
 
   if (!user) {
     throw ApiError.notFound('USER_NOT_FOUND', 'User does not exist');
   }
 
-  if (user.kycStatus === 'PENDING' || user.kycStatus === 'APPROVED') {
-    throw ApiError.badRequest('KYC_EXISTS', 'A KYC request is already pending or approved');
+  // If status is APPROVED, always block
+  if (user.kycStatus === 'APPROVED') {
+    throw ApiError.badRequest('KYC_EXISTS', 'Your KYC has already been approved');
+  }
+
+  // If status is PENDING, only block if the KycRequest record actually exists
+  if (user.kycStatus === 'PENDING' && user.kycRequest) {
+    throw ApiError.badRequest('KYC_EXISTS', 'A KYC request is already pending');
   }
 
   // Create KycRequest and update User in a transaction

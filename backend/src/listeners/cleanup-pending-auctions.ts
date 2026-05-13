@@ -1,25 +1,21 @@
 import { prisma } from '../config/database';
 import pino from 'pino';
+import { cleanupExpiredNonces } from '../modules/auth/auth.service';
 
-const logger = pino({ name: 'cleanup-pending-auctions' });
+const logger = pino({ name: 'cleanup-jobs' });
 
 /**
- * Cleanup Job: Pending Auctions
+ * Cleanup Job: Pending Auctions & Auth Nonces
  * 
- * Quét các auction PENDING quá lâu (> 30 phút) mà không có onChainAuctionId.
- * Đây là dấu hiệu của:
- * - TX blockchain failed nhưng frontend không báo lỗi
- * - Frontend relay failed
- * - Listener chưa kịp xử lý
- * 
- * Action: Log warning để admin kiểm tra manual.
- * Không tự động xóa vì có thể TX đang pending trên mempool.
+ * 1. Quét các auction PENDING quá lâu (> 30 phút) mà không có onChainAuctionId.
+ * 2. Xóa các Auth Nonce đã hết hạn.
  */
 
 const PENDING_TIMEOUT_MINUTES = 30;
 
-export async function cleanupPendingAuctions() {
+export async function runCleanupJobs() {
   try {
+    // 1. Cleanup Stale Auctions
     const cutoffTime = new Date(Date.now() - PENDING_TIMEOUT_MINUTES * 60 * 1000);
 
     const staleAuctions = await prisma.auctionMetadata.findMany({
@@ -44,14 +40,16 @@ export async function cleanupPendingAuctions() {
         count: staleAuctions.length,
         auctions: staleAuctions,
       }, 'Found stale PENDING auctions - manual review required');
-
-      // TODO: Send notification to admin dashboard or Slack
-      // TODO: Optionally mark as CANCELED after 24h
-    } else {
-      logger.info('No stale PENDING auctions found');
     }
+
+    // 2. Cleanup Expired Nonces
+    const deletedNonces = await cleanupExpiredNonces();
+    if (deletedNonces > 0) {
+      logger.info({ count: deletedNonces }, 'Cleaned up expired auth nonces');
+    }
+
   } catch (error) {
-    logger.error(error, 'Error in cleanupPendingAuctions job');
+    logger.error(error, 'Error in runCleanupJobs');
   }
 }
 
@@ -60,10 +58,10 @@ export async function cleanupPendingAuctions() {
  */
 export function startCleanupJob() {
   // Run immediately on startup
-  cleanupPendingAuctions();
+  runCleanupJobs();
 
   // Then run every 10 minutes
-  const interval = setInterval(cleanupPendingAuctions, 10 * 60 * 1000);
+  const interval = setInterval(runCleanupJobs, 10 * 60 * 1000);
 
   logger.info('Cleanup job started (runs every 10 minutes)');
 

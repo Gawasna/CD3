@@ -140,9 +140,11 @@ export async function postAuction(
   next: NextFunction,
 ): Promise<void> {
   try {
+    req.log.info({ body: req.body, user: req.user?.id }, 'Creating pending auction');
     const result = await createPendingAuction(req.user!.id, req.body);
     res.status(201).json(result);
   } catch (err) {
+    req.log.error(err, 'Failed to create pending auction');
     next(err);
   }
 }

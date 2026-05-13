@@ -28,3 +28,5 @@ frontend/CLAUDE.md
 designs.pen
 *.jpg
 /images
+/storage/avatars
+/storage/auctions

@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/services/api/admin';
 import { CheckCircle, XCircle, Search, User as UserIcon, RefreshCw, Eye } from 'lucide-react';
+import { withRole } from '@/shared/hoc/withRole';
+import { Role } from '@prisma/client';
 
-export default function AdminKycDashboard() {
+function AdminKycDashboard() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [rejectReason, setRejectReason] = useState('');
@@ -280,3 +282,5 @@ export default function AdminKycDashboard() {
     </div>
   );
 }
+
+export default withRole(AdminKycDashboard, [Role.ADMIN]);

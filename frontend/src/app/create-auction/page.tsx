@@ -2,11 +2,10 @@
 
 import { useState, useRef, DragEvent, FormEvent, useEffect } from 'react';
 import { Upload, Check, X, Video, AlertCircle } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { uploadAuctionMedia, createAuction, type AuctionCategory, type ShippingPayer } from '@/services/api/auction';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -30,7 +29,7 @@ export default function CreateAuction() {
   // Check KYC status
   const isKycApproved = user?.kycStatus === 'APPROVED';
 
-  // Redirect if not connected or KYC not approved
+  // Redirect if not connected
   useEffect(() => {
     if (!isConnected) {
       router.push('/auth-demo');
@@ -48,7 +47,7 @@ export default function CreateAuction() {
   const [shippingPayer, setShippingPayer] = useState<ShippingPayer>('BUYER');
 
   const { writeContract, data: txHash } = useWriteContract();
-  const { isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({
+  const { isSuccess: isTxConfirmed, isLoading: isTxConfirming } = useWaitForTransactionReceipt({
     hash: txHash,
   });
 
@@ -169,36 +168,56 @@ export default function CreateAuction() {
     }
 
     try {
+      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+      
+      if (!contractAddress || contractAddress === '0x') {
+        throw new Error('Contract address is not configured. Please check NEXT_PUBLIC_CONTRACT_ADDRESS in .env.local');
+      }
+
       setIsUploading(true);
 
       // 1. Upload media files
       const { filenames } = await uploadAuctionMedia(mediaFiles.map((m) => m.file));
       setUploadedFilenames(filenames);
-
       setIsUploading(false);
-      setIsCreating(true);
 
-      // 2. Create auction on blockchain
+      // 2. Prepare transaction
+      setIsCreating(true);
       const startingPriceWei = parseEther(startingPrice);
       const buyNowPriceWei = buyNowPrice ? parseEther(buyNowPrice) : BigInt(0);
       const durationSeconds = parseInt(duration);
 
-      // Calculate collateral (20% of starting price, min 0.01 ETH)
-      const collateral = startingPriceWei * BigInt(2000) / BigInt(10000);
+      // Match Smart Contract logic: 10% of starting price, min 0.01 ETH
+      const collateralBps = BigInt(1000); // 10%
+      const calcCollateral = (startingPriceWei * collateralBps) / BigInt(10000);
       const minCollateral = parseEther('0.01');
-      const requiredCollateral = collateral > minCollateral ? collateral : minCollateral;
+      const requiredCollateral = calcCollateral > minCollateral ? calcCollateral : minCollateral;
+
+      console.log('Creating auction with:', {
+        startingPriceWei: startingPriceWei.toString(),
+        durationSeconds,
+        productCid: JSON.stringify(filenames),
+        buyNowPriceWei: buyNowPriceWei.toString(),
+        value: requiredCollateral.toString()
+      });
 
       writeContract({
-        address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+        address: contractAddress as `0x${string}`,
         abi: AuctionPlatformABI.abi,
         functionName: 'createAuction',
         args: [
           startingPriceWei,
           BigInt(durationSeconds),
-          JSON.stringify(filenames), // productCid - store filenames as JSON
+          JSON.stringify(filenames),
           buyNowPriceWei,
         ],
         value: requiredCollateral,
+      }, {
+        onError: (error: any) => {
+          console.error('Wallet error:', error);
+          setError(error.shortMessage || error.message || 'Transaction rejected by wallet');
+          setIsCreating(false);
+        }
       });
     } catch (error: any) {
       console.error('Error creating auction:', error);
@@ -210,9 +229,13 @@ export default function CreateAuction() {
 
   // Handle transaction confirmation
   useEffect(() => {
-    if (isTxConfirmed && txHash && uploadedFilenames.length > 0) {
-      (async () => {
+    if (isTxConfirmed && txHash && uploadedFilenames.length > 0 && isCreating) {
+      const registerAuction = async () => {
         try {
+          console.log('Transaction confirmed, registering auction in backend...', {
+            txHash,
+            uploadedFilenames
+          });
           setError(null);
           // 3. Register auction in backend
           const { auctionId } = await createAuction({
@@ -228,17 +251,28 @@ export default function CreateAuction() {
             mediaKeys: uploadedFilenames,
           });
 
+          console.log('Auction registered successfully:', auctionId);
           // Success - redirect to auction page
           router.push(`/auctions/${auctionId}`);
         } catch (error: any) {
           console.error('Error registering auction:', error);
           setError(`Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`);
-        } finally {
           setIsCreating(false);
         }
-      })();
+      };
+      
+      registerAuction();
     }
-  }, [isTxConfirmed, txHash, uploadedFilenames]);
+  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, duration, shippingCost, shippingPayer, router]);
+
+  // Helper function to get status text
+  const getStatusText = () => {
+    if (isUploading) return 'Step 1/3: Uploading Media...';
+    if (isCreating && !txHash) return 'Step 2/3: Waiting for Wallet Approval...';
+    if (isCreating && txHash && isTxConfirming) return 'Step 3/3: Confirming Transaction on Blockchain...';
+    if (isCreating && isTxConfirmed) return 'Step 4/3: Finalizing Auction Registration...';
+    return 'Create Auction';
+  };
 
   return (
     <div className="flex flex-col items-center p-16 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
@@ -499,7 +533,7 @@ export default function CreateAuction() {
               disabled={isUploading || isCreating || !isConnected || !isKycApproved}
               className="h-10 px-6 bg-[#FF8400] rounded-full text-[#111111] font-jetbrains text-base font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUploading ? 'Uploading Media...' : isCreating ? 'Creating Auction...' : !isKycApproved ? 'KYC Required' : 'Create Auction'}
+              {getStatusText()}
             </button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { User, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
+import { User, LayoutDashboard, LogOut, ChevronDown, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 import type { UserProfile } from '../../services/api/auth';
@@ -68,8 +68,8 @@ export default function UserProfileDropdown({ address, user, onDisconnect }: Use
                 className="flex items-center gap-3 w-full h-10 px-3 rounded-lg hover:bg-[#FEF2F2] transition-colors"
                 onClick={() => setIsOpen(false)}
               >
-                <User className="w-5 h-5 text-[#991B1B]" />
-                <span className="font-geist text-sm text-[#991B1B] font-semibold">Admin KYC</span>
+                <ShieldCheck className="w-5 h-5 text-[#991B1B]" />
+                <span className="font-geist text-sm text-[#991B1B] font-semibold">Admin Panel</span>
               </Link>
             )}
 
