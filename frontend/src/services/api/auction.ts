@@ -8,10 +8,24 @@ export type AuctionCategory = 'ELECTRONICS' | 'FASHION' | 'FURNITURE' | 'COLLECT
 export type ShippingPayer = 'BUYER' | 'SELLER' | 'PLATFORM';
 export type AuctionStatus = 'PENDING' | 'ACTIVE' | 'ENDED' | 'CANCELED' | 'FORFEITED';
 
+export type Bid = {
+  id: string;
+  amountWei: string;
+  txHash: string;
+  blockNumber: string | null;
+  isWinning: boolean;
+  createdAt: string;
+  bidder: {
+    id: string;
+    walletAddress: string;
+    displayName: string | null;
+  };
+};
+
 export type Auction = {
   id: string;
   sellerId: string;
-  onChainAuctionId: bigint | null;
+  onChainAuctionId: string | null; // Serialized as string for JSON compatibility
   status: AuctionStatus;
   title: string;
   description: string;
@@ -37,6 +51,7 @@ export type Auction = {
   _count: {
     bids: number;
   };
+  bids?: Bid[]; // Optional - only included in detail view
   createdAt: string;
   updatedAt: string;
 };

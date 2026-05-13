@@ -218,6 +218,7 @@ export async function getAuctionById(auctionId: string) {
           },
         },
       },
+      _count: { select: { bids: true } },
     },
   });
 
@@ -225,7 +226,15 @@ export async function getAuctionById(auctionId: string) {
     throw ApiError.notFound('AUCTION_NOT_FOUND', 'Auction not found');
   }
 
-  return auction;
+  // Convert BigInt fields to strings for JSON serialization
+  return {
+    ...auction,
+    onChainAuctionId: auction.onChainAuctionId?.toString() ?? null,
+    bids: auction.bids.map(bid => ({
+      ...bid,
+      blockNumber: bid.blockNumber?.toString() ?? null,
+    })),
+  };
 }
 
 /**
@@ -287,8 +296,14 @@ export async function listAuctions(params: {
     prisma.auctionMetadata.count({ where }),
   ]);
 
+  // Convert BigInt fields to strings for JSON serialization
+  const serializedAuctions = auctions.map(auction => ({
+    ...auction,
+    onChainAuctionId: auction.onChainAuctionId?.toString() ?? null,
+  }));
+
   return {
-    data: auctions,
+    data: serializedAuctions,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 }
