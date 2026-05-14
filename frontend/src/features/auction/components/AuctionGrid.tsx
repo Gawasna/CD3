@@ -6,6 +6,7 @@ import { AuctionCard } from "./AuctionCard";
 import { useTranslations } from "next-intl";
 import { useAuctions } from "@/hooks/useAuctions";
 import { formatEther } from "viem";
+import { getThumbnail } from "../utils/media";
 
 interface AuctionGridProps {
   sortBy: string;
@@ -39,17 +40,7 @@ export function AuctionGrid({
     if (!auctionsData?.data) return;
 
     let auctions = auctionsData.data.map((auction: any) => {
-      let image = "";
-      try {
-        if (auction.ipfsCid) {
-          const media = JSON.parse(auction.ipfsCid);
-          if (Array.isArray(media) && media.length > 0) {
-            image = media[0];
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse media for auction:", auction.id, e);
-      }
+      const image = getThumbnail(auction.ipfsCid);
 
       const end = new Date(auction.endTime).getTime();
       const now = new Date().getTime();
@@ -168,88 +159,6 @@ export function AuctionGrid({
           <span className="text-[#666666]">No auctions found matching your criteria.</span>
         </div>
       )}
-    </div>
-  );
-}
-
-  const parseTimeLeft = (timeLeft: string): number => {
-    const match = timeLeft.match(/(\d+)([hm])/g);
-    if (!match) return 0;
-    
-    let minutes = 0;
-    match.forEach((part) => {
-      const value = parseInt(part);
-      if (part.includes("h")) {
-        minutes += value * 60;
-      } else {
-        minutes += value;
-      }
-    });
-    return minutes;
-  };
-
-  return (
-    <div className="flex-1 flex flex-col gap-6">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[#111111] font-mono">
-          Explore ({filteredAuctions.length} Items)
-        </h1>
-
-        <div className="flex items-center gap-4">
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#666666]">Sort by:</span>
-            <button className="flex items-center gap-2 px-3 py-1.5 border border-[#CBCCC9] rounded-full hover:bg-[#E7E8E5] transition-colors">
-              <span className="text-sm text-[#111111]">
-                {sortBy === "ending_soon" && "Ending Soon"}
-                {sortBy === "highest_bid" && "Highest Bid"}
-                {sortBy === "most_bids" && "Most Bids"}
-              </span>
-              <ChevronDown className="w-4 h-4 text-[#666666]" />
-            </button>
-          </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onViewModeChange("grid")}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                viewMode === "grid"
-                  ? "bg-[#E7E8E5]"
-                  : "bg-transparent hover:bg-[#E7E8E5]/50"
-              }`}
-            >
-              <Grid3x3
-                className={`w-4 h-4 ${
-                  viewMode === "grid" ? "text-[#111111]" : "text-[#666666]"
-                }`}
-              />
-            </button>
-            <button
-              onClick={() => onViewModeChange("list")}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                viewMode === "list"
-                  ? "bg-[#E7E8E5]"
-                  : "bg-transparent hover:bg-[#E7E8E5]/50"
-              }`}
-            >
-              <List
-                className={`w-4 h-4 ${
-                  viewMode === "list" ? "text-[#111111]" : "text-[#666666]"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-4 gap-5">
-        {filteredAuctions.map((auction) => (
-          <AuctionCard key={auction.id} auction={auction} />
-        ))}
-      </div>
     </div>
   );
 }

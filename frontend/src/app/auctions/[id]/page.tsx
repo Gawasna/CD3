@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Image as ImageIcon, User, Star, Heart, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
+import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -59,30 +60,7 @@ export default function AuctionDetail() {
     );
   }
 
-  // Parse media from ipfsCid (stored as JSON string)
-  let media: string[] = [];
-  try {
-    if (auction.ipfsCid) {
-      media = JSON.parse(auction.ipfsCid);
-    }
-  } catch (e) {
-    console.error('Failed to parse media keys:', e);
-  }
-
-  const isMediaVideo = (key: string) => {
-    const ext = key.split('.').pop()?.toLowerCase();
-    return ext === 'mp4' || ext === 'mov' || ext === 'quicktime';
-  };
-
-  // Reorder media: videos first, then images
-  const videos = media.filter(isMediaVideo);
-  const images = media.filter(k => !isMediaVideo(k));
-  const reorderedMedia = [...videos, ...images];
-
-  const getMediaUrl = (key: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}/uploads/auctions/${key}`;
-  };
+  const reorderedMedia = getReorderedMedia(auction.ipfsCid);
 
   const timeRemaining = () => {
     const end = new Date(auction.endTime).getTime();
@@ -105,7 +83,7 @@ export default function AuctionDetail() {
           {/* Main Media Display */}
           <div className="w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden">
             {reorderedMedia.length > 0 ? (
-              isMediaVideo(reorderedMedia[selectedImage]) ? (
+              isVideo(reorderedMedia[selectedImage]) ? (
                 <video 
                   src={getMediaUrl(reorderedMedia[selectedImage])} 
                   controls
@@ -138,7 +116,7 @@ export default function AuctionDetail() {
                       : 'border border-[#CBCCC9] hover:border-[#FF8400]'
                   }`}
                 >
-                  {isMediaVideo(key) ? (
+                  {isVideo(key) ? (
                     <div className="relative w-full h-full">
                       <video src={getMediaUrl(key)} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20">
