@@ -69,8 +69,19 @@ export default function AuctionDetail() {
     console.error('Failed to parse media keys:', e);
   }
 
+  const isMediaVideo = (key: string) => {
+    const ext = key.split('.').pop()?.toLowerCase();
+    return ext === 'mp4' || ext === 'mov' || ext === 'quicktime';
+  };
+
+  // Reorder media: videos first, then images
+  const videos = media.filter(isMediaVideo);
+  const images = media.filter(k => !isMediaVideo(k));
+  const reorderedMedia = [...videos, ...images];
+
   const getMediaUrl = (key: string) => {
-    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/uploads/auctions/${key}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+    return `${baseUrl}/uploads/auctions/${key}`;
   };
 
   const timeRemaining = () => {
@@ -91,33 +102,54 @@ export default function AuctionDetail() {
       <div className="flex flex-col gap-6 flex-1">
         {/* Image Gallery */}
         <div className="w-full">
-          {/* Main Image */}
+          {/* Main Media Display */}
           <div className="w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden">
-            {media.length > 0 ? (
-              <img 
-                src={getMediaUrl(media[selectedImage])} 
-                alt={auction.title}
-                className="w-full h-full object-contain"
-              />
+            {reorderedMedia.length > 0 ? (
+              isMediaVideo(reorderedMedia[selectedImage]) ? (
+                <video 
+                  src={getMediaUrl(reorderedMedia[selectedImage])} 
+                  controls
+                  autoPlay
+                  muted
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img 
+                  src={getMediaUrl(reorderedMedia[selectedImage])} 
+                  alt={auction.title}
+                  className="w-full h-full object-contain"
+                />
+              )
             ) : (
               <ImageIcon className="w-16 h-16 text-[#666666]" />
             )}
           </div>
 
           {/* Thumbnails */}
-          {media.length > 1 && (
+          {reorderedMedia.length > 1 && (
             <div className="flex gap-3">
-              {media.map((key, index) => (
+              {reorderedMedia.map((key, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden ${
+                  className={`relative w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden ${
                     selectedImage === index
                       ? 'border-2 border-[#FF8400]'
                       : 'border border-[#CBCCC9] hover:border-[#FF8400]'
                   }`}
                 >
-                  <img src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                  {isMediaVideo(key) ? (
+                    <div className="relative w-full h-full">
+                      <video src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                  )}
                 </button>
               ))}
             </div>

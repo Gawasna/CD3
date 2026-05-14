@@ -176,8 +176,18 @@ export default function CreateAuction() {
 
       setIsUploading(true);
 
+      // Reorder mediaFiles: Ensure first element is an image for thumbnail if any images exist
+      const firstImageIndex = mediaFiles.findIndex(m => m.type === 'image');
+      let currentMediaFiles = [...mediaFiles];
+      if (firstImageIndex > 0) {
+        // Move first image to index 0
+        const firstImage = currentMediaFiles.splice(firstImageIndex, 1)[0];
+        currentMediaFiles.unshift(firstImage);
+        setMediaFiles(currentMediaFiles);
+      }
+
       // 1. Upload media files
-      const { filenames } = await uploadAuctionMedia(mediaFiles.map((m) => m.file));
+      const { filenames } = await uploadAuctionMedia(currentMediaFiles.map((m) => m.file));
       setUploadedFilenames(filenames);
       setIsUploading(false);
 

@@ -15,24 +15,32 @@ export default function Homepage() {
   const { data: upcomingData } = useAuctions({ variant: 'upcoming', limit: 3 });
 
   // Transform API data to component format
-  const endingSoonItems = endingSoonData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
-    price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-  })) || [];
+  const transformAuction = (auction: any) => {
+    let imageUrl = undefined;
+    try {
+      if (auction.ipfsCid) {
+        const media = JSON.parse(auction.ipfsCid);
+        if (Array.isArray(media) && media.length > 0) {
+          imageUrl = media[0];
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse media for auction:', auction.id, e);
+    }
 
-  const liveAuctionItems = liveData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
-    price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-  })) || [];
+    return {
+      id: auction.id,
+      title: auction.title,
+      seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
+      price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
+      imageUrl,
+    };
+  };
 
+  const endingSoonItems = endingSoonData?.data.map(transformAuction) || [];
+  const liveAuctionItems = liveData?.data.map(transformAuction) || [];
   const upcomingItems = upcomingData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
+    ...transformAuction(auction),
     price: 'Starting: ' + formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
     timeInfo: 'Pending confirmation',
   })) || [];

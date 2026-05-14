@@ -13,6 +13,7 @@ interface AuctionCardProps {
   price: string;
   variant: AuctionCardVariant;
   timeInfo?: string; // For upcoming auctions
+  imageUrl?: string;
 }
 
 export default function AuctionCard({
@@ -22,8 +23,10 @@ export default function AuctionCard({
   price,
   variant,
   timeInfo,
+  imageUrl,
 }: AuctionCardProps) {
   const t = useTranslations('home.card');
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
 
   const getTagContent = () => {
     switch (variant) {
@@ -106,8 +109,16 @@ export default function AuctionCard({
       className="flex flex-col w-full bg-white border border-[#CBCCC9] rounded-none overflow-hidden shadow-[0_1px_1.75px_0_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform"
     >
       {/* Image */}
-      <div className="relative h-[200px] bg-[#E7E8E5] w-full flex items-center justify-center">
-        <Image className="w-12 h-12 text-[#666666]" />
+      <div className="relative h-[200px] bg-[#E7E8E5] w-full flex items-center justify-center overflow-hidden">
+        {imageUrl ? (
+          <img 
+            src={imageUrl.startsWith('http') ? imageUrl : `${API_BASE_URL}/uploads/auctions/${imageUrl}`} 
+            alt={title} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Image className="w-12 h-12 text-[#666666]" />
+        )}
         {getTagContent()}
       </div>
 
