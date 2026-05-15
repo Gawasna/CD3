@@ -86,6 +86,13 @@ enum DisputeOutcome {
   SELLER_WIN // refundBuyer = false
 }
 
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -127,6 +134,8 @@ model User {
   kycRequest       KycRequest?       @relation("UserKycRequest")
   // Watchlist
   watchlist        Watchlist[]
+  // Notifications
+  notifications    Notification[]
 
   // DB-IDX-01: Admin filter by KYC status
   @@index([kycStatus])
@@ -323,6 +332,23 @@ model AdminActionLog {
   // Query: "Tất cả action liên quan đến User X"
   @@index([targetType, targetId])
   @@map("admin_action_logs")
+}
+
+// ---- Notification ----
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType @default(INFO)
+  title     String
+  message   String
+  actionUrl String?          @map("action_url")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }
 
 // ---- Watchlist ----

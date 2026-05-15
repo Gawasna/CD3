@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { RecordBidBody, RequestExtensionBody, CreateAuctionBody } from './auction.schema';
+import { notificationService } from '../notification/notification.service';
 
 // ── Self-bid Validation ───────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export async function recordBid(
   // 1. Resolve off-chain auctionId từ onChainAuctionId
   const auction = await prisma.auctionMetadata.findUnique({
     where: { onChainAuctionId: input.onChainAuctionId },
-    select: { id: true, sellerId: true, status: true },
+    select: { id: true, sellerId: true, status: true, title: true },
   });
 
   if (!auction) {
@@ -77,7 +78,14 @@ export async function recordBid(
     );
   }
 
-  // 3. Upsert bid — txHash unique constraint làm dedup key tự nhiên
+  // 3. Tìm người giữ giá cao nhất hiện tại (trước khi ghi bid mới)
+  const currentHighestBid = await prisma.bid.findFirst({
+    where: { auctionId: auction.id },
+    orderBy: { amountWei: 'desc' },
+    select: { bidderId: true, amountWei: true },
+  });
+
+  // 4. Upsert bid — txHash unique constraint làm dedup key tự nhiên
   //    Nếu TX đã tồn tại (indexer replay), update blockNumber nếu chưa có
   const bid = await prisma.bid.upsert({
     where: { txHash: input.txHash },
@@ -95,6 +103,20 @@ export async function recordBid(
     },
     select: { id: true, isWinning: true },
   });
+
+  // 5. Gửi thông báo Outbid nếu cần
+  if (
+    currentHighestBid && 
+    currentHighestBid.bidderId !== bidderId && // Không tự thông báo chính mình
+    bid.id // Upsert thành công
+  ) {
+    await notificationService.createNotification(currentHighestBid.bidderId, {
+      type: 'WARNING',
+      title: 'Bạn đã bị vượt giá!',
+      message: `Giá của bạn cho sản phẩm "${auction.title}" đã bị vượt qua. Đặt giá mới ngay để giành lại ưu thế!`,
+      actionUrl: `/auctions/${auction.id}`,
+    });
+  }
 
   return { bidId: bid.id, isWinning: bid.isWinning };
 }
