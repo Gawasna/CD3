@@ -1,18 +1,25 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCircle, AlertCircle, Info, XCircle, Check, X, Bug } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, Info, XCircle, Check, X, Bug, Loader2, RefreshCcw } from 'lucide-react';
 import { useNotificationStore, Notification } from '@/store/notification.store';
+import { useAuthStore } from '@/store/auth.store';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const {
     notifications,
     unreadCount,
+    isLoading,
+    fetchNotifications,
+    startPolling,
+    stopPolling,
     markAsRead,
     markAllAsRead,
     removeNotification,
@@ -20,6 +27,20 @@ export default function NotificationBell() {
     pushPermission,
     requestPushPermission
   } = useNotificationStore();
+
+  const { token, status } = useAuthStore();
+
+  // Initial fetch and start polling when authenticated
+  useEffect(() => {
+    if (status === 'authenticated' || token) {
+      fetchNotifications();
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    return () => stopPolling();
+  }, [status, token, fetchNotifications, startPolling, stopPolling]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -47,6 +68,17 @@ export default function NotificationBell() {
     }
   };
 
+  const handleNotificationClick = async (notif: Notification) => {
+    if (!notif.isRead) {
+      await markAsRead(notif.id);
+    }
+    
+    if (notif.actionUrl) {
+      setIsOpen(false);
+      router.push(notif.actionUrl);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Icon Button */}
@@ -65,92 +97,82 @@ export default function NotificationBell() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="absolute right-0 mt-2 w-80 sm:w-[400px] bg-[var(--color-card)] rounded-[var(--radius-m,16px)] shadow-xl border border-[var(--color-border)] z-50 overflow-hidden flex flex-col max-h-[80vh]">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-            <h3 className="font-semibold text-gray-800">Thông báo</h3>
-            <div className="flex items-center gap-2">
-              {/* Nút giả lập nhận thông báo (chỉ dùng cho dev/demo) */}
+          <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
+            <h3 className="font-bold text-[var(--color-foreground)] font-[family-name:var(--font-primary,var(--font-jetbrains))] text-lg">Thông báo</h3>
+            <div className="flex items-center gap-3">
+              {/* Refresh button */}
               <button 
-                onClick={mockReceiveNotification}
-                title="Giả lập nhận thông báo (Demo)"
-                className="p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded"
+                onClick={() => fetchNotifications()}
+                disabled={isLoading}
+                title="Làm mới thông báo"
+                className="p-1 text-[var(--color-muted-foreground)] hover:text-[var(--color-primary)] hover:bg-[var(--color-secondary)] rounded-md disabled:opacity-50 transition-colors"
               >
-                <Bug className="w-4 h-4" />
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
               </button>
+              
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  className="text-xs font-medium text-[var(--color-primary)] hover:underline font-[family-name:var(--font-secondary,var(--font-geist))]"
                 >
-                  <Check className="w-3 h-3" /> Đánh dấu đã đọc tất cả
+                  Đánh dấu đã đọc
                 </button>
               )}
             </div>
           </div>
 
-          {/* Permission Banner */}
-          {pushPermission !== 'granted' && pushPermission !== 'denied' && (
-            <div className="bg-blue-50 p-3 border-b border-blue-100 flex items-start justify-between">
-              <div className="flex gap-2">
-                <Bell className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-blue-900">Bật thông báo đẩy</p>
-                  <p className="text-blue-700 text-xs mt-0.5">Không bỏ lỡ các cập nhật quan trọng</p>
-                </div>
-              </div>
-              <button 
-                onClick={requestPushPermission}
-                className="text-xs bg-blue-600 text-white px-2.5 py-1.5 rounded-md hover:bg-blue-700 transition-colors font-medium whitespace-nowrap ml-2"
-              >
-                Bật
-              </button>
-            </div>
-          )}
-
           {/* Notification List */}
-          <div className="overflow-y-auto flex-1">
-            {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 flex flex-col items-center justify-center">
+          <div className="overflow-y-auto flex-1 font-[family-name:var(--font-secondary,var(--font-geist))]">
+            {isLoading && notifications.length === 0 ? (
+              <div className="p-8 text-center text-[var(--color-muted-foreground)] flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 mb-2 animate-spin text-[var(--color-primary)]" />
+                <p>Đang tải thông báo...</p>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-8 text-center text-[var(--color-muted-foreground)] flex flex-col items-center justify-center">
                 <Bell className="w-8 h-8 mb-2 opacity-20" />
                 <p>Không có thông báo nào</p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-[var(--color-border)]">
                 {notifications.map((notif) => (
                   <li
                     key={notif.id}
-                    className={`p-4 hover:bg-gray-50 transition-colors relative group ${
-                      !notif.isRead ? 'bg-blue-50/30' : ''
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-4 hover:bg-[var(--color-secondary)] transition-colors relative group cursor-pointer ${
+                      !notif.isRead ? 'bg-[var(--color-secondary)]' : 'bg-[var(--color-card)]'
                     }`}
                   >
                     <div className="flex gap-3">
-                      <div className="flex-shrink-0 mt-1">{getIcon(notif.type)}</div>
+                      <div className="flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          !notif.isRead ? 'bg-[#DFE6E1]' : 'bg-[var(--color-secondary)]'
+                        }`}>
+                          {notif.type === 'SUCCESS' ? (
+                            <Check className={`w-5 h-5 ${!notif.isRead ? 'text-[#004D1A]' : 'text-[var(--color-muted-foreground)]'}`} />
+                          ) : (
+                            <Bell className="w-5 h-5 text-[var(--color-muted-foreground)]" />
+                          )}
+                        </div>
+                      </div>
                       <div className="flex-1 pr-6">
-                        <div className="flex justify-between items-start mb-1">
+                        <div className="flex flex-col gap-1">
                           <h4
                             className={`text-sm ${
-                              !notif.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
+                              !notif.isRead ? 'font-bold text-[var(--color-foreground)]' : 'font-medium text-[var(--color-foreground)]'
                             }`}
                           >
                             {notif.title}
                           </h4>
-                          <span className="text-[11px] text-gray-400 whitespace-nowrap ml-2">
+                          <p className="text-sm text-[var(--color-muted-foreground)] leading-tight">
+                            {notif.message}
+                          </p>
+                          <span className="text-[11px] text-[var(--color-muted-foreground)] mt-1">
                             {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true, locale: vi })}
                           </span>
                         </div>
-                        <p className={`text-sm ${!notif.isRead ? 'text-gray-800' : 'text-gray-500'}`}>
-                          {notif.message}
-                        </p>
-                        
-                        {!notif.isRead && (
-                          <button
-                            onClick={() => markAsRead(notif.id)}
-                            className="text-xs text-blue-600 font-medium mt-2 hover:underline inline-block"
-                          >
-                            Đánh dấu đã đọc
-                          </button>
-                        )}
                       </div>
                     </div>
                     
@@ -160,20 +182,28 @@ export default function NotificationBell() {
                         e.stopPropagation();
                         removeNotification(notif.id);
                       }}
-                      className="absolute top-4 right-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-4 right-4 text-[var(--color-muted-foreground)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                       aria-label="Xóa thông báo"
                     >
                       <X className="w-4 h-4" />
                     </button>
-                    
-                    {/* Unread dot indicator */}
-                    {!notif.isRead && (
-                      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-1 h-full bg-blue-500 rounded-r-full" />
-                    )}
                   </li>
                 ))}
               </ul>
             )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-[var(--color-border)] flex justify-center">
+             <button 
+               className="text-sm font-semibold text-[var(--color-primary)] hover:underline font-[family-name:var(--font-secondary,var(--font-geist))]"
+               onClick={() => {
+                 setIsOpen(false);
+                 router.push('/profile/notifications');
+               }}
+             >
+               Xem tất cả thông báo
+             </button>
           </div>
         </div>
       )}

@@ -36,6 +36,7 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 startingPrice;
         uint256 highestBid;
         address payable highestBidder;
+        uint256 startTime;            // Added: Auction start time
         uint256 endTime;
         uint256 collateral;           // Seller's locked collateral
         string productCid;            // IPFS CID from Pinata
@@ -186,16 +187,19 @@ contract AuctionPlatform is ReentrancyGuard {
     /**
      * @notice Create a new auction. Seller must send ETH as collateral.
      * @param _startingPrice Minimum bid amount in wei
+     * @param _startTime Timestamp when auction starts
      * @param _duration Auction duration in seconds
      * @param _productCid IPFS CID of product metadata
      */
     function createAuction(
         uint256 _startingPrice,
+        uint256 _startTime,
         uint256 _duration,
         string calldata _productCid,
         uint256 _buyNowPrice // Consensus C-01: 0 = disabled; must exceed startingPrice if set
     ) external payable nonReentrant {
         require(_startingPrice > 0, "AuctionPlatform: starting price must be > 0");
+        require(_startTime >= block.timestamp, "AuctionPlatform: startTime must be >= now");
         require(_duration > 0, "AuctionPlatform: duration must be > 0");
         require(bytes(_productCid).length > 0, "AuctionPlatform: product CID required");
 
@@ -218,7 +222,8 @@ contract AuctionPlatform is ReentrancyGuard {
             startingPrice: _startingPrice,
             highestBid: 0,
             highestBidder: payable(address(0)),
-            endTime: block.timestamp + _duration,
+            startTime: _startTime,
+            endTime: _startTime + _duration,
             collateral: msg.value,
             productCid: _productCid,
             status: AuctionStatus.Active,
@@ -234,7 +239,7 @@ contract AuctionPlatform is ReentrancyGuard {
             newAuctionId,
             msg.sender,
             _startingPrice,
-            block.timestamp + _duration,
+            _startTime + _duration,
             _productCid
         );
     }
@@ -247,6 +252,7 @@ contract AuctionPlatform is ReentrancyGuard {
         Auction storage auction = auctions[_auctionId];
 
         require(auction.status == AuctionStatus.Active, "AuctionPlatform: auction not active");
+        require(block.timestamp >= auction.startTime, "AuctionPlatform: auction not yet started");
         require(block.timestamp < auction.endTime, "AuctionPlatform: auction has ended");
         require(msg.sender != auction.seller, "AuctionPlatform: seller cannot bid");
         
@@ -629,6 +635,7 @@ contract AuctionPlatform is ReentrancyGuard {
             uint256 startingPrice,
             uint256 highestBid,
             address highestBidder,
+            uint256 startTime,
             uint256 endTime,
             uint256 collateral,
             string memory productCid,
@@ -642,6 +649,7 @@ contract AuctionPlatform is ReentrancyGuard {
             a.startingPrice,
             a.highestBid,
             a.highestBidder,
+            a.startTime,
             a.endTime,
             a.collateral,
             a.productCid,

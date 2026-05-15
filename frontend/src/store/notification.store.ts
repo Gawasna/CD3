@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { notificationApi, NotificationResponse } from '@/services/api/notification';
 
 export interface Notification {
   id: string;
@@ -13,30 +14,80 @@ export interface Notification {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  pollingInterval: NodeJS.Timeout | null;
+  
+  // Actions
+  fetchNotifications: (page?: number, limit?: number) => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  removeNotification: (id: string) => void;
-  mockReceiveNotification: () => void; // for demo
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  removeNotification: (id: string) => Promise<void>;
+  
+  // Polling
+  startPolling: (intervalMs?: number) => void;
+  stopPolling: () => void;
+  
+  // Browser Native Push
   pushPermission: NotificationPermission | 'default';
   requestPushPermission: () => Promise<void>;
+  
+  // Mock for demo (keep for now but can be triggered externally)
+  mockReceiveNotification: () => void;
 }
 
+const mapResponseToNotification = (res: NotificationResponse): Notification => ({
+  id: res.id,
+  type: res.type,
+  title: res.title,
+  message: res.message,
+  createdAt: new Date(res.createdAt),
+  isRead: res.isRead,
+  actionUrl: res.actionUrl || undefined,
+});
+
 export const useNotificationStore = create<NotificationState>((set, get) => ({
-  notifications: [
-    // Pre-populate with some initial mock data
-    {
-      id: 'mock-1',
-      type: 'INFO',
-      title: 'Chào mừng',
-      message: 'Chào mừng bạn đến với sàn đấu giá CD3. Vui lòng hoàn tất KYC để bắt đầu.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-      isRead: false,
+  notifications: [],
+  unreadCount: 0,
+  isLoading: false,
+  error: null,
+  pollingInterval: null,
+  
+  fetchNotifications: async (page = 1, limit = 20) => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await notificationApi.getNotifications(page, limit);
+      set({
+        notifications: data.items.map(mapResponseToNotification),
+        unreadCount: data.unreadCount,
+        isLoading: false,
+      });
+    } catch (err: any) {
+      set({ error: err.message || 'Failed to fetch notifications', isLoading: false });
     }
-  ],
-  unreadCount: 1,
+  },
+  
+  startPolling: (intervalMs = 60000) => {
+    if (get().pollingInterval) return;
+    
+    const interval = setInterval(() => {
+      get().fetchNotifications();
+    }, intervalMs);
+    
+    set({ pollingInterval: interval as any });
+  },
+  
+  stopPolling: () => {
+    const interval = get().pollingInterval;
+    if (interval) {
+      clearInterval(interval as any);
+      set({ pollingInterval: null });
+    }
+  },
   
   addNotification: (notification) => {
+    // This is mainly for real-time updates when a socket event arrives
     const newNotif: Notification = {
       ...notification,
       id: Math.random().toString(36).substring(2, 11),
@@ -49,7 +100,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (Notification.permission === 'granted') {
         const nativeNotif = new window.Notification(notification.title, {
           body: notification.message,
-          icon: '/favicon.ico', // Update with your actual icon path if available
+          icon: '/favicon.ico',
         });
         
         nativeNotif.onclick = () => {
@@ -66,31 +117,58 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }));
   },
   
-  markAsRead: (id) => {
+  markAsRead: async (id) => {
+    // Optimistic update
+    const previousNotifications = get().notifications;
+    const previousUnreadCount = get().unreadCount;
+
     set((state) => {
-      let readCount = 0;
+      let readOccurred = false;
       const updated = state.notifications.map((n) => {
         if (n.id === id && !n.isRead) {
-          readCount++;
+          readOccurred = true;
           return { ...n, isRead: true };
         }
         return n;
       });
       return {
         notifications: updated,
-        unreadCount: Math.max(0, state.unreadCount - readCount),
+        unreadCount: readOccurred ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
       };
     });
+
+    try {
+      await notificationApi.markAsRead(id);
+    } catch (err) {
+      // Rollback on error
+      set({ notifications: previousNotifications, unreadCount: previousUnreadCount });
+      console.error('Failed to mark notification as read:', err);
+    }
   },
   
-  markAllAsRead: () => {
+  markAllAsRead: async () => {
+    const previousNotifications = get().notifications;
+    const previousUnreadCount = get().unreadCount;
+
+    // Optimistic update
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
       unreadCount: 0,
     }));
+
+    try {
+      await notificationApi.markAllAsRead();
+    } catch (err) {
+      set({ notifications: previousNotifications, unreadCount: previousUnreadCount });
+      console.error('Failed to mark all notifications as read:', err);
+    }
   },
   
-  removeNotification: (id) => {
+  removeNotification: async (id) => {
+    const previousNotifications = get().notifications;
+    const previousUnreadCount = get().unreadCount;
+
+    // Optimistic update
     set((state) => {
       const notifToRemove = state.notifications.find((n) => n.id === id);
       const wasUnread = notifToRemove && !notifToRemove.isRead;
@@ -99,6 +177,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
       };
     });
+
+    try {
+      await notificationApi.deleteNotification(id);
+    } catch (err) {
+      set({ notifications: previousNotifications, unreadCount: previousUnreadCount });
+      console.error('Failed to delete notification:', err);
+    }
   },
   
   mockReceiveNotification: () => {
@@ -125,7 +210,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         const permission = await Notification.requestPermission();
         set({ pushPermission: permission });
         if (permission === 'granted') {
-          // Send a welcome native notification to confirm it works
           new window.Notification('Đã bật thông báo', {
             body: 'Bạn sẽ nhận được các cập nhật quan trọng từ CD3.',
           });
@@ -136,3 +220,4 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
   },
 }));
+

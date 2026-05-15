@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { RecordBidBody, RequestExtensionBody, CreateAuctionBody } from './auction.schema';
+import { notificationService } from '../notification/notification.service';
 
 // ── Self-bid Validation ───────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ export async function recordBid(
   // 1. Resolve off-chain auctionId từ onChainAuctionId
   const auction = await prisma.auctionMetadata.findUnique({
     where: { onChainAuctionId: input.onChainAuctionId },
-    select: { id: true, sellerId: true, status: true },
+    select: { id: true, sellerId: true, status: true, title: true },
   });
 
   if (!auction) {
@@ -77,7 +78,14 @@ export async function recordBid(
     );
   }
 
-  // 3. Upsert bid — txHash unique constraint làm dedup key tự nhiên
+  // 3. Tìm người giữ giá cao nhất hiện tại (trước khi ghi bid mới)
+  const currentHighestBid = await prisma.bid.findFirst({
+    where: { auctionId: auction.id },
+    orderBy: { amountWei: 'desc' },
+    select: { bidderId: true, amountWei: true },
+  });
+
+  // 4. Upsert bid — txHash unique constraint làm dedup key tự nhiên
   //    Nếu TX đã tồn tại (indexer replay), update blockNumber nếu chưa có
   const bid = await prisma.bid.upsert({
     where: { txHash: input.txHash },
@@ -95,6 +103,20 @@ export async function recordBid(
     },
     select: { id: true, isWinning: true },
   });
+
+  // 5. Gửi thông báo Outbid nếu cần
+  if (
+    currentHighestBid && 
+    currentHighestBid.bidderId !== bidderId && // Không tự thông báo chính mình
+    bid.id // Upsert thành công
+  ) {
+    await notificationService.createNotification(currentHighestBid.bidderId, {
+      type: 'WARNING',
+      title: 'Bạn đã bị vượt giá!',
+      message: `Giá của bạn cho sản phẩm "${auction.title}" đã bị vượt qua. Đặt giá mới ngay để giành lại ưu thế!`,
+      actionUrl: `/auctions/${auction.id}`,
+    });
+  }
 
   return { bidId: bid.id, isWinning: bid.isWinning };
 }
@@ -244,10 +266,12 @@ export async function getAuctionById(auctionId: string) {
 export async function listAuctions(params: {
   status?: string;
   variant?: string;
+  sellerId?: string;
+  bidderId?: string;
   page: number;
   limit: number;
 }) {
-  const { status, variant, page, limit } = params;
+  const { status, variant, sellerId, bidderId, page, limit } = params;
   const skip = (page - 1) * limit;
 
   let where: any = {};
@@ -257,6 +281,20 @@ export async function listAuctions(params: {
     where.status = status as any;
   }
 
+  // Filter theo sellerId
+  if (sellerId) {
+    where.sellerId = sellerId;
+  }
+
+  // Filter theo bidderId (Auctions where user has placed at least one bid)
+  if (bidderId) {
+    where.bids = {
+      some: {
+        bidderId: bidderId,
+      },
+    };
+  }
+
   // Xử lý variants cho Homepage
   if (variant === 'ending-soon') {
     // Auctions đang ACTIVE và kết thúc trong 24h tới
@@ -264,15 +302,29 @@ export async function listAuctions(params: {
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     where.status = 'ACTIVE';
     where.endTime = {
-      gte: now,
+      gt: now,
       lte: next24h,
     };
   } else if (variant === 'live') {
-    // Auctions đang ACTIVE
+    // Auctions đang ACTIVE và chưa hết hạn, và startTime <= now
+    const now = new Date();
     where.status = 'ACTIVE';
+    where.startTime = { lte: now };
+    where.endTime = { gt: now };
   } else if (variant === 'upcoming') {
-    // Auctions PENDING (chưa confirmed on-chain)
-    where.status = 'PENDING';
+    // Auctions đang UPCOMING hoặc (ACTIVE nhưng startTime > now)
+    const now = new Date();
+    where.OR = [
+      { status: 'UPCOMING' },
+      { 
+        status: 'ACTIVE',
+        startTime: { gt: now }
+      }
+    ];
+  } else if (!status && !sellerId && !bidderId) {
+    // Default: không hiện PENDING trong public lists
+    // Nhưng vẫn cho phép hiện trong "My Auctions" hoặc "My Bids"
+    where.status = { not: 'PENDING' };
   }
 
   const [auctions, total] = await Promise.all([
@@ -290,7 +342,7 @@ export async function listAuctions(params: {
         winner: {
           select: { id: true, walletAddress: true, displayName: true },
         },
-        _count: { select: { bids: true } },
+        _count: { select: { bids: true, watchers: true } },
       },
     }),
     prisma.auctionMetadata.count({ where }),
@@ -308,7 +360,81 @@ export async function listAuctions(params: {
   };
 }
 
+// ── Watchlist ─────────────────────────────────────────────────────────────
+
+/**
+ * Thêm một auction vào watchlist của user.
+ */
+export async function addToWatchlist(userId: string, auctionId: string) {
+  // Check if auction exists
+  const auction = await prisma.auctionMetadata.findUnique({
+    where: { id: auctionId },
+    select: { id: true },
+  });
+
+  if (!auction) {
+    throw ApiError.notFound('AUCTION_NOT_FOUND', 'Auction not found');
+  }
+
+  // Use upsert to be idempotent
+  return prisma.watchlist.upsert({
+    where: {
+      userId_auctionId: { userId, auctionId },
+    },
+    update: {}, // Do nothing if already exists
+    create: { userId, auctionId },
+  });
+}
+
+/**
+ * Xóa một auction khỏi watchlist của user.
+ */
+export async function removeFromWatchlist(userId: string, auctionId: string) {
+  return prisma.watchlist.deleteMany({
+    where: { userId, auctionId },
+  });
+}
+
+/**
+ * Lấy danh sách auctions trong watchlist của user.
+ */
+export async function getWatchlist(userId: string, page: number, limit: number) {
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    prisma.watchlist.findMany({
+      where: { userId },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        auction: {
+          include: {
+            seller: {
+              select: { id: true, walletAddress: true, displayName: true, avatarUrl: true },
+            },
+            _count: { select: { bids: true, watchers: true } },
+          },
+        },
+      },
+    }),
+    prisma.watchlist.count({ where: { userId } }),
+  ]);
+
+  const serializedAuctions = items.map(item => ({
+    ...item.auction,
+    onChainAuctionId: item.auction.onChainAuctionId?.toString() ?? null,
+    addedToWatchlistAt: item.createdAt,
+  }));
+
+  return {
+    data: serializedAuctions,
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+}
+
 // ── Sync Escrow Status ────────────────────────────────────────────────────
+
 
 /**
  * Sync escrowStatus từ on-chain event về DB.
@@ -415,8 +541,9 @@ export async function createPendingAuction(
     }
   }
 
-  // Tính endTime từ durationSeconds
-  const endTime = new Date(Date.now() + input.durationSeconds * 1000);
+  // Tính startTime và endTime
+  const startTime = input.startTime ? new Date(input.startTime) : new Date();
+  const endTime = new Date(startTime.getTime() + input.durationSeconds * 1000);
 
   // Tạo auction với status PENDING
   const auction = await prisma.auctionMetadata.create({
@@ -430,6 +557,7 @@ export async function createPendingAuction(
       startingPriceWei: input.startingPriceWei,
       buyNowPriceWei: input.buyNowPriceWei ?? null,
       collateralWei: '0', // Sẽ được update từ on-chain event nếu cần
+      startTime,
       endTime,
       durationSeconds: input.durationSeconds,
       shippingCostWei: input.shippingCostWei,

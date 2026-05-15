@@ -1,10 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, memo, MouseEvent as ReactMouseEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Image as ImageIcon, User, Star, Heart, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
+import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
+import WatchlistButton from '@/components/shared/WatchlistButton';
+
+// --- Sub-components ---
+const AuctionTimer = memo(function AuctionTimer({ auction }: { auction: Auction }) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (auction.status === 'ENDED' || auction.status === 'CANCELED') return;
+    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [auction.status]);
+
+  const timeRemaining = () => {
+    const target = auction.status === 'UPCOMING' 
+      ? new Date(auction.startTime).getTime() 
+      : new Date(auction.endTime).getTime();
+    
+    const now = new Date().getTime();
+    const diff = target - now;
+    
+    if (diff <= 0) {
+      return auction.status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    parts.push(`${hours.toString().padStart(2, '0')}h`);
+    parts.push(`${mins.toString().padStart(2, '0')}m`);
+    parts.push(`${secs.toString().padStart(2, '0')}s`);
+
+    return parts.join(' : ');
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
+      <Clock className="w-6 h-6 text-[#FF5C33]" />
+      <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
+        {timeRemaining()}
+      </span>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if essential auction data changes
+  return (
+    prevProps.auction.id === nextProps.auction.id &&
+    prevProps.auction.status === nextProps.auction.status &&
+    prevProps.auction.startTime === nextProps.auction.startTime &&
+    prevProps.auction.endTime === nextProps.auction.endTime
+  );
+});
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -12,7 +68,28 @@ export default function AuctionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isWatching, setIsWatching] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Magnifier state
+  const [showMagnifier, setShowMagnifier] = useState(false);
+  const [[x, y], setXY] = useState([0, 0]);
+  // Use a more robust state for image dimensions
+  const [imgLayout, setImgLayout] = useState({ 
+    width: 0, 
+    height: 0, 
+    left: 0, 
+    top: 0,
+    containerWidth: 0,
+    containerHeight: 0
+  });
+  
+  const magnifierHeight = 250;
+  const magnifierWidth = 250;
+  const zoomLevel = 2.5;
+
+  const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -32,6 +109,133 @@ export default function AuctionDetail() {
 
     fetchAuction();
   }, [id]);
+
+  const reorderedMedia = getReorderedMedia(auction?.ipfsCid || '[]');
+
+  // Auto-slide logic
+  useEffect(() => {
+    if (reorderedMedia.length <= 1 || isPaused || loading || showMagnifier) return;
+
+    // Don't auto-slide if current media is a video
+    if (isVideo(reorderedMedia[selectedImage])) return;
+
+    autoSlideIntervalRef.current = setInterval(() => {
+      setSelectedImage((prev) => (prev + 1) % reorderedMedia.length);
+    }, 5000); // 5 seconds interval
+
+    return () => {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+      }
+    };
+  }, [reorderedMedia.length, selectedImage, isPaused, loading, showMagnifier]);
+
+  // Function to calculate the actual pixel-dimensions of an object-contain image
+  const calculateImageLayout = () => {
+    if (!imageRef.current || !containerRef.current) return null;
+
+    const container = containerRef.current.getBoundingClientRect();
+    const cw = container.width;
+    const ch = container.height;
+    
+    const nw = imageRef.current.naturalWidth;
+    const nh = imageRef.current.naturalHeight;
+    const ar = nw / nh;
+    const cr = cw / ch;
+
+    let dw, dh, ol, ot;
+
+    if (ar > cr) {
+      // Image is wider than container relative to height
+      dw = cw;
+      dh = cw / ar;
+      ol = 0;
+      ot = (ch - dh) / 2;
+    } else {
+      // Image is taller than container relative to width
+      dh = ch;
+      dw = ch * ar;
+      ot = 0;
+      ol = (cw - dw) / 2;
+    }
+
+    return { width: dw, height: dh, left: ol, top: ot, containerWidth: cw, containerHeight: ch };
+  };
+
+  const handleManualSelect = (index: number) => {
+    setSelectedImage(index);
+    setShowMagnifier(false);
+  };
+
+  const handlePrevSlide = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setSelectedImage((prev) => (prev - 1 + reorderedMedia.length) % reorderedMedia.length);
+    setShowMagnifier(false);
+  };
+
+  const handleNextSlide = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setSelectedImage((prev) => (prev + 1) % reorderedMedia.length);
+    setShowMagnifier(false);
+  };
+
+  const handleImageClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (isVideo(reorderedMedia[selectedImage]) || !imageRef.current) return;
+    
+    const layout = calculateImageLayout();
+    if (!layout) return;
+
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.pageX - containerRect.left - window.scrollX;
+    const mouseY = e.pageY - containerRect.top - window.scrollY;
+
+    // Check if click is within the actual image pixels
+    const isInside = 
+      mouseX >= layout.left && 
+      mouseX <= layout.left + layout.width && 
+      mouseY >= layout.top && 
+      mouseY <= layout.top + layout.height;
+
+    if (!showMagnifier) {
+      if (!isInside) return; // Don't activate if clicking on empty space
+
+      setImgLayout(layout);
+      setShowMagnifier(true);
+      setIsPaused(true);
+      setXY([mouseX, mouseY]);
+    } else {
+      setShowMagnifier(false);
+      setIsPaused(false);
+    }
+  };
+
+  const handleMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!showMagnifier) return;
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    
+    const mouseX = e.pageX - containerRect.left - window.scrollX;
+    const mouseY = e.pageY - containerRect.top - window.scrollY;
+
+    // Only update and show if mouse is within image bounds
+    const isInside = 
+      mouseX >= imgLayout.left && 
+      mouseX <= imgLayout.left + imgLayout.width && 
+      mouseY >= imgLayout.top && 
+      mouseY <= imgLayout.top + imgLayout.height;
+
+    if (isInside) {
+      setXY([mouseX, mouseY]);
+    } else {
+      // Deactivate if mouse leaves the actual image pixels
+      setShowMagnifier(false);
+      setIsPaused(false);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowMagnifier(false);
+    setIsPaused(false);
+  };
 
   if (loading) {
     return (
@@ -59,65 +263,139 @@ export default function AuctionDetail() {
     );
   }
 
-  // Parse media from ipfsCid (stored as JSON string)
-  let media: string[] = [];
-  try {
-    if (auction.ipfsCid) {
-      media = JSON.parse(auction.ipfsCid);
-    }
-  } catch (e) {
-    console.error('Failed to parse media keys:', e);
-  }
+  // Calculate style with precision
+  const getMagnifierStyle = () => {
+    if (!showMagnifier) return {};
 
-  const getMediaUrl = (key: string) => {
-    return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/uploads/auctions/${key}`;
-  };
+    // Relative position within the actual image pixels (0 to 1)
+    const relX = (x - imgLayout.left) / imgLayout.width;
+    const relY = (y - imgLayout.top) / imgLayout.height;
 
-  const timeRemaining = () => {
-    const end = new Date(auction.endTime).getTime();
-    const now = new Date().getTime();
-    const diff = end - now;
-    if (diff <= 0) return 'Ended';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${hours}h : ${mins}m : ${secs}s`;
+    return {
+      position: "absolute" as const,
+      pointerEvents: "none" as const,
+      height: `${magnifierHeight}px`,
+      width: `${magnifierWidth}px`,
+      top: `${y - magnifierHeight / 2}px`,
+      left: `${x - magnifierWidth / 2}px`,
+      border: "2px solid #FF8400",
+      backgroundColor: "#E7E8E5",
+      backgroundImage: `url('${getMediaUrl(reorderedMedia[selectedImage])}')`,
+      backgroundRepeat: "no-repeat",
+      // Accuracy: The background image should be the size of the ACTUAL image pixels * zoomLevel
+      backgroundSize: `${imgLayout.width * zoomLevel}px ${imgLayout.height * zoomLevel}px`,
+      // Accuracy: Map the relative point (0-1) on displayed pixels to the zoomed background
+      backgroundPosition: `${-relX * imgLayout.width * zoomLevel + magnifierWidth / 2}px ${-relY * imgLayout.height * zoomLevel + magnifierHeight / 2}px`,
+      boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.3)",
+      zIndex: 50,
+      borderRadius: "4px",
+    };
   };
 
   return (
     <div className="flex gap-8 p-12 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       {/* Left Column */}
-      <div className="flex flex-col gap-6 flex-1">
+      <div className="flex flex-col gap-6 flex-1 select-none">
         {/* Image Gallery */}
         <div className="w-full">
-          {/* Main Image */}
-          <div className="w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden">
-            {media.length > 0 ? (
-              <img 
-                src={getMediaUrl(media[selectedImage])} 
-                alt={auction.title}
-                className="w-full h-full object-contain"
-              />
+          {/* Main Media Display */}
+          <div 
+            ref={containerRef}
+            className={`w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden relative group ${
+              showMagnifier ? 'cursor-zoom-out' : 'cursor-zoom-in'
+            }`}
+            onClick={handleImageClick}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {reorderedMedia.length > 0 ? (
+              isVideo(reorderedMedia[selectedImage]) ? (
+                <video 
+                  src={getMediaUrl(reorderedMedia[selectedImage])} 
+                  controls
+                  autoPlay
+                  muted
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img 
+                  ref={imageRef}
+                  src={getMediaUrl(reorderedMedia[selectedImage])} 
+                  alt={auction.title}
+                  className="w-full h-full object-contain pointer-events-none"
+                />
+              )
             ) : (
               <ImageIcon className="w-16 h-16 text-[#666666]" />
+            )}
+            
+            {/* Magnifier Lens - Precision Square Style */}
+            {showMagnifier && !isVideo(reorderedMedia[selectedImage]) && (
+              <div style={getMagnifierStyle()} />
+            )}
+
+            {/* Navigation Buttons */}
+            {reorderedMedia.length > 1 && !showMagnifier && (
+              <>
+                <button 
+                  onClick={handlePrevSlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/20 hover:bg-[#FF8400] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-20"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={handleNextSlide}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/20 hover:bg-[#FF8400] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-20"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+            
+            {/* Slide Indicators */}
+            {reorderedMedia.length > 1 && !showMagnifier && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full z-20">
+                {reorderedMedia.map((_, i) => (
+                  <button 
+                    key={i} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleManualSelect(i);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      selectedImage === i ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
           {/* Thumbnails */}
-          {media.length > 1 && (
-            <div className="flex gap-3">
-              {media.map((key, index) => (
+          {reorderedMedia.length > 1 && (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {reorderedMedia.map((key, index) => (
                 <button
                   key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden ${
+                  onClick={() => handleManualSelect(index)}
+                  className={`relative min-w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden flex-shrink-0 ${
                     selectedImage === index
                       ? 'border-2 border-[#FF8400]'
                       : 'border border-[#CBCCC9] hover:border-[#FF8400]'
                   }`}
                 >
-                  <img src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                  {isVideo(key) ? (
+                    <div className="relative w-full h-full">
+                      <video src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center">
+                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img src={getMediaUrl(key)} className="w-full h-full object-cover" />
+                  )}
                 </button>
               ))}
             </div>
@@ -151,7 +429,9 @@ export default function AuctionDetail() {
             <div className="flex justify-between items-center">
               <span className="font-geist text-sm text-[#666666]">Status</span>
               <span className={`font-jetbrains text-sm font-semibold px-2 py-0.5 rounded ${
-                auction.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                auction.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
+                auction.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700' :
+                'bg-yellow-100 text-yellow-700'
               }`}>
                 {auction.status}
               </span>
@@ -201,11 +481,11 @@ export default function AuctionDetail() {
           </div>
 
           {/* Timer */}
-          <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
-            <Clock className="w-6 h-6 text-[#FF5C33]" />
-            <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
-              {timeRemaining()}
+          <div className="flex flex-col gap-2">
+            <span className="font-geist text-xs text-[#666666]">
+              {auction.status === 'UPCOMING' ? 'Auction Starts In' : 'Auction Ends In'}
             </span>
+            <AuctionTimer auction={auction} />
           </div>
 
           {/* Current Highest Bid */}
@@ -229,24 +509,17 @@ export default function AuctionDetail() {
               disabled={auction.status !== 'ACTIVE'}
               className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {auction.status === 'ACTIVE' ? 'Place Bid' : 'Auction Not Active'}
+              {auction.status === 'ACTIVE' ? 'Place Bid' : 
+               auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
+               'Auction Not Active'}
             </button>
           </div>
 
           {/* Watch Button */}
-          <button
-            onClick={() => setIsWatching(!isWatching)}
-            className={`w-full h-11 rounded-full font-jetbrains text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
-              isWatching
-                ? 'bg-[#FF8400] text-[#111111]'
-                : 'bg-[#E7E8E5] border border-[#CBCCC9] text-[#111111] hover:bg-[#CBCCC9]'
-            }`}
-          >
-            <Heart
-              className={`w-5 h-5 ${isWatching ? 'fill-[#111111]' : ''}`}
-            />
-            {isWatching ? 'Watching' : 'Add to Watchlist'}
-          </button>
+          <WatchlistButton 
+            auctionId={auction.id} 
+            className="!w-full !h-11 !rounded-full !font-jetbrains !text-sm !font-semibold !flex !items-center !justify-center !gap-2"
+          />
         </div>
 
         {/* Seller Card */}

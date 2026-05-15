@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import AuctionSection from '@/components/shared/AuctionSection';
 import { useAuctions } from '@/hooks/useAuctions';
 import { formatEther } from 'viem';
+import { getThumbnail } from '@/features/auction/utils/media';
 
 export default function Homepage() {
   const t = useTranslations('home');
@@ -15,27 +16,42 @@ export default function Homepage() {
   const { data: upcomingData } = useAuctions({ variant: 'upcoming', limit: 3 });
 
   // Transform API data to component format
-  const endingSoonItems = endingSoonData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
-    price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-  })) || [];
+  const transformAuction = (auction: any) => {
+    return {
+      id: auction.id,
+      title: auction.title,
+      seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
+      price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
+      imageUrl: getThumbnail(auction.ipfsCid),
+    };
+  };
 
-  const liveAuctionItems = liveData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
-    price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-  })) || [];
+  const endingSoonItems = endingSoonData?.data.map(transformAuction) || [];
+  const liveAuctionItems = liveData?.data.map(transformAuction) || [];
+  const upcomingItems = upcomingData?.data.map((auction) => {
+    const startTime = new Date(auction.startTime).getTime();
+    const now = new Date().getTime();
+    const diff = startTime - now;
+    
+    let timeInfo = 'Starts soon';
+    if (diff > 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours > 24) {
+        timeInfo = `Starts in ${Math.floor(hours / 24)}d`;
+      } else if (hours > 0) {
+        timeInfo = `Starts in ${hours}h`;
+      } else {
+        const mins = Math.floor(diff / (1000 * 60));
+        timeInfo = `Starts in ${mins}m`;
+      }
+    }
 
-  const upcomingItems = upcomingData?.data.map((auction) => ({
-    id: auction.id,
-    title: auction.title,
-    seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
-    price: 'Starting: ' + formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-    timeInfo: 'Pending confirmation',
-  })) || [];
+    return {
+      ...transformAuction(auction),
+      price: 'Starting: ' + formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
+      timeInfo,
+    };
+  }) || [];
 
   // Fallback to mock data if no real data
   const mockEndingSoon = [

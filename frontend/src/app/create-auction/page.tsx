@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, DragEvent, FormEvent, useEffect } from 'react';
-import { Upload, Check, X, Video, AlertCircle } from 'lucide-react';
+import { Upload, Check, X, Video, AlertCircle, Info } from 'lucide-react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { uploadAuctionMedia, createAuction, type AuctionCategory, type ShippingPayer } from '@/services/api/auction';
 import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
 import { useAuthStore } from '@/store/auth.store';
+import { useToast } from '@/components/auth/ToastContainer';
 
 interface MediaFile {
   file: File;
@@ -17,6 +18,7 @@ interface MediaFile {
 
 export default function CreateAuction() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { address, isConnected } = useAccount();
   const { user } = useAuthStore();
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -41,7 +43,9 @@ export default function CreateAuction() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<AuctionCategory>('ELECTRONICS');
   const [startingPrice, setStartingPrice] = useState('');
+  const [hasBuyNow, setHasBuyNow] = useState(false);
   const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState('86400'); // 1 day in seconds
   const [shippingCost, setShippingCost] = useState('0');
   const [shippingPayer, setShippingPayer] = useState<ShippingPayer>('BUYER');
@@ -83,12 +87,12 @@ export default function CreateAuction() {
       const validation = validateFile(file);
       
       if (!validation.valid) {
-        alert(validation.error);
+        showToast('warning', validation.error || 'Invalid file');
         return;
       }
 
       if (mediaFiles.length + newMediaFiles.length >= 6) {
-        alert('Maximum 6 media files allowed');
+        showToast('warning', 'Maximum 6 media files allowed');
         return;
       }
 
@@ -143,27 +147,44 @@ export default function CreateAuction() {
     setError(null);
 
     if (!isConnected || !address) {
-      setError('Please connect your wallet first');
+      const msg = 'Please connect your wallet first';
+      setError(msg);
+      showToast('error', msg);
       return;
     }
 
     if (!isKycApproved) {
-      setError('You must complete KYC verification to create auctions. Please visit the KYC page.');
+      const msg = 'You must complete KYC verification to create auctions.';
+      setError(msg);
+      showToast('error', msg);
       return;
     }
 
     if (mediaFiles.length === 0) {
-      setError('Please upload at least one media file');
+      const msg = 'Please upload at least one media file';
+      setError(msg);
+      showToast('error', msg);
       return;
     }
 
     if (title.length < 10) {
-      setError('Title must be at least 10 characters');
+      const msg = 'Title must be at least 10 characters';
+      setError(msg);
+      showToast('error', msg);
       return;
     }
 
     if (description.length < 20) {
-      setError('Description must be at least 20 characters');
+      const msg = 'Description must be at least 20 characters';
+      setError(msg);
+      showToast('error', msg);
+      return;
+    }
+
+    if (hasBuyNow && (!buyNowPrice || parseFloat(buyNowPrice) <= parseFloat(startingPrice))) {
+      const msg = 'Buy Now price must be greater than starting price';
+      setError(msg);
+      showToast('error', msg);
       return;
     }
 
@@ -176,16 +197,30 @@ export default function CreateAuction() {
 
       setIsUploading(true);
 
+      // Reorder mediaFiles: Ensure first element is an image for thumbnail if any images exist
+      const firstImageIndex = mediaFiles.findIndex(m => m.type === 'image');
+      let currentMediaFiles = [...mediaFiles];
+      if (firstImageIndex > 0) {
+        // Move first image to index 0
+        const firstImage = currentMediaFiles.splice(firstImageIndex, 1)[0];
+        currentMediaFiles.unshift(firstImage);
+        setMediaFiles(currentMediaFiles);
+      }
+
       // 1. Upload media files
-      const { filenames } = await uploadAuctionMedia(mediaFiles.map((m) => m.file));
+      const { filenames } = await uploadAuctionMedia(currentMediaFiles.map((m) => m.file));
       setUploadedFilenames(filenames);
       setIsUploading(false);
 
       // 2. Prepare transaction
       setIsCreating(true);
       const startingPriceWei = parseEther(startingPrice);
-      const buyNowPriceWei = buyNowPrice ? parseEther(buyNowPrice) : BigInt(0);
+      const buyNowPriceWei = (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice) : BigInt(0);
       const durationSeconds = parseInt(duration);
+
+      const startTimestamp = startTime 
+        ? Math.floor(new Date(startTime).getTime() / 1000) 
+        : Math.floor(Date.now() / 1000);
 
       // Match Smart Contract logic: 10% of starting price, min 0.01 ETH
       const collateralBps = BigInt(1000); // 10%
@@ -195,6 +230,7 @@ export default function CreateAuction() {
 
       console.log('Creating auction with:', {
         startingPriceWei: startingPriceWei.toString(),
+        startTimestamp,
         durationSeconds,
         productCid: JSON.stringify(filenames),
         buyNowPriceWei: buyNowPriceWei.toString(),
@@ -207,6 +243,7 @@ export default function CreateAuction() {
         functionName: 'createAuction',
         args: [
           startingPriceWei,
+          BigInt(startTimestamp),
           BigInt(durationSeconds),
           JSON.stringify(filenames),
           buyNowPriceWei,
@@ -215,13 +252,17 @@ export default function CreateAuction() {
       }, {
         onError: (error: any) => {
           console.error('Wallet error:', error);
-          setError(error.shortMessage || error.message || 'Transaction rejected by wallet');
+          const msg = error.shortMessage || error.message || 'Transaction rejected by wallet';
+          setError(msg);
+          showToast('error', msg);
           setIsCreating(false);
         }
       });
     } catch (error: any) {
       console.error('Error creating auction:', error);
-      setError(error.message || 'Failed to create auction');
+      const msg = error.message || 'Failed to create auction';
+      setError(msg);
+      showToast('error', msg);
       setIsUploading(false);
       setIsCreating(false);
     }
@@ -243,7 +284,8 @@ export default function CreateAuction() {
             description,
             category,
             startingPriceWei: parseEther(startingPrice).toString(),
-            buyNowPriceWei: buyNowPrice ? parseEther(buyNowPrice).toString() : undefined,
+            buyNowPriceWei: (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice).toString() : undefined,
+            startTime: startTime ? new Date(startTime).toISOString() : undefined,
             durationSeconds: parseInt(duration),
             shippingCostWei: parseEther(shippingCost).toString(),
             shippingPayer,
@@ -252,18 +294,21 @@ export default function CreateAuction() {
           });
 
           console.log('Auction registered successfully:', auctionId);
+          showToast('success', 'Auction created successfully!');
           // Success - redirect to auction page
           router.push(`/auctions/${auctionId}`);
         } catch (error: any) {
           console.error('Error registering auction:', error);
-          setError(`Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`);
+          const msg = `Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`;
+          setError(msg);
+          showToast('error', 'Backend registration failed. Please contact support.');
           setIsCreating(false);
         }
       };
       
       registerAuction();
     }
-  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, duration, shippingCost, shippingPayer, router]);
+  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, hasBuyNow, duration, shippingCost, shippingPayer, router, showToast]);
 
   // Helper function to get status text
   const getStatusText = () => {
@@ -452,52 +497,91 @@ export default function CreateAuction() {
             />
           </div>
 
-          {/* Price and Duration */}
-          <div className="flex gap-6 w-full">
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Starting Price (ETH) *</label>
-              <input 
-                type="number" 
-                step="0.001"
-                value={startingPrice}
-                onChange={(e) => setStartingPrice(e.target.value)}
-                required
-                min="0.001"
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-                placeholder="0.00" 
-              />
-            </div>
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Buy Now Price (ETH)</label>
-              <input 
-                type="number" 
-                step="0.001"
-                value={buyNowPrice}
-                onChange={(e) => setBuyNowPrice(e.target.value)}
-                min="0"
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-                placeholder="Optional" 
-              />
+          {/* Start Time and Duration */}
+          <div className="flex flex-col gap-6 w-full">
+            <div className="flex gap-6 w-full">
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-jetbrains text-sm font-semibold text-[#111111]">Start Time</label>
+                <input 
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
+                />
+                <p className="font-geist text-[10px] text-[#666666]">Leave blank to start immediately after confirmation</p>
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  required
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
+                >
+                  <option value="3600">1 Hour (Test)</option>
+                  <option value="86400">1 Day</option>
+                  <option value="259200">3 Days</option>
+                  <option value="604800">7 Days</option>
+                  <option value="1209600">14 Days</option>
+                  <option value="2592000">30 Days</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Duration */}
-          <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              required
-              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
-            >
-              <option value="86400">1 Day</option>
-              <option value="259200">3 Days</option>
-              <option value="604800">7 Days</option>
-              <option value="1209600">14 Days</option>
-              <option value="2592000">30 Days</option>
-            </select>
+          {/* Price */}
+          <div className="flex flex-col gap-6 w-full">
+            <div className="flex gap-6 w-full">
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-jetbrains text-sm font-semibold text-[#111111]">Starting Price (ETH) *</label>
+                <input 
+                  type="number" 
+                  step="0.001"
+                  value={startingPrice}
+                  onChange={(e) => setStartingPrice(e.target.value)}
+                  required
+                  min="0.001"
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
+                  placeholder="0.00" 
+                />
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-jetbrains text-sm font-semibold text-[#111111]">Buy Now Price (ETH)</label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={hasBuyNow}
+                      onChange={(e) => setHasBuyNow(e.target.checked)}
+                    />
+                    <div className="w-9 h-5 bg-[#E7E8E5] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#FF8400]"></div>
+                    <span className="ml-2 font-geist text-xs text-[#666666]">Enable</span>
+                  </label>
+                </div>
+                <input 
+                  type="number" 
+                  step="0.001"
+                  value={buyNowPrice}
+                  onChange={(e) => setBuyNowPrice(e.target.value)}
+                  disabled={!hasBuyNow}
+                  min="0"
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full disabled:bg-[#F2F3F0] disabled:cursor-not-allowed" 
+                  placeholder={hasBuyNow ? "0.00" : "Disabled"} 
+                />
+              </div>
+            </div>
+            
+            {hasBuyNow && (
+              <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="font-geist text-xs text-blue-600">
+                  Buy Now Price allows users to purchase the item immediately, ending the auction early. It must be higher than the starting price.
+                </p>
+              </div>
+            )}
           </div>
-
           {/* Shipping */}
           <div className="flex gap-6 w-full">
             <div className="flex flex-col gap-2 flex-1">

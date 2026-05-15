@@ -6,7 +6,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 export type AuctionCategory = 'ELECTRONICS' | 'FASHION' | 'FURNITURE' | 'COLLECTIBLES' | 'OTHER';
 export type ShippingPayer = 'BUYER' | 'SELLER' | 'PLATFORM';
-export type AuctionStatus = 'PENDING' | 'ACTIVE' | 'ENDED' | 'CANCELED' | 'FORFEITED';
+export type AuctionStatus = 'PENDING' | 'UPCOMING' | 'ACTIVE' | 'ENDED' | 'CANCELED' | 'FORFEITED';
 
 export type Bid = {
   id: string;
@@ -34,6 +34,7 @@ export type Auction = {
   buyNowPriceWei: string | null;
   shippingCostWei: string;
   shippingPayer: ShippingPayer;
+  startTime: string; // Added: Auction start time
   endTime: string;
   durationSeconds: number;
   ipfsCid: string | null;
@@ -50,6 +51,7 @@ export type Auction = {
   } | null;
   _count: {
     bids: number;
+    watchers: number; // Added: Watcher count
   };
   bids?: Bid[]; // Optional - only included in detail view
   createdAt: string;
@@ -62,6 +64,7 @@ export type CreateAuctionPayload = {
   category: AuctionCategory;
   startingPriceWei: string;
   buyNowPriceWei?: string;
+  startTime?: string; // Added: Optional start time
   durationSeconds: number;
   shippingCostWei: string;
   shippingPayer: ShippingPayer;
@@ -113,12 +116,16 @@ export async function createAuction(payload: CreateAuctionPayload): Promise<{ au
 export async function listAuctions(params: {
   status?: string;
   variant?: string;
+  sellerId?: string;
+  bidderId?: string;
   page?: number;
   limit?: number;
 }): Promise<ListAuctionsResponse> {
   const searchParams = new URLSearchParams();
   if (params.status) searchParams.set('status', params.status);
   if (params.variant) searchParams.set('variant', params.variant);
+  if (params.sellerId) searchParams.set('sellerId', params.sellerId);
+  if (params.bidderId) searchParams.set('bidderId', params.bidderId);
   if (params.page) searchParams.set('page', params.page.toString());
   if (params.limit) searchParams.set('limit', params.limit.toString());
 
@@ -138,4 +145,38 @@ export async function getAuction(auctionId: string): Promise<{ auction: Auction 
     throw new Error(`Failed to fetch auction: ${res.statusText}`);
   }
   return res.json();
+}
+
+// ── Watchlist ─────────────────────────────────────────────────────────────
+
+/**
+ * Thêm auction vào watchlist.
+ */
+export async function addToWatchlist(auctionId: string): Promise<{ message: string }> {
+  return authFetch<{ message: string }>(`/v1/auctions/${auctionId}/watchlist`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Xóa auction khỏi watchlist.
+ */
+export async function removeFromWatchlist(auctionId: string): Promise<{ message: string }> {
+  return authFetch<{ message: string }>(`/v1/auctions/${auctionId}/watchlist`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Lấy danh sách watchlist của user hiện tại.
+ */
+export async function getWatchlist(params: {
+  page?: number;
+  limit?: number;
+} = {}): Promise<ListAuctionsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set('page', params.page.toString());
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+
+  return authFetch<ListAuctionsResponse>(`/v1/auctions/watchlist?${searchParams.toString()}`);
 }
