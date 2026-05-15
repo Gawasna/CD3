@@ -3,6 +3,7 @@ import app from './app';
 import pino from 'pino';
 import { startAuctionCreatedListener, stopAuctionCreatedListener } from './listeners/auction-created.listener';
 import { startCleanupJob } from './listeners/cleanup-pending-auctions';
+import { startAuctionStatusJob } from './listeners/auction-status.job';
 
 // Initialize logger
 const logger = pino({
@@ -36,6 +37,13 @@ const server = app.listen(PORT, () => {
     stopCleanup = startCleanupJob();
   } catch (error) {
     logger.error(error, 'Failed to start cleanup job');
+  }
+
+  // Start auction status update job
+  try {
+    startAuctionStatusJob();
+  } catch (error) {
+    logger.error(error, 'Failed to start auction status update job');
   }
 });
 

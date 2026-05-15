@@ -45,11 +45,27 @@ export function AuctionGrid({
       const end = new Date(auction.endTime).getTime();
       const now = new Date().getTime();
       const diff = end - now;
+      
       let timeLeft = "Ended";
-      if (diff > 0) {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        timeLeft = `${hours}h ${mins}m left`;
+      let status: "live" | "ending" | "upcoming" | "ended" = "ended";
+
+      if (auction.status === "PENDING") {
+        status = "upcoming";
+        timeLeft = "Upcoming";
+      } else if (auction.status === "ACTIVE") {
+        if (diff > 0) {
+          // Nếu còn dưới 24h thì hiện ENDING, ngược lại hiện LIVE
+          status = diff < 24 * 60 * 60 * 1000 ? "ending" : "live";
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          timeLeft = `${hours}h ${mins}m left`;
+        } else {
+          status = "ended";
+          timeLeft = "Ended";
+        }
+      } else if (auction.status === "ENDED") {
+        status = "ended";
+        timeLeft = "Ended";
       }
 
       return {
@@ -59,7 +75,7 @@ export function AuctionGrid({
         currentBid: formatEther(BigInt(auction.startingPriceWei)),
         bids: auction._count?.bids || 0,
         timeLeft,
-        status: auction.status === "ACTIVE" ? "live" : "ending",
+        status,
         category: auction.category.toLowerCase(),
       };
     });

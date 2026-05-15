@@ -53,6 +53,7 @@ export const createAuctionBodySchema = z.object({
   category: z.enum(['ELECTRONICS', 'FASHION', 'FURNITURE', 'COLLECTIBLES', 'OTHER']),
   startingPriceWei: z.string().regex(/^[0-9]+$/, 'startingPriceWei must be a non-negative integer string'),
   buyNowPriceWei: z.string().regex(/^[0-9]+$/, 'buyNowPriceWei must be a non-negative integer string').optional(),
+  startTime: z.string().datetime('startTime must be a valid ISO 8601 date string').optional(),
   durationSeconds: z.number().int().min(3600, 'Duration must be at least 1 hour (3600 seconds)'),
   shippingCostWei: z.string().regex(/^[0-9]+$/, 'shippingCostWei must be a non-negative integer string'),
   shippingPayer: z.enum(['BUYER', 'SELLER', 'PLATFORM']),
@@ -61,3 +62,12 @@ export const createAuctionBodySchema = z.object({
 });
 
 export type CreateAuctionBody = z.infer<typeof createAuctionBodySchema>;
+
+// ── Watchlist ─────────────────────────────────────────────────────────────
+
+export const watchlistParamsSchema = z.object({
+  auctionId: z.string().uuid('auctionId must be a valid UUID'),
+});
+
+export type WatchlistParams = z.infer<typeof watchlistParamsSchema>;
+

@@ -53,6 +53,7 @@ enum AuctionCategory {
 // DB-AM-02: off-chain status mirror — đồng bộ canonical state BA Audit A-01
 enum AuctionStatus {
   PENDING    // TX createAuction chưa confirmed on-chain
+  UPCOMING   // Đã lên chuỗi, nhưng startTime > now
   ACTIVE     // Đang nhận bid
   ENDED      // Hết giờ, chờ claim/shipping
   CANCELED   // Hủy (chưa có bid hoặc bị admin cancel)
@@ -124,6 +125,8 @@ model User {
   shippingUpdates  ShippingLog[]     @relation("ShippingUpdater")
   // KYC Request
   kycRequest       KycRequest?       @relation("UserKycRequest")
+  // Watchlist
+  watchlist        Watchlist[]
 
   // DB-IDX-01: Admin filter by KYC status
   @@index([kycStatus])
@@ -171,7 +174,8 @@ model AuctionMetadata {
   startingPriceWei  String          @map("starting_price_wei")
   // DB-AM-05: collateral (escrow đặt cọc)
   collateralWei     String          @map("collateral_wei")
-  // DB-AM-03: thời gian kết thúc và duration
+  // DB-AM-03: thời gian bắt đầu, kết thúc và duration
+  startTime         DateTime        @default(now()) @map("start_time")
   endTime           DateTime        @map("end_time")
   durationSeconds   Int             @map("duration_seconds")
   // DB-AM-04: người thắng cuộc (set sau khi auction kết thúc)
@@ -200,6 +204,8 @@ model AuctionMetadata {
   // DB-AM-10
   disputes          DisputeLog[]
   shippingLogs      ShippingLog[]
+  // Watchlist
+  watchers          Watchlist[]
 
   // DB-IDX-01
   @@index([sellerId, createdAt(sort: Desc)])
@@ -317,4 +323,17 @@ model AdminActionLog {
   // Query: "Tất cả action liên quan đến User X"
   @@index([targetType, targetId])
   @@map("admin_action_logs")
+}
+
+// ---- Watchlist ----
+model Watchlist {
+  userId    String   @map("user_id")
+  auctionId String   @map("auction_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User            @relation(fields: [userId], references: [id])
+  auction AuctionMetadata @relation(fields: [auctionId], references: [id])
+
+  @@id([userId, auctionId])
+  @@map("watchlists")
 }

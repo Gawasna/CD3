@@ -45,6 +45,7 @@ export default function CreateAuction() {
   const [startingPrice, setStartingPrice] = useState('');
   const [hasBuyNow, setHasBuyNow] = useState(false);
   const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState('86400'); // 1 day in seconds
   const [shippingCost, setShippingCost] = useState('0');
   const [shippingPayer, setShippingPayer] = useState<ShippingPayer>('BUYER');
@@ -217,6 +218,10 @@ export default function CreateAuction() {
       const buyNowPriceWei = (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice) : BigInt(0);
       const durationSeconds = parseInt(duration);
 
+      const startTimestamp = startTime 
+        ? Math.floor(new Date(startTime).getTime() / 1000) 
+        : Math.floor(Date.now() / 1000);
+
       // Match Smart Contract logic: 10% of starting price, min 0.01 ETH
       const collateralBps = BigInt(1000); // 10%
       const calcCollateral = (startingPriceWei * collateralBps) / BigInt(10000);
@@ -225,6 +230,7 @@ export default function CreateAuction() {
 
       console.log('Creating auction with:', {
         startingPriceWei: startingPriceWei.toString(),
+        startTimestamp,
         durationSeconds,
         productCid: JSON.stringify(filenames),
         buyNowPriceWei: buyNowPriceWei.toString(),
@@ -237,6 +243,7 @@ export default function CreateAuction() {
         functionName: 'createAuction',
         args: [
           startingPriceWei,
+          BigInt(startTimestamp),
           BigInt(durationSeconds),
           JSON.stringify(filenames),
           buyNowPriceWei,
@@ -278,6 +285,7 @@ export default function CreateAuction() {
             category,
             startingPriceWei: parseEther(startingPrice).toString(),
             buyNowPriceWei: (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice).toString() : undefined,
+            startTime: startTime ? new Date(startTime).toISOString() : undefined,
             durationSeconds: parseInt(duration),
             shippingCostWei: parseEther(shippingCost).toString(),
             shippingPayer,
@@ -489,7 +497,40 @@ export default function CreateAuction() {
             />
           </div>
 
-          {/* Price and Duration */}
+          {/* Start Time and Duration */}
+          <div className="flex flex-col gap-6 w-full">
+            <div className="flex gap-6 w-full">
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-jetbrains text-sm font-semibold text-[#111111]">Start Time</label>
+                <input 
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
+                />
+                <p className="font-geist text-[10px] text-[#666666]">Leave blank to start immediately after confirmation</p>
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  required
+                  className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
+                >
+                  <option value="3600">1 Hour (Test)</option>
+                  <option value="86400">1 Day</option>
+                  <option value="259200">3 Days</option>
+                  <option value="604800">7 Days</option>
+                  <option value="1209600">14 Days</option>
+                  <option value="2592000">30 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Price */}
           <div className="flex flex-col gap-6 w-full">
             <div className="flex gap-6 w-full">
               <div className="flex flex-col gap-2 flex-1">
@@ -541,24 +582,6 @@ export default function CreateAuction() {
               </div>
             )}
           </div>
-
-          {/* Duration */}
-          <div className="flex flex-col gap-2 w-full">
-            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              required
-              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
-            >
-              <option value="86400">1 Day</option>
-              <option value="259200">3 Days</option>
-              <option value="604800">7 Days</option>
-              <option value="1209600">14 Days</option>
-              <option value="2592000">30 Days</option>
-            </select>
-          </div>
-
           {/* Shipping */}
           <div className="flex gap-6 w-full">
             <div className="flex flex-col gap-2 flex-1">

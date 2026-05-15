@@ -6,12 +6,16 @@ import {
   listAuctions,
   syncEscrowStatus,
   createPendingAuction,
+  addToWatchlist,
+  removeFromWatchlist,
+  getWatchlist as getWatchlistService,
 } from './auction.service';
 import type {
   AuctionIdParam,
   RecordBidBody,
   RequestExtensionBody,
   CreateAuctionBody,
+  WatchlistParams,
 } from './auction.schema';
 
 // ── GET /api/v1/auctions ──────────────────────────────────────────────────
@@ -26,8 +30,10 @@ export async function getAuctions(
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const status = req.query.status as string | undefined;
     const variant = req.query.variant as string | undefined;
+    const sellerId = req.query.sellerId as string | undefined;
+    const bidderId = req.query.bidderId as string | undefined;
 
-    const result = await listAuctions({ status, variant, page, limit });
+    const result = await listAuctions({ status, variant, sellerId, bidderId, page, limit });
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -171,6 +177,59 @@ export async function postAuctionMedia(
 
     const filenames = req.files.map((file) => file.filename);
     res.status(200).json({ filenames });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Watchlist ─────────────────────────────────────────────────────────────
+
+/**
+ * Thêm auction vào watchlist.
+ */
+export async function postWatchlist(
+  req: Request<WatchlistParams>,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const result = await addToWatchlist(req.user!.id, req.params.auctionId);
+    res.status(201).json({ message: 'Added to watchlist', result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Xóa auction khỏi watchlist.
+ */
+export async function deleteWatchlist(
+  req: Request<WatchlistParams>,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    await removeFromWatchlist(req.user!.id, req.params.auctionId);
+    res.status(200).json({ message: 'Removed from watchlist' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Lấy danh sách watchlist của user hiện tại.
+ */
+export async function getWatchlist(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+
+    const result = await getWatchlistService(req.user!.id, page, limit);
+    res.status(200).json(result);
   } catch (err) {
     next(err);
   }

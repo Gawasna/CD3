@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Image, Heart, Clock3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import WatchlistButton from './WatchlistButton';
 
 export type AuctionCardVariant = 'ending-soon' | 'live' | 'watching' | 'upcoming';
 
@@ -79,9 +80,10 @@ export default function AuctionCard({
         );
       case 'upcoming':
         return (
-          <button className="h-10 px-4 py-2.5 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] text-[#111111] font-jetbrains text-sm font-medium hover:bg-[#CBCCC9] transition-colors">
-            {t('notifyMe')}
-          </button>
+          <WatchlistButton 
+            auctionId={id.toString()} 
+            className="!h-10 !px-4 !py-2.5 !rounded-full !bg-[#E7E8E5] !border-[#CBCCC9] !text-[#111111] hover:!bg-[#CBCCC9]"
+          />
         );
       default:
         return null;
@@ -120,6 +122,12 @@ export default function AuctionCard({
           <Image className="w-12 h-12 text-[#666666]" />
         )}
         {getTagContent()}
+        
+        {variant !== 'upcoming' && (
+          <div className="absolute top-4 right-4 z-10">
+            <WatchlistButton auctionId={id.toString()} />
+          </div>
+        )}
       </div>
 
       {/* Content */}

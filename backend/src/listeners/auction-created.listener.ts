@@ -69,11 +69,15 @@ export function startAuctionCreatedListener() {
         }
 
         // Update auction with on-chain data
+        const now = new Date();
+        const startTime = auction.startTime;
+        const initialStatus = startTime > now ? 'UPCOMING' : 'ACTIVE';
+
         await prisma.auctionMetadata.update({
           where: { id: auction.id },
           data: {
             onChainAuctionId: auctionId,
-            status: 'ACTIVE',
+            status: initialStatus,
             // Verify data matches
             startingPriceWei: startingPrice.toString(),
             endTime: new Date(Number(endTime) * 1000),
@@ -83,6 +87,7 @@ export function startAuctionCreatedListener() {
         console.log('[AuctionListener] Auction synced successfully:', {
           auctionId: auction.id,
           onChainAuctionId: auctionId.toString(),
+          status: initialStatus,
         });
       } catch (error) {
         console.error('[AuctionListener] Error processing AuctionCreated event:', error);

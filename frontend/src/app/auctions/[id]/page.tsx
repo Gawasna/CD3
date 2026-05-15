@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, MouseEvent as ReactMouseEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Image as ImageIcon, User, Star, Heart, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
+import WatchlistButton from '@/components/shared/WatchlistButton';
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -13,7 +14,6 @@ export default function AuctionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isWatching, setIsWatching] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   
   // Magnifier state
@@ -210,10 +210,18 @@ export default function AuctionDetail() {
   }
 
   const timeRemaining = () => {
-    const end = new Date(auction.endTime).getTime();
+    if (!auction) return '';
+    
+    const target = auction.status === 'UPCOMING' 
+      ? new Date(auction.startTime).getTime() 
+      : new Date(auction.endTime).getTime();
+    
     const now = new Date().getTime();
-    const diff = end - now;
-    if (diff <= 0) return 'Ended';
+    const diff = target - now;
+    
+    if (diff <= 0) {
+      return auction.status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
+    }
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -387,7 +395,9 @@ export default function AuctionDetail() {
             <div className="flex justify-between items-center">
               <span className="font-geist text-sm text-[#666666]">Status</span>
               <span className={`font-jetbrains text-sm font-semibold px-2 py-0.5 rounded ${
-                auction.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                auction.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
+                auction.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700' :
+                'bg-yellow-100 text-yellow-700'
               }`}>
                 {auction.status}
               </span>
@@ -437,11 +447,16 @@ export default function AuctionDetail() {
           </div>
 
           {/* Timer */}
-          <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
-            <Clock className="w-6 h-6 text-[#FF5C33]" />
-            <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
-              {timeRemaining()}
+          <div className="flex flex-col gap-2">
+            <span className="font-geist text-xs text-[#666666]">
+              {auction.status === 'UPCOMING' ? 'Auction Starts In' : 'Auction Ends In'}
             </span>
+            <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
+              <Clock className="w-6 h-6 text-[#FF5C33]" />
+              <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
+                {timeRemaining()}
+              </span>
+            </div>
           </div>
 
           {/* Current Highest Bid */}
@@ -465,24 +480,17 @@ export default function AuctionDetail() {
               disabled={auction.status !== 'ACTIVE'}
               className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {auction.status === 'ACTIVE' ? 'Place Bid' : 'Auction Not Active'}
+              {auction.status === 'ACTIVE' ? 'Place Bid' : 
+               auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
+               'Auction Not Active'}
             </button>
           </div>
 
           {/* Watch Button */}
-          <button
-            onClick={() => setIsWatching(!isWatching)}
-            className={`w-full h-11 rounded-full font-jetbrains text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
-              isWatching
-                ? 'bg-[#FF8400] text-[#111111]'
-                : 'bg-[#E7E8E5] border border-[#CBCCC9] text-[#111111] hover:bg-[#CBCCC9]'
-            }`}
-          >
-            <Heart
-              className={`w-5 h-5 ${isWatching ? 'fill-[#111111]' : ''}`}
-            />
-            {isWatching ? 'Watching' : 'Add to Watchlist'}
-          </button>
+          <WatchlistButton 
+            auctionId={auction.id} 
+            className="!w-full !h-11 !rounded-full !font-jetbrains !text-sm !font-semibold !flex !items-center !justify-center !gap-2"
+          />
         </div>
 
         {/* Seller Card */}

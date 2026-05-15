@@ -13,7 +13,7 @@ interface AuctionCardProps {
     currentBid: string;
     bids: number;
     timeLeft: string;
-    status: "live" | "ending";
+    status: "live" | "ending" | "upcoming" | "ended";
     category: string;
   };
 }
@@ -36,6 +36,31 @@ export function AuctionCard({ auction }: AuctionCardProps) {
 
   const handleClick = () => {
     router.push(`/auctions/${auction.id}`);
+  };
+
+  const getStatusStyles = (status: string) => {
+    switch (status) {
+      case "live":
+        return "bg-[#DFE6E1] text-[#004D1A]";
+      case "ending":
+        return "bg-[#E9E3D8] text-[#804200]";
+      case "upcoming":
+        return "bg-[#E7E8E5] text-[#111111] border border-[#CBCCC9]";
+      case "ended":
+        return "bg-[#F2F3F0] text-[#666666]";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "live": return "LIVE";
+      case "ending": return "ENDING";
+      case "upcoming": return "UPCOMING";
+      case "ended": return "ENDED";
+      default: return status.toUpperCase();
+    }
   };
 
   return (
@@ -75,13 +100,9 @@ export function AuctionCard({ auction }: AuctionCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Status Badge */}
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-              auction.status === "live"
-                ? "bg-[#DFE6E1] text-[#004D1A]"
-                : "bg-[#E9E3D8] text-[#804200]"
-            }`}
+            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${getStatusStyles(auction.status)}`}
           >
-            {auction.status === "live" ? "LIVE" : "ENDING"}
+            {getStatusLabel(auction.status)}
           </span>
 
           {/* Time Left */}
