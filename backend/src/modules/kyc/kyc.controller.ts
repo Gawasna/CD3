@@ -18,9 +18,10 @@ export async function submitKyc(req: Request, res: Response, next: NextFunction)
       success: true,
       data: kycRequest,
     });
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      next(ApiError.badRequest('VALIDATION_ERROR', error.errors[0].message));
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      const zodError = error as unknown as { errors: { message: string }[] };
+      next(ApiError.badRequest('VALIDATION_ERROR', zodError.errors[0].message));
       return;
     }
     next(error);

@@ -9,25 +9,33 @@ import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/util
 import WatchlistButton from '@/components/shared/WatchlistButton';
 
 // --- Sub-components ---
-const AuctionTimer = memo(function AuctionTimer({ auction }: { auction: Auction }) {
+const AuctionTimer = memo(function AuctionTimer({ 
+  status, 
+  startTime, 
+  endTime 
+}: { 
+  status: string; 
+  startTime: string; 
+  endTime: string; 
+}) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (auction.status === 'ENDED' || auction.status === 'CANCELED') return;
+    if (status === 'ENDED' || status === 'CANCELED') return;
     const timer = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(timer);
-  }, [auction.status]);
+  }, [status, startTime, endTime]);
 
   const timeRemaining = () => {
-    const target = auction.status === 'UPCOMING' 
-      ? new Date(auction.startTime).getTime() 
-      : new Date(auction.endTime).getTime();
+    const target = status === 'UPCOMING' 
+      ? new Date(startTime).getTime() 
+      : new Date(endTime).getTime();
     
     const now = new Date().getTime();
     const diff = target - now;
     
     if (diff <= 0) {
-      return auction.status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
+      return status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
     }
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -51,14 +59,6 @@ const AuctionTimer = memo(function AuctionTimer({ auction }: { auction: Auction 
         {timeRemaining()}
       </span>
     </div>
-  );
-}, (prevProps, nextProps) => {
-  // Only re-render if essential auction data changes
-  return (
-    prevProps.auction.id === nextProps.auction.id &&
-    prevProps.auction.status === nextProps.auction.status &&
-    prevProps.auction.startTime === nextProps.auction.startTime &&
-    prevProps.auction.endTime === nextProps.auction.endTime
   );
 });
 
@@ -116,19 +116,19 @@ export default function AuctionDetail() {
   useEffect(() => {
     if (reorderedMedia.length <= 1 || isPaused || loading || showMagnifier) return;
 
-    // Don't auto-slide if current media is a video
-    if (isVideo(reorderedMedia[selectedImage])) return;
+    const interval = setInterval(() => {
+      setSelectedImage((prev) => {
+        const nextIndex = (prev + 1) % reorderedMedia.length;
+        // If next item is a video, we might want to let the video logic handle it, 
+        // but for now, we just skip auto-slide if it lands on a video or let it play.
+        // A better approach is to check if CURRENT image is video
+        if (isVideo(reorderedMedia[prev])) return prev; 
+        return nextIndex;
+      });
+    }, 5000);
 
-    autoSlideIntervalRef.current = setInterval(() => {
-      setSelectedImage((prev) => (prev + 1) % reorderedMedia.length);
-    }, 5000); // 5 seconds interval
-
-    return () => {
-      if (autoSlideIntervalRef.current) {
-        clearInterval(autoSlideIntervalRef.current);
-      }
-    };
-  }, [reorderedMedia.length, selectedImage, isPaused, loading, showMagnifier]);
+    return () => clearInterval(interval);
+  }, [reorderedMedia.length, isPaused, loading, showMagnifier, reorderedMedia]);
 
   // Function to calculate the actual pixel-dimensions of an object-contain image
   const calculateImageLayout = () => {
@@ -485,7 +485,11 @@ export default function AuctionDetail() {
             <span className="font-geist text-xs text-[#666666]">
               {auction.status === 'UPCOMING' ? 'Auction Starts In' : 'Auction Ends In'}
             </span>
-            <AuctionTimer auction={auction} />
+            <AuctionTimer 
+              status={auction.status} 
+              startTime={auction.startTime} 
+              endTime={auction.endTime} 
+            />
           </div>
 
           {/* Current Highest Bid */}

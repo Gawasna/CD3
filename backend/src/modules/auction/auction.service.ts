@@ -1,7 +1,60 @@
+import { Prisma, AuctionStatus, EscrowStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { RecordBidBody, RequestExtensionBody, CreateAuctionBody } from './auction.schema';
 import { notificationService } from '../notification/notification.service';
+
+// ── Types ─────────────────────────────────────────────────────────────────
+
+type AuctionWithRelations = Prisma.AuctionMetadataGetPayload<{
+  include: {
+    seller: {
+      select: { id: true, walletAddress: true, displayName: true, avatarUrl: true },
+    },
+    winner: {
+      select: { id: true, walletAddress: true, displayName: true },
+    },
+    bids: {
+      select: {
+        id: true,
+        amountWei: true,
+        txHash: true,
+        blockNumber: true,
+        isWinning: true,
+        createdAt: true,
+        bidder: {
+          select: { id: true, walletAddress: true, displayName: true },
+        },
+      },
+    },
+    _count: { select: { bids: true } },
+  }
+}>;
+
+type AuctionInList = Prisma.AuctionMetadataGetPayload<{
+  include: {
+    seller: {
+      select: { id: true, walletAddress: true, displayName: true, avatarUrl: true },
+    },
+    winner: {
+      select: { id: true, walletAddress: true, displayName: true },
+    },
+    _count: { select: { bids: true, watchers: true } },
+  }
+}>;
+
+type WatchlistItemWithRelations = Prisma.WatchlistGetPayload<{
+  include: {
+    auction: {
+      include: {
+        seller: {
+          select: { id: true, walletAddress: true, displayName: true, avatarUrl: true },
+        },
+        _count: { select: { bids: true, watchers: true } },
+      },
+    },
+  }
+}>;
 
 // ── Self-bid Validation ───────────────────────────────────────────────────
 
@@ -216,7 +269,7 @@ export async function requestDeliveryExtension(
  * Dùng cho frontend polling — không cần auth.
  */
 export async function getAuctionById(auctionId: string) {
-  const auction = await prisma.auctionMetadata.findUnique({
+  const auction = (await prisma.auctionMetadata.findUnique({
     where: { id: auctionId },
     include: {
       seller: {
@@ -242,7 +295,7 @@ export async function getAuctionById(auctionId: string) {
       },
       _count: { select: { bids: true } },
     },
-  });
+  })) as AuctionWithRelations | null;
 
   if (!auction) {
     throw ApiError.notFound('AUCTION_NOT_FOUND', 'Auction not found');
@@ -252,7 +305,7 @@ export async function getAuctionById(auctionId: string) {
   return {
     ...auction,
     onChainAuctionId: auction.onChainAuctionId?.toString() ?? null,
-    bids: auction.bids.map(bid => ({
+    bids: auction.bids.map((bid) => ({
       ...bid,
       blockNumber: bid.blockNumber?.toString() ?? null,
     })),
@@ -274,11 +327,11 @@ export async function listAuctions(params: {
   const { status, variant, sellerId, bidderId, page, limit } = params;
   const skip = (page - 1) * limit;
 
-  let where: any = {};
+  const where: Prisma.AuctionMetadataWhereInput = {};
 
   // Filter theo status nếu có
   if (status) {
-    where.status = status as any;
+    where.status = status as AuctionStatus;
   }
 
   // Filter theo sellerId
@@ -344,12 +397,12 @@ export async function listAuctions(params: {
         },
         _count: { select: { bids: true, watchers: true } },
       },
-    }),
+    }) as Promise<AuctionInList[]>,
     prisma.auctionMetadata.count({ where }),
   ]);
 
   // Convert BigInt fields to strings for JSON serialization
-  const serializedAuctions = auctions.map(auction => ({
+  const serializedAuctions = auctions.map((auction) => ({
     ...auction,
     onChainAuctionId: auction.onChainAuctionId?.toString() ?? null,
   }));
@@ -417,11 +470,11 @@ export async function getWatchlist(userId: string, page: number, limit: number) 
           },
         },
       },
-    }),
+    }) as Promise<WatchlistItemWithRelations[]>,
     prisma.watchlist.count({ where: { userId } }),
   ]);
 
-  const serializedAuctions = items.map(item => ({
+  const serializedAuctions = items.map((item) => ({
     ...item.auction,
     onChainAuctionId: item.auction.onChainAuctionId?.toString() ?? null,
     addedToWatchlistAt: item.createdAt,
@@ -485,8 +538,8 @@ export async function syncEscrowStatus(
   await prisma.auctionMetadata.update({
     where: { id: auctionId },
     data: {
-      escrowStatus: newEscrowStatus as any,
-      ...(newAuctionStatus ? { status: newAuctionStatus as any } : {}),
+      escrowStatus: newEscrowStatus as EscrowStatus,
+      ...(newAuctionStatus ? { status: newAuctionStatus as AuctionStatus } : {}),
     },
   });
 }

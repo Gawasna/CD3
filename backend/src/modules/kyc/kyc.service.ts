@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { KycSubmitInput } from './kyc.schema';
@@ -27,7 +28,7 @@ export async function submitKyc(userId: string, input: KycSubmitInput) {
   }
 
   // Create KycRequest and update User in a transaction
-  const kycRequest = await prisma.$transaction(async (tx) => {
+  const kycRequest = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const request = await tx.kycRequest.upsert({
       where: { userId },
       update: {

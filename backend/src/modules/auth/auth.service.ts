@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { SiweMessage } from 'siwe';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { ApiError } from '../../shared/utils/api-error';
@@ -87,7 +88,7 @@ export async function verifySignature(input: VerifyBody) {
   // 7. Transaction: mark nonce used + upsert user (atomic)
   const walletNormalized = input.wallet.toLowerCase();
 
-  const user = await prisma.$transaction(async (tx) => {
+  const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.authNonce.update({
       where: { id: nonceRecord.id },
       data: { usedAt: new Date() },

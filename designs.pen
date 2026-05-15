@@ -5602,7 +5602,7 @@
                           "fill": {
                             "type": "image",
                             "enabled": true,
-                            "url": "./images/generated-1778339533275.png",
+                            "url": "images/generated-1778339533275.png",
                             "mode": "fill"
                           },
                           "cornerRadius": [
@@ -8737,39 +8737,54 @@
                       "id": "J0esGT",
                       "name": "bidItem1",
                       "width": "fill_container",
-                      "padding": [
-                        12,
-                        0
-                      ],
+                      "fill": "#10b98110",
+                      "cornerRadius": "$--radius-m",
+                      "padding": 12,
                       "justifyContent": "space_between",
                       "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "W2ONy",
-                          "name": "bidItemLeft1",
-                          "layout": "vertical",
-                          "gap": 4,
+                          "id": "HjeH2",
+                          "name": "newLeft1",
+                          "gap": 12,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "LxdYP",
-                              "name": "bidItemAddr1",
-                              "fill": "$--foreground",
-                              "content": "0x34..EF56",
-                              "fontFamily": "$--font-primary",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "type": "rectangle",
+                              "cornerRadius": 16,
+                              "id": "vejn7",
+                              "name": "avatar1",
+                              "fill": "$--secondary",
+                              "width": 32,
+                              "height": 32
                             },
                             {
-                              "type": "text",
-                              "id": "vsmUj",
-                              "name": "bidItemTime1",
-                              "fill": "$--muted-foreground",
-                              "content": "2 minutes ago",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "eY6q1",
+                              "name": "textStack1",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "oGIur",
+                                  "fill": "#10b981",
+                                  "content": "You (0x34..EF56)",
+                                  "fontFamily": "$--font-primary",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "u9MPdM",
+                                  "fill": "$--muted-foreground",
+                                  "content": "2 minutes ago",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         },
@@ -8799,30 +8814,46 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "f6phRq",
-                          "name": "bidItemLeft1",
-                          "layout": "vertical",
-                          "gap": 4,
+                          "id": "tB8DQ",
+                          "name": "newLeft2",
+                          "gap": 12,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "d6o9mY",
-                              "name": "bidItemAddr1",
-                              "fill": "$--foreground",
-                              "content": "0x34..EF56",
-                              "fontFamily": "$--font-primary",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "type": "rectangle",
+                              "cornerRadius": 16,
+                              "id": "d7xQf",
+                              "name": "avatar2",
+                              "fill": "$--secondary",
+                              "width": 32,
+                              "height": 32
                             },
                             {
-                              "type": "text",
-                              "id": "uekyu",
-                              "name": "bidItemTime1",
-                              "fill": "$--muted-foreground",
-                              "content": "2 minutes ago",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "g13oE",
+                              "name": "textStack2",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PgGS5",
+                                  "fill": "$--foreground",
+                                  "content": "0x34..EF56",
+                                  "fontFamily": "$--font-primary",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "M6TytU",
+                                  "fill": "$--muted-foreground",
+                                  "content": "2 minutes ago",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         },
@@ -8852,30 +8883,46 @@
                       "children": [
                         {
                           "type": "frame",
-                          "id": "d6Bfwe",
-                          "name": "bidItemLeft1",
-                          "layout": "vertical",
-                          "gap": 4,
+                          "id": "M2Acap",
+                          "name": "newLeft3",
+                          "gap": 12,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "y8Mr2F",
-                              "name": "bidItemAddr1",
-                              "fill": "$--foreground",
-                              "content": "0x34..EF56",
-                              "fontFamily": "$--font-primary",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "type": "rectangle",
+                              "cornerRadius": 16,
+                              "id": "Km5qJ",
+                              "name": "avatar3",
+                              "fill": "$--secondary",
+                              "width": 32,
+                              "height": 32
                             },
                             {
-                              "type": "text",
-                              "id": "WwNrA",
-                              "name": "bidItemTime1",
-                              "fill": "$--muted-foreground",
-                              "content": "2 minutes ago",
-                              "fontFamily": "$--font-secondary",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
+                              "type": "frame",
+                              "id": "b8pfWd",
+                              "name": "textStack3",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "BGXQf",
+                                  "fill": "$--foreground",
+                                  "content": "0x34..EF56",
+                                  "fontFamily": "$--font-primary",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Mc3St",
+                                  "fill": "$--muted-foreground",
+                                  "content": "2 minutes ago",
+                                  "fontFamily": "$--font-secondary",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         },
@@ -9306,15 +9353,38 @@
                 },
                 {
                   "type": "frame",
-                  "id": "xhKXE",
-                  "name": "bidRow",
+                  "id": "E1ZIjp",
+                  "name": "newBidRow",
                   "width": "fill_container",
                   "layout": "vertical",
                   "gap": 16,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "VTqdp",
+                      "id": "OmFCr",
+                      "name": "statusBadge",
+                      "fill": "#10b98120",
+                      "cornerRadius": "$--radius-pill",
+                      "padding": [
+                        6,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Zszc3",
+                          "fill": "#10b981",
+                          "content": "WINNING",
+                          "fontFamily": "$--font-primary",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yxEIC",
                       "name": "inputField",
                       "width": "fill_container",
                       "layout": "vertical",
@@ -9322,7 +9392,7 @@
                       "children": [
                         {
                           "type": "text",
-                          "id": "13voa",
+                          "id": "aB6ZU",
                           "fill": "$--foreground",
                           "content": "Bid Amount (ETH)",
                           "fontFamily": "$--font-primary",
@@ -9331,7 +9401,8 @@
                         },
                         {
                           "type": "frame",
-                          "id": "g95Pi",
+                          "id": "l8svwk",
+                          "name": "inputBox",
                           "width": "fill_container",
                           "height": 40,
                           "cornerRadius": "$--radius-pill",
@@ -9343,14 +9414,117 @@
                           "padding": [
                             8,
                             16
+                          ],
+                          "justifyContent": "space_between",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kXpF8",
+                              "fill": "$--foreground",
+                              "content": "1.26",
+                              "fontFamily": "$--font-primary",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "YWH3n",
+                              "fill": "$--muted-foreground",
+                              "content": "ETH",
+                              "fontFamily": "$--font-primary",
+                              "fontSize": 14,
+                              "fontWeight": "normal"
+                            }
                           ]
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "Donyr",
-                      "name": "Button/Default",
+                      "id": "xL5Il",
+                      "name": "quickBidRow",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "w67owV",
+                          "name": "qb1",
+                          "width": "fill_container",
+                          "fill": "$--secondary",
+                          "cornerRadius": "$--radius-pill",
+                          "padding": [
+                            8,
+                            0
+                          ],
+                          "justifyContent": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZTCAr",
+                              "fill": "$--foreground",
+                              "content": "+0.01",
+                              "fontFamily": "$--font-primary",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zOqts",
+                          "name": "qb2",
+                          "width": "fill_container",
+                          "fill": "$--secondary",
+                          "cornerRadius": "$--radius-pill",
+                          "padding": [
+                            8,
+                            0
+                          ],
+                          "justifyContent": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "IugUG",
+                              "fill": "$--foreground",
+                              "content": "+0.05",
+                              "fontFamily": "$--font-primary",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mwcwu",
+                          "name": "qb3",
+                          "width": "fill_container",
+                          "fill": "$--secondary",
+                          "cornerRadius": "$--radius-pill",
+                          "padding": [
+                            8,
+                            0
+                          ],
+                          "justifyContent": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "i00pE",
+                              "fill": "$--foreground",
+                              "content": "+0.1",
+                              "fontFamily": "$--font-primary",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JBvRx",
+                      "name": "btn",
                       "width": "fill_container",
                       "height": 40,
                       "fill": "$--primary",
@@ -9364,48 +9538,10 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "frame",
-                          "id": "6qVmO",
-                          "x": 16,
-                          "y": 10,
-                          "name": "plus",
-                          "enabled": false,
-                          "width": 20,
-                          "height": 20,
-                          "stroke": {
-                            "align": "inside",
-                            "thickness": 1
-                          },
-                          "layout": "none",
-                          "children": [
-                            {
-                              "type": "path",
-                              "id": "snIwn",
-                              "x": 5,
-                              "y": 5,
-                              "name": "Vector",
-                              "geometry": "M7.07104 3.53555l-3.53552 0-3.53552 0m3.53552-3.53555l0 3.53555 0 3.53549",
-                              "width": 10,
-                              "height": 10,
-                              "stroke": {
-                                "align": "center",
-                                "thickness": 1.5,
-                                "join": "round",
-                                "cap": "round",
-                                "fill": "$--primary-foreground"
-                              }
-                            }
-                          ]
-                        },
-                        {
                           "type": "text",
-                          "id": "usILQ",
-                          "name": "Button",
+                          "id": "G8mJF",
                           "fill": "$--primary-foreground",
                           "content": "Place Bid",
-                          "lineHeight": 1.4286,
-                          "textAlign": "center",
-                          "textAlignVertical": "middle",
                           "fontFamily": "$--font-primary",
                           "fontSize": 16,
                           "fontWeight": "500"
