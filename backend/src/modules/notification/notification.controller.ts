@@ -29,7 +29,7 @@ export async function patchMarkAsRead(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await notificationService.markAsRead(req.user!.id, id);
     res.status(200).json({ message: 'Notification marked as read' });
   } catch (err) {
@@ -62,7 +62,7 @@ export async function deleteNotification(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await notificationService.deleteNotification(req.user!.id, id);
     res.status(200).json({ message: 'Notification deleted' });
   } catch (err) {
