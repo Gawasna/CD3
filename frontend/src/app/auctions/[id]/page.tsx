@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, MouseEvent as ReactMouseEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { Image as ImageIcon, User, Star, Heart, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { Image as ImageIcon, User, Star, Heart, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
@@ -14,6 +14,28 @@ export default function AuctionDetail() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // Magnifier state
+  const [showMagnifier, setShowMagnifier] = useState(false);
+  const [[x, y], setXY] = useState([0, 0]);
+  // Use a more robust state for image dimensions
+  const [imgLayout, setImgLayout] = useState({ 
+    width: 0, 
+    height: 0, 
+    left: 0, 
+    top: 0,
+    containerWidth: 0,
+    containerHeight: 0
+  });
+  
+  const magnifierHeight = 250;
+  const magnifierWidth = 250;
+  const zoomLevel = 2.5;
+
+  const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -33,6 +55,133 @@ export default function AuctionDetail() {
 
     fetchAuction();
   }, [id]);
+
+  const reorderedMedia = getReorderedMedia(auction?.ipfsCid || '[]');
+
+  // Auto-slide logic
+  useEffect(() => {
+    if (reorderedMedia.length <= 1 || isPaused || loading || showMagnifier) return;
+
+    // Don't auto-slide if current media is a video
+    if (isVideo(reorderedMedia[selectedImage])) return;
+
+    autoSlideIntervalRef.current = setInterval(() => {
+      setSelectedImage((prev) => (prev + 1) % reorderedMedia.length);
+    }, 5000); // 5 seconds interval
+
+    return () => {
+      if (autoSlideIntervalRef.current) {
+        clearInterval(autoSlideIntervalRef.current);
+      }
+    };
+  }, [reorderedMedia.length, selectedImage, isPaused, loading, showMagnifier]);
+
+  // Function to calculate the actual pixel-dimensions of an object-contain image
+  const calculateImageLayout = () => {
+    if (!imageRef.current || !containerRef.current) return null;
+
+    const container = containerRef.current.getBoundingClientRect();
+    const cw = container.width;
+    const ch = container.height;
+    
+    const nw = imageRef.current.naturalWidth;
+    const nh = imageRef.current.naturalHeight;
+    const ar = nw / nh;
+    const cr = cw / ch;
+
+    let dw, dh, ol, ot;
+
+    if (ar > cr) {
+      // Image is wider than container relative to height
+      dw = cw;
+      dh = cw / ar;
+      ol = 0;
+      ot = (ch - dh) / 2;
+    } else {
+      // Image is taller than container relative to width
+      dh = ch;
+      dw = ch * ar;
+      ot = 0;
+      ol = (cw - dw) / 2;
+    }
+
+    return { width: dw, height: dh, left: ol, top: ot, containerWidth: cw, containerHeight: ch };
+  };
+
+  const handleManualSelect = (index: number) => {
+    setSelectedImage(index);
+    setShowMagnifier(false);
+  };
+
+  const handlePrevSlide = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setSelectedImage((prev) => (prev - 1 + reorderedMedia.length) % reorderedMedia.length);
+    setShowMagnifier(false);
+  };
+
+  const handleNextSlide = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    setSelectedImage((prev) => (prev + 1) % reorderedMedia.length);
+    setShowMagnifier(false);
+  };
+
+  const handleImageClick = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (isVideo(reorderedMedia[selectedImage]) || !imageRef.current) return;
+    
+    const layout = calculateImageLayout();
+    if (!layout) return;
+
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.pageX - containerRect.left - window.scrollX;
+    const mouseY = e.pageY - containerRect.top - window.scrollY;
+
+    // Check if click is within the actual image pixels
+    const isInside = 
+      mouseX >= layout.left && 
+      mouseX <= layout.left + layout.width && 
+      mouseY >= layout.top && 
+      mouseY <= layout.top + layout.height;
+
+    if (!showMagnifier) {
+      if (!isInside) return; // Don't activate if clicking on empty space
+
+      setImgLayout(layout);
+      setShowMagnifier(true);
+      setIsPaused(true);
+      setXY([mouseX, mouseY]);
+    } else {
+      setShowMagnifier(false);
+      setIsPaused(false);
+    }
+  };
+
+  const handleMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (!showMagnifier) return;
+    const containerRect = e.currentTarget.getBoundingClientRect();
+    
+    const mouseX = e.pageX - containerRect.left - window.scrollX;
+    const mouseY = e.pageY - containerRect.top - window.scrollY;
+
+    // Only update and show if mouse is within image bounds
+    const isInside = 
+      mouseX >= imgLayout.left && 
+      mouseX <= imgLayout.left + imgLayout.width && 
+      mouseY >= imgLayout.top && 
+      mouseY <= imgLayout.top + imgLayout.height;
+
+    if (isInside) {
+      setXY([mouseX, mouseY]);
+    } else {
+      // Deactivate if mouse leaves the actual image pixels
+      setShowMagnifier(false);
+      setIsPaused(false);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowMagnifier(false);
+    setIsPaused(false);
+  };
 
   if (loading) {
     return (
@@ -60,8 +209,6 @@ export default function AuctionDetail() {
     );
   }
 
-  const reorderedMedia = getReorderedMedia(auction.ipfsCid);
-
   const timeRemaining = () => {
     const end = new Date(auction.endTime).getTime();
     const now = new Date().getTime();
@@ -74,14 +221,51 @@ export default function AuctionDetail() {
     return `${hours}h : ${mins}m : ${secs}s`;
   };
 
+  // Calculate style with precision
+  const getMagnifierStyle = () => {
+    if (!showMagnifier) return {};
+
+    // Relative position within the actual image pixels (0 to 1)
+    const relX = (x - imgLayout.left) / imgLayout.width;
+    const relY = (y - imgLayout.top) / imgLayout.height;
+
+    return {
+      position: "absolute" as const,
+      pointerEvents: "none" as const,
+      height: `${magnifierHeight}px`,
+      width: `${magnifierWidth}px`,
+      top: `${y - magnifierHeight / 2}px`,
+      left: `${x - magnifierWidth / 2}px`,
+      border: "2px solid #FF8400",
+      backgroundColor: "#E7E8E5",
+      backgroundImage: `url('${getMediaUrl(reorderedMedia[selectedImage])}')`,
+      backgroundRepeat: "no-repeat",
+      // Accuracy: The background image should be the size of the ACTUAL image pixels * zoomLevel
+      backgroundSize: `${imgLayout.width * zoomLevel}px ${imgLayout.height * zoomLevel}px`,
+      // Accuracy: Map the relative point (0-1) on displayed pixels to the zoomed background
+      backgroundPosition: `${-relX * imgLayout.width * zoomLevel + magnifierWidth / 2}px ${-relY * imgLayout.height * zoomLevel + magnifierHeight / 2}px`,
+      boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.3)",
+      zIndex: 50,
+      borderRadius: "4px",
+    };
+  };
+
   return (
     <div className="flex gap-8 p-12 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
       {/* Left Column */}
-      <div className="flex flex-col gap-6 flex-1">
+      <div className="flex flex-col gap-6 flex-1 select-none">
         {/* Image Gallery */}
         <div className="w-full">
           {/* Main Media Display */}
-          <div className="w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden">
+          <div 
+            ref={containerRef}
+            className={`w-full h-[500px] bg-[#E7E8E5] border border-[#CBCCC9] flex items-center justify-center rounded-2xl mb-3 overflow-hidden relative group ${
+              showMagnifier ? 'cursor-zoom-out' : 'cursor-zoom-in'
+            }`}
+            onClick={handleImageClick}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
             {reorderedMedia.length > 0 ? (
               isVideo(reorderedMedia[selectedImage]) ? (
                 <video 
@@ -93,24 +277,66 @@ export default function AuctionDetail() {
                 />
               ) : (
                 <img 
+                  ref={imageRef}
                   src={getMediaUrl(reorderedMedia[selectedImage])} 
                   alt={auction.title}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain pointer-events-none"
                 />
               )
             ) : (
               <ImageIcon className="w-16 h-16 text-[#666666]" />
             )}
+            
+            {/* Magnifier Lens - Precision Square Style */}
+            {showMagnifier && !isVideo(reorderedMedia[selectedImage]) && (
+              <div style={getMagnifierStyle()} />
+            )}
+
+            {/* Navigation Buttons */}
+            {reorderedMedia.length > 1 && !showMagnifier && (
+              <>
+                <button 
+                  onClick={handlePrevSlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/20 hover:bg-[#FF8400] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-20"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={handleNextSlide}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/20 hover:bg-[#FF8400] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-20"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+            
+            {/* Slide Indicators */}
+            {reorderedMedia.length > 1 && !showMagnifier && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full z-20">
+                {reorderedMedia.map((_, i) => (
+                  <button 
+                    key={i} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleManualSelect(i);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      selectedImage === i ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
           {reorderedMedia.length > 1 && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {reorderedMedia.map((key, index) => (
                 <button
                   key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden ${
+                  onClick={() => handleManualSelect(index)}
+                  className={`relative min-w-[100px] h-[100px] bg-[#E7E8E5] rounded-2xl flex items-center justify-center transition-all overflow-hidden flex-shrink-0 ${
                     selectedImage === index
                       ? 'border-2 border-[#FF8400]'
                       : 'border border-[#CBCCC9] hover:border-[#FF8400]'

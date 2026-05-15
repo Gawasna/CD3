@@ -9,6 +9,7 @@ interface AuctionItem {
   seller: string;
   price: string;
   timeInfo?: string;
+  imageUrl?: string;
 }
 
 interface AuctionSectionProps {
@@ -50,6 +51,7 @@ export default function AuctionSection({
             price={item.price}
             variant={variant}
             timeInfo={item.timeInfo}
+            imageUrl={item.imageUrl}
           />
         ))}
       </div>
