@@ -6,6 +6,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import { ToastProvider } from "@/components/auth/ToastContainer";
 import { Web3Provider } from "@/contexts/WagmiProvider";
+import ChatWidget from "@/components/ui/ChatWidget";
 import { QueryProvider } from "@/contexts/QueryProvider";
 
 const geistSans = Geist({
@@ -52,6 +53,8 @@ export default async function RootLayout({
               <ToastProvider>
                 <Header />
                 {children}
+                {/* Chat support widget - hiển thị toàn cục */}
+                <ChatWidget />
               </ToastProvider>
             </NextIntlClientProvider>
           </QueryProvider>

@@ -321,8 +321,9 @@ export async function listAuctions(params: {
         startTime: { gt: now }
       }
     ];
-  } else if (!status) {
+  } else if (!status && !sellerId && !bidderId) {
     // Default: không hiện PENDING trong public lists
+    // Nhưng vẫn cho phép hiện trong "My Auctions" hoặc "My Bids"
     where.status = { not: 'PENDING' };
   }
 

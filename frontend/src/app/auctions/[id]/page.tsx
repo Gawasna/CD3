@@ -1,12 +1,66 @@
 'use client';
 
-import { useState, useEffect, useRef, MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useRef, memo, MouseEvent as ReactMouseEvent } from 'react';
 import { useParams } from 'next/navigation';
 import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
 import WatchlistButton from '@/components/shared/WatchlistButton';
+
+// --- Sub-components ---
+const AuctionTimer = memo(function AuctionTimer({ auction }: { auction: Auction }) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (auction.status === 'ENDED' || auction.status === 'CANCELED') return;
+    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [auction.status]);
+
+  const timeRemaining = () => {
+    const target = auction.status === 'UPCOMING' 
+      ? new Date(auction.startTime).getTime() 
+      : new Date(auction.endTime).getTime();
+    
+    const now = new Date().getTime();
+    const diff = target - now;
+    
+    if (diff <= 0) {
+      return auction.status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    parts.push(`${hours.toString().padStart(2, '0')}h`);
+    parts.push(`${mins.toString().padStart(2, '0')}m`);
+    parts.push(`${secs.toString().padStart(2, '0')}s`);
+
+    return parts.join(' : ');
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
+      <Clock className="w-6 h-6 text-[#FF5C33]" />
+      <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
+        {timeRemaining()}
+      </span>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if essential auction data changes
+  return (
+    prevProps.auction.id === nextProps.auction.id &&
+    prevProps.auction.status === nextProps.auction.status &&
+    prevProps.auction.startTime === nextProps.auction.startTime &&
+    prevProps.auction.endTime === nextProps.auction.endTime
+  );
+});
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -208,26 +262,6 @@ export default function AuctionDetail() {
       </div>
     );
   }
-
-  const timeRemaining = () => {
-    if (!auction) return '';
-    
-    const target = auction.status === 'UPCOMING' 
-      ? new Date(auction.startTime).getTime() 
-      : new Date(auction.endTime).getTime();
-    
-    const now = new Date().getTime();
-    const diff = target - now;
-    
-    if (diff <= 0) {
-      return auction.status === 'UPCOMING' ? 'Starting soon...' : 'Ended';
-    }
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const secs = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${hours}h : ${mins}m : ${secs}s`;
-  };
 
   // Calculate style with precision
   const getMagnifierStyle = () => {
@@ -451,12 +485,7 @@ export default function AuctionDetail() {
             <span className="font-geist text-xs text-[#666666]">
               {auction.status === 'UPCOMING' ? 'Auction Starts In' : 'Auction Ends In'}
             </span>
-            <div className="flex items-center gap-3 p-4 bg-[#FF5C3315] border border-[#FF5C3340] rounded-2xl">
-              <Clock className="w-6 h-6 text-[#FF5C33]" />
-              <span className="font-jetbrains text-xl font-bold text-[#FF5C33]">
-                {timeRemaining()}
-              </span>
-            </div>
+            <AuctionTimer auction={auction} />
           </div>
 
           {/* Current Highest Bid */}
