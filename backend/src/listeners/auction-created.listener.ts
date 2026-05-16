@@ -251,11 +251,93 @@ export function startAuctionCreatedListener() {
       }
     });
 
+    contract.on('ShippingFeeSet', async (auctionId: bigint, fee: bigint) => {
+      try {
+        console.log('[AuctionListener] ShippingFeeSet event received:', { auctionId: auctionId.toString(), fee: fee.toString() });
+        await prisma.auctionMetadata.update({
+          where: { onChainAuctionId: auctionId },
+          data: { shippingCostWei: fee.toString() },
+        });
+      } catch (error) {
+        console.error('[AuctionListener] Error processing ShippingFeeSet event:', error);
+      }
+    });
+
+    contract.on('ShippingFeePaid', async (auctionId: bigint, buyer: string, amount: bigint) => {
+      try {
+        console.log('[AuctionListener] ShippingFeePaid event received:', { auctionId: auctionId.toString(), buyer });
+        // Cập nhật Database để đồng bộ trạng thái thanh toán
+        await prisma.shippingLog.create({
+          data: {
+            auctionId: (await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId }, select: { id: true } }))?.id || '',
+            status: 'SHIPPED', // Giả định: sau khi pay fee thì seller ship, hoặc có thể thêm trạng thái mới
+            updatedById: (await prisma.user.findUnique({ where: { walletAddress: buyer.toLowerCase() }, select: { id: true } }))?.id || '',
+            notes: `Buyer paid shipping fee: ${ethers.formatEther(amount)} ETH`,
+          },
+        });
+      } catch (error) {
+        console.error('[AuctionListener] Error processing ShippingFeePaid event:', error);
+      }
+    });
+
     isListening = true;
     console.log('[AuctionListener] Started listening for Auction events');
+
+    // Tự động đồng bộ các đấu giá bị kẹt khi khởi động
+    syncPendingAuctions().catch(err => console.error('[AuctionListener] Auto-sync failed:', err));
   } catch (error) {
     console.error('[AuctionListener] Failed to start listener:', error);
     throw error;
+  }
+}
+
+/**
+ * Kiểm tra các auction đang ở trạng thái PENDING trong DB
+ * và đối soát với Blockchain để tránh bị kẹt.
+ */
+async function syncPendingAuctions() {
+  const pendingAuctions = await prisma.auctionMetadata.findMany({
+    where: { status: 'PENDING' }
+  });
+
+  if (pendingAuctions.length === 0) return;
+
+  console.log(`[AuctionListener] Found ${pendingAuctions.length} pending auctions. Checking blockchain...`);
+
+  for (const auction of pendingAuctions) {
+    if (!auction.createTxHash) continue;
+    
+    try {
+      const receipt = await provider.getTransactionReceipt(auction.createTxHash);
+      if (receipt && receipt.status === 1) {
+        // Tìm event AuctionCreated
+        const interface_ = new ethers.Interface(AuctionPlatformABI.abi);
+        for (const log of receipt.logs) {
+          const parsedLog = interface_.parseLog(log);
+          if (parsedLog?.name === 'AuctionCreated') {
+            const [onChainId, , startingPrice, endTime] = parsedLog.args;
+            
+            const now = new Date();
+            const startTimeDate = new Date(auction.startTime);
+            const status = startTimeDate > now ? 'UPCOMING' : 'ACTIVE';
+
+            await prisma.auctionMetadata.update({
+              where: { id: auction.id },
+              data: {
+                onChainAuctionId: onChainId,
+                status: status,
+                startingPriceWei: startingPrice.toString(),
+                endTime: new Date(Number(endTime) * 1000),
+              }
+            });
+            console.log(`[AuctionListener] Auto-synced auction: ${auction.title} -> ${status}`);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.error(`[AuctionListener] Failed to sync auction ${auction.id}:`, e);
+    }
   }
 }
 
