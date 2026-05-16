@@ -3,7 +3,12 @@
 import { Search, Box } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-export function ExploreHeader() {
+interface ExploreHeaderProps {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+}
+
+export function ExploreHeader({ searchValue, onSearchChange }: ExploreHeaderProps) {
   const t = useTranslations("explore");
 
   return (
@@ -17,12 +22,14 @@ export function ExploreHeader() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-2 px-4 h-10 w-[400px] border border-[#CBCCC9] rounded-full">
+      <div className="flex items-center gap-2 px-4 h-10 w-[400px] border border-[#CBCCC9] rounded-full bg-white/50 focus-within:bg-white focus-within:border-[#FF8400] transition-all">
         <Search className="w-5 h-5 text-[#666666]" />
         <input
           type="text"
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search for items, collections..."
-          className="flex-1 bg-transparent text-sm text-[#666666] outline-none placeholder:text-[#666666]"
+          className="flex-1 bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#666666]"
         />
       </div>
 

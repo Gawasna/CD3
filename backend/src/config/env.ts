@@ -14,6 +14,7 @@ const envSchema = z.object({
   // Blockchain listener config
   RPC_URL: z.string().url('RPC_URL must be a valid URL').default('http://127.0.0.1:8545'),
   CONTRACT_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'CONTRACT_ADDRESS must be a valid Ethereum address'),
+  ADMIN_PRIVATE_KEY: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'ADMIN_PRIVATE_KEY must be a valid 32-byte hex string'),
 });
 
 const parsed = envSchema.safeParse(process.env);

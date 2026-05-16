@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import AuctionSection from '@/components/shared/AuctionSection';
 import { useAuctions } from '@/hooks/useAuctions';
 import { formatEther } from 'viem';
-import { getThumbnail } from '@/features/auction/utils/media';
+import { getFirstImageFilename } from '@/features/auction/utils/media';
 
 export default function Homepage() {
   const t = useTranslations('home');
@@ -22,7 +22,7 @@ export default function Homepage() {
       title: auction.title,
       seller: auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '..' + auction.seller.walletAddress.slice(-4),
       price: formatEther(BigInt(auction.startingPriceWei)) + ' ETH',
-      imageUrl: getThumbnail(auction.ipfsCid),
+      imageUrl: getFirstImageFilename(auction.ipfsCid) || '',
     };
   };
 

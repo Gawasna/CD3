@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Image, Heart, Clock3 } from 'lucide-react';
+import { Heart, Clock3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import WatchlistButton from './WatchlistButton';
+import { AuctionImage } from '@/features/auction/components/AuctionImage';
 
 export type AuctionCardVariant = 'ending-soon' | 'live' | 'watching' | 'upcoming';
 
@@ -27,7 +28,7 @@ export default function AuctionCard({
   imageUrl,
 }: AuctionCardProps) {
   const t = useTranslations('home.card');
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:3001';
 
   const getTagContent = () => {
     switch (variant) {
@@ -113,13 +114,15 @@ export default function AuctionCard({
       {/* Image */}
       <div className="relative h-[200px] bg-[#E7E8E5] w-full flex items-center justify-center overflow-hidden">
         {imageUrl ? (
-          <img 
-            src={imageUrl.startsWith('http') ? imageUrl : `${API_BASE_URL}/uploads/auctions/${imageUrl}`} 
-            alt={title} 
-            className="w-full h-full object-cover"
+          <AuctionImage
+            filename={imageUrl}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         ) : (
-          <Image className="w-12 h-12 text-[#666666]" />
+          <div className="w-12 h-12 flex items-center justify-center text-[#666666]">No Image</div>
         )}
         {getTagContent()}
         

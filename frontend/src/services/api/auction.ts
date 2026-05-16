@@ -5,7 +5,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 // ── Types ─────────────────────────────────────────────────────────────────
 
 export type AuctionCategory = 'ELECTRONICS' | 'FASHION' | 'FURNITURE' | 'COLLECTIBLES' | 'OTHER';
-export type ShippingPayer = 'BUYER' | 'SELLER' | 'PLATFORM';
+export type ShippingPayer = 'BUYER' | 'SELLER';
 export type AuctionStatus = 'PENDING' | 'UPCOMING' | 'ACTIVE' | 'ENDED' | 'CANCELED' | 'FORFEITED';
 
 export type Bid = {
@@ -118,6 +118,9 @@ export async function listAuctions(params: {
   variant?: string;
   sellerId?: string;
   bidderId?: string;
+  search?: string;
+  categories?: string[];
+  sortBy?: string;
   page?: number;
   limit?: number;
 }): Promise<ListAuctionsResponse> {
@@ -126,6 +129,11 @@ export async function listAuctions(params: {
   if (params.variant) searchParams.set('variant', params.variant);
   if (params.sellerId) searchParams.set('sellerId', params.sellerId);
   if (params.bidderId) searchParams.set('bidderId', params.bidderId);
+  if (params.search) searchParams.set('search', params.search);
+  if (params.sortBy) searchParams.set('sortBy', params.sortBy);
+  if (params.categories && params.categories.length > 0) {
+    searchParams.set('categories', params.categories.join(','));
+  }
   if (params.page) searchParams.set('page', params.page.toString());
   if (params.limit) searchParams.set('limit', params.limit.toString());
 

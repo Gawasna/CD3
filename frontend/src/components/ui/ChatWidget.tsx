@@ -5,13 +5,15 @@ import { MessageSquare, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ChatDialog from './ChatDialog';
 
+import { useChatStore } from '@/store/chat.store';
+
 /**
  * ChatWidget - FAB tròn góc dưới phải, toggle ChatDialog.
  * Mount component này trong layout.tsx để hiển thị toàn cục.
  */
 export default function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount] = useState(2); // Mock: số tin chưa đọc
+  const { isOpen, setIsOpen, closeChat } = useChatStore();
+  const [unreadCount] = useState(0); // TODO: Lấy từ API nếu cần
 
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -19,7 +21,7 @@ export default function ChatWidget() {
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+        closeChat();
       }
     };
 
@@ -27,16 +29,16 @@ export default function ChatWidget() {
       document.addEventListener('mousedown', handleOutsideClick);
     }
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen]);
+  }, [isOpen, closeChat]);
 
   // Đóng dialog khi nhấn Escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') closeChat();
     };
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
-  }, []);
+  }, [closeChat]);
 
   return (
     // Wrapper: fixed, bottom-right, z-index cao để luôn nổi trên content
@@ -49,7 +51,7 @@ export default function ChatWidget() {
       {/* ---------------------------------------------------------------- */}
       <AnimatePresence>
         {isOpen && (
-          <ChatDialog onClose={() => setIsOpen(false)} />
+          <ChatDialog onClose={closeChat} />
         )}
       </AnimatePresence>
 
@@ -58,7 +60,7 @@ export default function ChatWidget() {
       {/* ---------------------------------------------------------------- */}
       <motion.button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? 'Đóng chat' : 'Mở chat'}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}

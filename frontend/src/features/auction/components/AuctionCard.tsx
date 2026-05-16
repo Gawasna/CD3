@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { Clock3, ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AuctionImage } from "./AuctionImage";
 
 interface AuctionCardProps {
   auction: {
@@ -31,7 +31,6 @@ const getCategoryGradient = (category: string) => {
 
 export function AuctionCard({ auction }: AuctionCardProps) {
   const router = useRouter();
-  const [imageError, setImageError] = useState(false);
   const isPlaceholder = auction.image.startsWith("/placeholder");
 
   const handleClick = () => {
@@ -70,21 +69,19 @@ export function AuctionCard({ auction }: AuctionCardProps) {
     >
       {/* Image */}
       <div className="relative w-full h-[180px] overflow-hidden">
-        {isPlaceholder || imageError ? (
+        {isPlaceholder ? (
           // Placeholder gradient
           <div className={`w-full h-full bg-gradient-to-br ${getCategoryGradient(auction.category)} flex items-center justify-center`}>
             <ImageIcon className="w-12 h-12 text-white/50" />
           </div>
         ) : (
-          // Real image
-          <Image
-            src={auction.image}
+          // Real image with auto thumbnail & fallback handling
+          <AuctionImage
+            filename={auction.image}
             alt={auction.title}
             fill
             className="object-cover"
             sizes="280px"
-            onError={() => setImageError(true)}
-            unoptimized
           />
         )}
       </div>

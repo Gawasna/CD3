@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
 import "./globals.css";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { ToastProvider } from "@/components/auth/ToastContainer";
 import { Web3Provider } from "@/contexts/WagmiProvider";
 import ChatWidget from "@/components/ui/ChatWidget";
@@ -53,6 +54,7 @@ export default async function RootLayout({
               <ToastProvider>
                 <Header />
                 {children}
+                <Footer />
                 {/* Chat support widget - hiển thị toàn cục */}
                 <ChatWidget />
               </ToastProvider>

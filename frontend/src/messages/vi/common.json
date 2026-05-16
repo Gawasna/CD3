@@ -7,7 +7,10 @@
   "footer": {
     "copyright": "© 2026 P2P Auction. Bảo lưu mọi quyền.",
     "terms": "Điều khoản",
-    "privacy": "Bảo mật"
+    "privacy": "Bảo mật",
+    "marketplace": "Thị trường",
+    "resources": "Tài nguyên",
+    "stayUpdated": "Cập nhật"
   },
   "actions": {
     "submit": "Gửi",

@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, memo, MouseEvent as ReactMouseEvent } from 'react';
-import { useParams } from 'next/navigation';
-import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight, Edit3, XCircle, Power } from 'lucide-react';
 import { getAuction, type Auction } from '@/services/api/auction';
 import { formatEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
 import WatchlistButton from '@/components/shared/WatchlistButton';
+import { useAuthStore } from '@/store/auth.store';
+import { useChatStore } from '@/store/chat.store';
 
 // --- Sub-components ---
 const AuctionTimer = memo(function AuctionTimer({ 
@@ -40,7 +42,7 @@ const AuctionTimer = memo(function AuctionTimer({
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const mins = Math.floor((diff % (1000 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
     const parts = [];
@@ -64,6 +66,8 @@ const AuctionTimer = memo(function AuctionTimer({
 
 export default function AuctionDetail() {
   const { id } = useParams();
+  const router = useRouter();
+  const { user } = useAuthStore();
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +91,6 @@ export default function AuctionDetail() {
   const magnifierWidth = 250;
   const zoomLevel = 2.5;
 
-  const autoSlideIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -119,9 +122,6 @@ export default function AuctionDetail() {
     const interval = setInterval(() => {
       setSelectedImage((prev) => {
         const nextIndex = (prev + 1) % reorderedMedia.length;
-        // If next item is a video, we might want to let the video logic handle it, 
-        // but for now, we just skip auto-slide if it lands on a video or let it play.
-        // A better approach is to check if CURRENT image is video
         if (isVideo(reorderedMedia[prev])) return prev; 
         return nextIndex;
       });
@@ -146,13 +146,11 @@ export default function AuctionDetail() {
     let dw, dh, ol, ot;
 
     if (ar > cr) {
-      // Image is wider than container relative to height
       dw = cw;
       dh = cw / ar;
       ol = 0;
       ot = (ch - dh) / 2;
     } else {
-      // Image is taller than container relative to width
       dh = ch;
       dw = ch * ar;
       ot = 0;
@@ -189,7 +187,6 @@ export default function AuctionDetail() {
     const mouseX = e.pageX - containerRect.left - window.scrollX;
     const mouseY = e.pageY - containerRect.top - window.scrollY;
 
-    // Check if click is within the actual image pixels
     const isInside = 
       mouseX >= layout.left && 
       mouseX <= layout.left + layout.width && 
@@ -197,7 +194,7 @@ export default function AuctionDetail() {
       mouseY <= layout.top + layout.height;
 
     if (!showMagnifier) {
-      if (!isInside) return; // Don't activate if clicking on empty space
+      if (!isInside) return; 
 
       setImgLayout(layout);
       setShowMagnifier(true);
@@ -216,7 +213,6 @@ export default function AuctionDetail() {
     const mouseX = e.pageX - containerRect.left - window.scrollX;
     const mouseY = e.pageY - containerRect.top - window.scrollY;
 
-    // Only update and show if mouse is within image bounds
     const isInside = 
       mouseX >= imgLayout.left && 
       mouseX <= imgLayout.left + imgLayout.width && 
@@ -226,7 +222,6 @@ export default function AuctionDetail() {
     if (isInside) {
       setXY([mouseX, mouseY]);
     } else {
-      // Deactivate if mouse leaves the actual image pixels
       setShowMagnifier(false);
       setIsPaused(false);
     }
@@ -263,11 +258,12 @@ export default function AuctionDetail() {
     );
   }
 
+  const isOwner = user?.walletAddress.toLowerCase() === auction.seller.walletAddress.toLowerCase();
+
   // Calculate style with precision
   const getMagnifierStyle = () => {
     if (!showMagnifier) return {};
 
-    // Relative position within the actual image pixels (0 to 1)
     const relX = (x - imgLayout.left) / imgLayout.width;
     const relY = (y - imgLayout.top) / imgLayout.height;
 
@@ -282,15 +278,17 @@ export default function AuctionDetail() {
       backgroundColor: "#E7E8E5",
       backgroundImage: `url('${getMediaUrl(reorderedMedia[selectedImage])}')`,
       backgroundRepeat: "no-repeat",
-      // Accuracy: The background image should be the size of the ACTUAL image pixels * zoomLevel
       backgroundSize: `${imgLayout.width * zoomLevel}px ${imgLayout.height * zoomLevel}px`,
-      // Accuracy: Map the relative point (0-1) on displayed pixels to the zoomed background
       backgroundPosition: `${-relX * imgLayout.width * zoomLevel + magnifierWidth / 2}px ${-relY * imgLayout.height * zoomLevel + magnifierHeight / 2}px`,
       boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.3)",
       zIndex: 50,
       borderRadius: "4px",
     };
   };
+
+  const highestBid = auction.bids && auction.bids.length > 0 
+    ? formatEther(BigInt(auction.bids[0].amountWei)) 
+    : formatEther(BigInt(auction.startingPriceWei));
 
   return (
     <div className="flex gap-8 p-12 min-h-[calc(100vh-72px)] bg-[#F2F3F0]">
@@ -329,12 +327,10 @@ export default function AuctionDetail() {
               <ImageIcon className="w-16 h-16 text-[#666666]" />
             )}
             
-            {/* Magnifier Lens - Precision Square Style */}
             {showMagnifier && !isVideo(reorderedMedia[selectedImage]) && (
               <div style={getMagnifierStyle()} />
             )}
 
-            {/* Navigation Buttons */}
             {reorderedMedia.length > 1 && !showMagnifier && (
               <>
                 <button 
@@ -352,7 +348,6 @@ export default function AuctionDetail() {
               </>
             )}
             
-            {/* Slide Indicators */}
             {reorderedMedia.length > 1 && !showMagnifier && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-3 py-1.5 bg-black/20 backdrop-blur-sm rounded-full z-20">
                 {reorderedMedia.map((_, i) => (
@@ -410,6 +405,50 @@ export default function AuctionDetail() {
           </p>
         </div>
 
+        {/* Bid History for Buyers / More detailed for Sellers */}
+        {isOwner && (
+          <div className="flex flex-col gap-6">
+            <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Bid History</h2>
+            <div className="bg-white rounded-2xl border border-[#CBCCC9] overflow-hidden">
+              {auction.bids && auction.bids.length > 0 ? (
+                <div className="divide-y divide-[#CBCCC9]">
+                  {auction.bids.map((bid) => (
+                    <div key={bid.id} className="p-4 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#E7E8E5] flex items-center justify-center">
+                          <User className="w-5 h-5 text-[#666666]" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-jetbrains text-sm font-semibold text-[#111111]">
+                            {bid.bidder.displayName || bid.bidder.walletAddress.slice(0, 6) + '...' + bid.bidder.walletAddress.slice(-4)}
+                          </span>
+                          <span className="font-geist text-xs text-[#666666]">
+                            {new Date(bid.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="font-jetbrains text-sm font-bold text-[#111111]">
+                          {formatEther(BigInt(bid.amountWei))} ETH
+                        </span>
+                        {bid.isWinning && (
+                          <span className="font-geist text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">
+                            HIGHEST
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <span className="font-geist text-[#666666]">No bids yet</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Item Details */}
         <div className="flex flex-col gap-4">
           <h3 className="font-jetbrains text-xl font-bold text-[#111111]">Item Details</h3>
@@ -444,43 +483,61 @@ export default function AuctionDetail() {
       <div className="flex flex-col gap-8 w-[480px] shrink-0">
         {/* Main Card */}
         <div className="bg-white rounded-2xl p-8 border border-[#CBCCC9] shadow-sm flex flex-col gap-8">
-          <h1 className="font-jetbrains text-[28px] font-extrabold text-[#111111] leading-tight">
-            {auction.title}
-          </h1>
-
-          {/* Seller Info Compact */}
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-[#666666]" />
-            <span className="font-geist text-sm text-[#666666]">
-              Seller: {auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '...' + auction.seller.walletAddress.slice(-4)}
-            </span>
+          <div className="flex justify-between items-start gap-4">
+            <h1 className="font-jetbrains text-[28px] font-extrabold text-[#111111] leading-tight">
+              {auction.title}
+            </h1>
+            {isOwner && (
+              <span className={`font-jetbrains text-xs font-bold px-2.5 py-1 rounded-full ${
+                auction.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-[#E7E8E5] text-[#666666]'
+              }`}>
+                {auction.status}
+              </span>
+            )}
           </div>
+
+          {!isOwner && (
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-[#666666]" />
+              <span className="font-geist text-sm text-[#666666]">
+                Seller: {auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '...' + auction.seller.walletAddress.slice(-4)}
+              </span>
+            </div>
+          )}
 
           {/* Stats Card */}
           <div className="bg-[#E7E8E5] rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <span className="font-geist text-xs text-[#666666]">Current Bid</span>
+              <span className="font-jetbrains text-base font-bold text-[#111111]">
+                {highestBid} ETH
+              </span>
+            </div>
             <div className="flex justify-between items-center">
               <span className="font-geist text-xs text-[#666666]">Total Bids</span>
               <span className="font-jetbrains text-base font-bold text-[#111111]">
                 {auction._count.bids}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="font-geist text-xs text-[#666666]">Starting Price</span>
-              <span className="font-jetbrains text-base font-bold text-[#111111]">
-                {formatEther(BigInt(auction.startingPriceWei))} ETH
-              </span>
-            </div>
-            {auction.buyNowPriceWei && auction.buyNowPriceWei !== '0' && (
+            {isOwner && (
               <div className="flex justify-between items-center">
-                <span className="font-geist text-xs text-[#666666]">Buy Now Price</span>
-                <span className="font-jetbrains text-base font-bold text-[#FF8400]">
-                  {formatEther(BigInt(auction.buyNowPriceWei))} ETH
+                <span className="font-geist text-xs text-[#666666]">Watchers</span>
+                <span className="font-jetbrains text-base font-bold text-[#111111]">
+                  {auction._count.watchers}
+                </span>
+              </div>
+            )}
+            {!isOwner && (
+              <div className="flex justify-between items-center">
+                <span className="font-geist text-xs text-[#666666]">Starting Price</span>
+                <span className="font-jetbrains text-base font-bold text-[#111111]">
+                  {formatEther(BigInt(auction.startingPriceWei))} ETH
                 </span>
               </div>
             )}
           </div>
 
-          {/* Timer */}
+          {/* Timer section for everyone */}
           <div className="flex flex-col gap-2">
             <span className="font-geist text-xs text-[#666666]">
               {auction.status === 'UPCOMING' ? 'Auction Starts In' : 'Auction Ends In'}
@@ -492,69 +549,124 @@ export default function AuctionDetail() {
             />
           </div>
 
-          {/* Current Highest Bid */}
-          <div className="flex flex-col gap-2">
-            <span className="font-jetbrains text-xl font-bold text-[#111111]">
-              Current Bid: {auction.startingPriceWei ? formatEther(BigInt(auction.startingPriceWei)) : '0'} ETH
-            </span>
-            <span className="font-geist text-sm text-[#666666]">Bid Amount (ETH)</span>
-          </div>
-
-          {/* Bid Input */}
-          <div className="flex flex-col gap-4">
-            <input
-              type="number"
-              step="0.01"
-              disabled={auction.status !== 'ACTIVE'}
-              placeholder="Enter bid amount"
-              className="w-full h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist disabled:opacity-50"
-            />
-            <button 
-              disabled={auction.status !== 'ACTIVE'}
-              className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {auction.status === 'ACTIVE' ? 'Place Bid' : 
-               auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
-               'Auction Not Active'}
-            </button>
-          </div>
-
-          {/* Watch Button */}
-          <WatchlistButton 
-            auctionId={auction.id} 
-            className="!w-full !h-11 !rounded-full !font-jetbrains !text-sm !font-semibold !flex !items-center !justify-center !gap-2"
-          />
-        </div>
-
-        {/* Seller Card */}
-        <div className="bg-white rounded-2xl p-5 border border-[#CBCCC9] flex flex-col gap-4">
-          <h3 className="font-jetbrains text-base font-bold text-[#111111]">
-            Seller Information
-          </h3>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-[#E7E8E5] flex items-center justify-center overflow-hidden">
-              {auction.seller.avatarUrl ? (
-                <img src={auction.seller.avatarUrl} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-6 h-6 text-[#666666]" />
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="font-jetbrains text-sm font-semibold text-[#111111]">
-                {auction.seller.displayName || auction.seller.walletAddress}
-              </span>
-              <div className="flex items-center gap-1">
-                <Star className="w-3.5 h-3.5 fill-[#FF8400] text-[#FF8400]" />
-                <span className="font-geist text-xs text-[#666666]">
-                  Seller Verified
-                </span>
+          {isOwner ? (
+            <div className="flex flex-col gap-6">
+              <h3 className="font-jetbrains text-lg font-bold text-[#111111]">Manage Auction</h3>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => router.push(`/auctions/${auction.id}/edit`)}
+                  className="w-full h-11 bg-[#FF8400] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Edit Auction
+                </button>
+                <button className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors">
+                  <Power className="w-4 h-4" />
+                  End Auction Early
+                </button>
+                <button className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors">
+                  <XCircle className="w-4 h-4" />
+                  Cancel Auction
+                </button>
               </div>
             </div>
-          </div>
-          <button className="w-full h-10 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] font-jetbrains text-sm font-semibold text-[#111111] hover:bg-[#CBCCC9] transition-colors">
-            Contact Seller
-          </button>
+          ) : (
+            <>
+              {/* Bid section for Buyers */}
+              <div className="flex flex-col gap-2">
+                <span className="font-jetbrains text-xl font-bold text-[#111111]">
+                  Highest Bid: {highestBid} ETH
+                </span>
+                <span className="font-geist text-sm text-[#666666]">Bid Amount (ETH)</span>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <input
+                  type="number"
+                  step="0.01"
+                  disabled={auction.status !== 'ACTIVE'}
+                  placeholder="Enter bid amount"
+                  className="w-full h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist disabled:opacity-50"
+                />
+                <button 
+                  disabled={auction.status !== 'ACTIVE'}
+                  className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {auction.status === 'ACTIVE' ? 'Place Bid' : 
+                   auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
+                   'Auction Not Active'}
+                </button>
+              </div>
+
+              <WatchlistButton 
+                auctionId={auction.id} 
+                className="!w-full !h-11 !rounded-full !font-jetbrains !text-sm !font-semibold !flex !items-center !justify-center !gap-2"
+              />
+            </>
+          )}
         </div>
+
+        {/* Seller Info for Buyers / Recent Bids for Sellers */}
+        {isOwner ? (
+          <div className="bg-white rounded-2xl p-6 border border-[#CBCCC9] flex flex-col gap-4">
+            <h3 className="font-jetbrains text-base font-bold text-[#111111]">
+              Recent Bids
+            </h3>
+            <div className="flex flex-col gap-4">
+              {auction.bids && auction.bids.length > 0 ? (
+                auction.bids.slice(0, 3).map((bid) => (
+                  <div key={bid.id} className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <span className="font-jetbrains text-sm font-semibold text-[#111111]">
+                        {bid.bidder.walletAddress.slice(0, 6)}...{bid.bidder.walletAddress.slice(-4)}
+                      </span>
+                      <span className="font-geist text-[10px] text-[#666666]">
+                        {new Date(bid.createdAt).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <span className="font-jetbrains text-sm font-bold text-[#111111]">
+                      {formatEther(BigInt(bid.amountWei))} ETH
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <span className="font-geist text-sm text-[#666666] text-center py-4">No recent bids</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl p-5 border border-[#CBCCC9] flex flex-col gap-4">
+            <h3 className="font-jetbrains text-base font-bold text-[#111111]">
+              Seller Information
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-[#E7E8E5] flex items-center justify-center overflow-hidden">
+                {auction.seller.avatarUrl ? (
+                  <img src={auction.seller.avatarUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-6 h-6 text-[#666666]" />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-jetbrains text-sm font-semibold text-[#111111]">
+                  {auction.seller.displayName || auction.seller.walletAddress.slice(0, 6) + '...' + auction.seller.walletAddress.slice(-4)}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-[#FF8400] text-[#FF8400]" />
+                  <span className="font-geist text-xs text-[#666666]">
+                    Seller Verified
+                  </span>
+                </div>
+              </div>
+            </div>
+                <button 
+                  onClick={() => useChatStore.getState().openChat(auction.seller.id)}
+                  className="w-full h-10 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] font-jetbrains text-sm font-semibold text-[#111111] hover:bg-[#CBCCC9] transition-colors"
+                >
+                  Contact Seller
+                </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   removeFromWatchlist,
   getWatchlist as getWatchlistService,
 } from './auction.service';
+import { generateThumbnail, isImageMimetype } from '../../shared/utils/thumbnail';
 import type {
   AuctionIdParam,
   RecordBidBody,
@@ -32,8 +33,28 @@ export async function getAuctions(
     const variant = req.query.variant as string | undefined;
     const sellerId = req.query.sellerId as string | undefined;
     const bidderId = req.query.bidderId as string | undefined;
+    const search = req.query.search as string | undefined;
+    const sortBy = req.query.sortBy as string | undefined;
+    
+    // categories có thể là string (comma-separated) hoặc array
+    let categories: string[] | undefined = undefined;
+    if (req.query.categories) {
+      categories = typeof req.query.categories === 'string' 
+        ? req.query.categories.split(',') 
+        : (req.query.categories as string[]);
+    }
 
-    const result = await listAuctions({ status, variant, sellerId, bidderId, page, limit });
+    const result = await listAuctions({ 
+      status, 
+      variant, 
+      sellerId, 
+      bidderId, 
+      search,
+      categories,
+      sortBy,
+      page, 
+      limit 
+    });
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -176,6 +197,18 @@ export async function postAuctionMedia(
     }
 
     const filenames = req.files.map((file) => file.filename);
+
+    // Sinh thumbnail song song cho tất cả file ảnh (bỏ qua video)
+    // Fire-and-forget: lỗi thumbnail không block response
+    const imageFiles = req.files.filter((file) => isImageMimetype(file.mimetype));
+    if (imageFiles.length > 0) {
+      Promise.all(
+        imageFiles.map((file) => generateThumbnail(file.path)),
+      ).catch((err) => {
+        req.log?.warn({ err }, 'Thumbnail generation failed (non-critical)');
+      });
+    }
+
     res.status(200).json({ filenames });
   } catch (err) {
     next(err);

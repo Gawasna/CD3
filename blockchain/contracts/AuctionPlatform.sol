@@ -13,11 +13,12 @@ contract AuctionPlatform is ReentrancyGuard {
     // ── Enums ────────────────────────────────────────────────────────────────
 
     enum AuctionStatus {
-        Pending,    // Created, waiting for on-chain confirmation (unused in contract, for DB mirror)
-        Active,     // Accepting bids
-        Ended,      // Time expired or manually ended
-        Canceled,   // Canceled before any bid
-        Forfeited   // Winner defaulted after winning (distinct from seller cancel)
+        Pending,    // 0: Created in DB, not yet confirmed on-chain
+        Upcoming,   // 1: Confirmed on-chain, but startTime > now
+        Active,     // 2: Accepting bids
+        Ended,      // 3: Time expired
+        Canceled,   // 4: Canceled by seller or admin
+        Forfeited   // 5: Winner forfeited
     }
 
     enum EscrowStatus {
@@ -27,6 +28,11 @@ contract AuctionPlatform is ReentrancyGuard {
         Disputed,
         Completed,
         Refunded
+    }
+
+    enum ShippingPayer {
+        Buyer,
+        Seller
     }
 
     // ── Structs ──────────────────────────────────────────────────────────────
@@ -47,6 +53,9 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 buyNowPrice;          // Consensus C-01: 0 = disabled; if bid >= this, auction ends immediately
         uint256 deliveryDeadline;     // Consensus C-03: set by markShipped(); claimFunds() checks against this
         bool    deliveryExtensionUsed; // Consensus C-03: buyer may extend deadline once
+        uint256 shippingFee;           // On-chain shipping fee decided by provider service
+        ShippingPayer shippingPayer;   // Who pays for shipping
+        bool    shippingFeePaid;       // For Buyer payer: has the fee been deposited?
     }
 
     // ── State Variables ──────────────────────────────────────────────────────
@@ -147,6 +156,9 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 winnerRefund
     );
 
+    event ShippingFeeSet(uint256 indexed auctionId, uint256 fee);
+    event ShippingFeePaid(uint256 indexed auctionId, address indexed buyer, uint256 amount);
+
     // ── Modifiers ────────────────────────────────────────────────────────────
 
     modifier onlyAdmin() {
@@ -196,7 +208,8 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 _startTime,
         uint256 _duration,
         string calldata _productCid,
-        uint256 _buyNowPrice // Consensus C-01: 0 = disabled; must exceed startingPrice if set
+        uint256 _buyNowPrice, // Consensus C-01: 0 = disabled; must exceed startingPrice if set
+        ShippingPayer _shippingPayer
     ) external payable nonReentrant {
         require(_startingPrice > 0, "AuctionPlatform: starting price must be > 0");
         require(_startTime >= block.timestamp, "AuctionPlatform: startTime must be >= now");
@@ -226,13 +239,16 @@ contract AuctionPlatform is ReentrancyGuard {
             endTime: _startTime + _duration,
             collateral: msg.value,
             productCid: _productCid,
-            status: AuctionStatus.Active,
+            status: _startTime > block.timestamp ? AuctionStatus.Upcoming : AuctionStatus.Active,
             escrowStatus: EscrowStatus.None,
             shippedTime: 0,
             shipmentProofHash: bytes32(0),
             buyNowPrice: _buyNowPrice,
             deliveryDeadline: 0,
-            deliveryExtensionUsed: false
+            deliveryExtensionUsed: false,
+            shippingFee: 0,
+            shippingPayer: _shippingPayer,
+            shippingFeePaid: false
         });
 
         emit AuctionCreated(
@@ -251,7 +267,10 @@ contract AuctionPlatform is ReentrancyGuard {
     function bid(uint256 _auctionId) external payable nonReentrant auctionExists(_auctionId) {
         Auction storage auction = auctions[_auctionId];
 
-        require(auction.status == AuctionStatus.Active, "AuctionPlatform: auction not active");
+        require(
+            auction.status == AuctionStatus.Active || auction.status == AuctionStatus.Upcoming,
+            "AuctionPlatform: auction not active"
+        );
         require(block.timestamp >= auction.startTime, "AuctionPlatform: auction not yet started");
         require(block.timestamp < auction.endTime, "AuctionPlatform: auction has ended");
         require(msg.sender != auction.seller, "AuctionPlatform: seller cannot bid");
@@ -276,6 +295,11 @@ contract AuctionPlatform is ReentrancyGuard {
 
         auction.highestBid = msg.value;
         auction.highestBidder = payable(msg.sender);
+        
+        // If it was Upcoming, mark it as Active now that it has started
+        if (auction.status == AuctionStatus.Upcoming) {
+            auction.status = AuctionStatus.Active;
+        }
 
         emit BidPlaced(_auctionId, msg.sender, msg.value);
 
@@ -313,7 +337,10 @@ contract AuctionPlatform is ReentrancyGuard {
     function endAuction(uint256 _auctionId) external auctionExists(_auctionId) {
         Auction storage auction = auctions[_auctionId];
 
-        require(auction.status == AuctionStatus.Active, "AuctionPlatform: auction not active");
+        require(
+            auction.status == AuctionStatus.Active || auction.status == AuctionStatus.Upcoming,
+            "AuctionPlatform: auction not active"
+        );
         require(block.timestamp >= auction.endTime, "AuctionPlatform: auction not yet ended");
 
         auction.status = AuctionStatus.Ended;
@@ -340,7 +367,10 @@ contract AuctionPlatform is ReentrancyGuard {
     function cancelAuction(uint256 _auctionId) external nonReentrant onlySeller(_auctionId) auctionExists(_auctionId) {
         Auction storage auction = auctions[_auctionId];
 
-        require(auction.status == AuctionStatus.Active, "AuctionPlatform: auction not active");
+        require(
+            auction.status == AuctionStatus.Active || auction.status == AuctionStatus.Upcoming,
+            "AuctionPlatform: auction not active"
+        );
         require(auction.highestBidder == address(0), "AuctionPlatform: cannot cancel with bids");
 
         auction.status = AuctionStatus.Canceled;
@@ -358,6 +388,30 @@ contract AuctionPlatform is ReentrancyGuard {
     // ── Escrow Functions ─────────────────────────────────────────────────────
 
     /**
+     * @notice Admin (or simulated Shipping Provider) sets the official shipping fee.
+     */
+    function setShippingFee(uint256 _auctionId, uint256 _fee) external onlyAdmin auctionExists(_auctionId) {
+        Auction storage auction = auctions[_auctionId];
+        require(auction.shippingFee == 0, "AuctionPlatform: fee already set");
+        auction.shippingFee = _fee;
+        emit ShippingFeeSet(_auctionId, _fee);
+    }
+
+    /**
+     * @notice Buyer pays the shipping fee if shippingPayer is Buyer.
+     */
+    function payShippingFee(uint256 _auctionId) external payable nonReentrant onlyWinner(_auctionId) auctionExists(_auctionId) {
+        Auction storage auction = auctions[_auctionId];
+        require(auction.shippingPayer == ShippingPayer.Buyer, "AuctionPlatform: seller pays shipping");
+        require(!auction.shippingFeePaid, "AuctionPlatform: fee already paid");
+        require(auction.shippingFee > 0, "AuctionPlatform: shipping fee not yet set");
+        require(msg.value == auction.shippingFee, "AuctionPlatform: incorrect fee amount");
+
+        auction.shippingFeePaid = true;
+        emit ShippingFeePaid(_auctionId, msg.sender, msg.value);
+    }
+
+    /**
      * @notice Task 6: Seller marks the item as shipped and provides proof.
      */
     function markShipped(uint256 _auctionId, bytes32 _shipmentProofHash) external nonReentrant onlySeller(_auctionId) auctionExists(_auctionId) {
@@ -366,6 +420,13 @@ contract AuctionPlatform is ReentrancyGuard {
             auction.escrowStatus == EscrowStatus.AwaitingShipment,
             "AuctionPlatform: not in AwaitingShipment state"
         );
+
+        if (auction.shippingPayer == ShippingPayer.Buyer) {
+            require(auction.shippingFeePaid, "AuctionPlatform: buyer has not paid shipping fee");
+        } else {
+            // If Seller pays, fee must be set so we can deduct it later
+            require(auction.shippingFee > 0, "AuctionPlatform: shipping fee not yet set");
+        }
 
         auction.escrowStatus = EscrowStatus.AwaitingDelivery;
         auction.shippedTime = block.timestamp;
@@ -392,11 +453,20 @@ contract AuctionPlatform is ReentrancyGuard {
         auction.escrowStatus = EscrowStatus.Completed;
 
         // Task 8: Platform Fee
-        uint256 fee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
-        adminFeeBalance += fee;
+        uint256 platformFee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        adminFeeBalance += platformFee;
 
-        // Release: highestBid - fee + collateral → seller
-        uint256 payout = (auction.highestBid - fee) + auction.collateral;
+        uint256 payout;
+        if (auction.shippingPayer == ShippingPayer.Seller) {
+            // Deduct shipping fee from seller's payout
+            adminFeeBalance += auction.shippingFee;
+            payout = (auction.highestBid - platformFee - auction.shippingFee) + auction.collateral;
+        } else {
+            // Buyer already paid shipping fee to contract, add it to admin balance
+            adminFeeBalance += auction.shippingFee;
+            payout = (auction.highestBid - platformFee) + auction.collateral;
+        }
+
         auction.highestBid = 0;
         auction.collateral = 0;
 
@@ -425,11 +495,20 @@ contract AuctionPlatform is ReentrancyGuard {
         auction.escrowStatus = EscrowStatus.Completed;
 
         // Task 8: Platform Fee
-        uint256 fee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
-        adminFeeBalance += fee;
+        uint256 platformFee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        adminFeeBalance += platformFee;
 
-        // Release: highestBid - fee + collateral → seller
-        uint256 payout = (auction.highestBid - fee) + auction.collateral;
+        uint256 payout;
+        if (auction.shippingPayer == ShippingPayer.Seller) {
+            // Deduct shipping fee from seller's payout
+            adminFeeBalance += auction.shippingFee;
+            payout = (auction.highestBid - platformFee - auction.shippingFee) + auction.collateral;
+        } else {
+            // Buyer already paid shipping fee to contract, add it to admin balance
+            adminFeeBalance += auction.shippingFee;
+            payout = (auction.highestBid - platformFee) + auction.collateral;
+        }
+
         auction.highestBid = 0;
         auction.collateral = 0;
 
