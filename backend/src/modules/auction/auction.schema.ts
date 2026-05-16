@@ -56,7 +56,7 @@ export const createAuctionBodySchema = z.object({
   startTime: z.string().datetime('startTime must be a valid ISO 8601 date string').optional(),
   durationSeconds: z.number().int().min(3600, 'Duration must be at least 1 hour (3600 seconds)'),
   shippingCostWei: z.string().regex(/^[0-9]+$/, 'shippingCostWei must be a non-negative integer string'),
-  shippingPayer: z.enum(['BUYER', 'SELLER', 'PLATFORM']),
+  shippingPayer: z.enum(['BUYER', 'SELLER']),
   createTxHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'createTxHash must be a valid 32-byte hex string'),
   mediaKeys: z.array(z.string()).min(1, 'At least one media file is required').max(6, 'Maximum 6 media files allowed'),
 });

@@ -67,7 +67,6 @@ enum AuctionStatus {
 enum ShippingPayer {
   BUYER    // Buyer total = winningBid + shippingCost; seller net = winningBid - platformFee
   SELLER   // Buyer total = winningBid; seller net = winningBid - platformFee - shippingCost
-  PLATFORM // Buyer total = winningBid; seller net = winningBid - platformFee; platform trả phí ship
 }
 
 // DB-SL-02: bổ sung CONFIRMED, CANCELED; DB-SL-05: remove DISPUTED khỏi shipping domain
@@ -114,6 +113,9 @@ model User {
   // DB-U-01: soft delete — giữ audit trail, không xóa vật lý
   deletedAt        DateTime? @map("deleted_at")
   oldName          String?   @map("old_name")
+  address1         String?   @map("address_1")
+  address2         String?   @map("address_2")
+  lastAddressUpdate DateTime? @map("last_address_update")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
@@ -136,10 +138,46 @@ model User {
   watchlist        Watchlist[]
   // Notifications
   notifications    Notification[]
+  // Chat Conversations
+  sentMessages     Message[]         @relation("SentMessages")
+  conversations1   Conversation[]    @relation("Participant1")
+  conversations2   Conversation[]    @relation("Participant2")
 
   // DB-IDX-01: Admin filter by KYC status
   @@index([kycStatus])
   @@map("users")
+}
+
+// ---- Conversation ----
+model Conversation {
+  id             String    @id @default(uuid())
+  participant1Id String    @map("participant_1_id")
+  participant2Id String    @map("participant_2_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  participant1   User      @relation("Participant1", fields: [participant1Id], references: [id])
+  participant2   User      @relation("Participant2", fields: [participant2Id], references: [id])
+  messages       Message[]
+
+  @@unique([participant1Id, participant2Id])
+  @@map("conversations")
+}
+
+// ---- Message ----
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String       @map("conversation_id")
+  senderId       String       @map("sender_id")
+  content        String       @db.Text
+  isRead         Boolean      @default(false) @map("is_read")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@map("messages")
 }
 
 // ---- KycRequest ----

@@ -11,6 +11,9 @@ export default function ProfilePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [address1, setAddress1] = useState('');
+  const [address2, setAddress2] = useState('');
+  const [lastAddressUpdate, setLastAddressUpdate] = useState<string | null>(null);
   const [kycStatus, setKycStatus] = useState('NONE');
   const [isLoading, setIsLoading] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -19,7 +22,7 @@ export default function ProfilePage() {
 
   const { _hasHydrated, updateUser } = useAuthStore();
 
-  const { data: profileData, isLoading: isQueryLoading } = useQuery({
+  const { data: profileData, isLoading: isQueryLoading, refetch } = useQuery({
     queryKey: ['profile'],
     queryFn: () => profileApi.getProfile(),
     enabled: _hasHydrated,
@@ -31,6 +34,9 @@ export default function ProfilePage() {
       const user = (profileData as any).user || (profileData as any).data || profileData;
       setDisplayName(user.displayName || '');
       setAvatarUrl(user.avatarUrl || '');
+      setAddress1(user.address1 || '');
+      setAddress2(user.address2 || '');
+      setLastAddressUpdate(user.lastAddressUpdate || null);
       setKycStatus(user.kycStatus || 'NONE');
       setIsPageLoading(false);
     } else if (!isQueryLoading && _hasHydrated) {
@@ -38,12 +44,29 @@ export default function ProfilePage() {
     }
   }, [profileData, isQueryLoading, _hasHydrated]);
 
+  const canUpdateAddress = () => {
+    if (!lastAddressUpdate) return true;
+    const lastUpdate = new Date(lastAddressUpdate);
+    const now = new Date();
+    const diffInMs = now.getTime() - lastUpdate.getTime();
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+    return diffInMs >= oneDayInMs;
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await profileApi.updateProfile({ displayName });
+      const user = (profileData as any).user || (profileData as any).data || profileData;
+      const updateData: any = { displayName };
+      
+      // Chỉ gửi address nếu nó thay đổi so với db
+      if (address1 !== (user.address1 || '')) updateData.address1 = address1;
+      if (address2 !== (user.address2 || '')) updateData.address2 = address2;
+
+      await profileApi.updateProfile(updateData);
       updateUser({ displayName });
+      await refetch();
       alert('Cập nhật profile thành công!');
     } catch (err: any) {
       alert(`Lỗi: ${err.message}`);
@@ -145,6 +168,44 @@ export default function ProfilePage() {
               onChange={(e) => setDisplayName(e.target.value)}
               className="w-full px-4 py-3 border border-[#CBCCC9] rounded-lg focus:border-[#FF8400] focus:ring-1 focus:ring-[#FF8400] outline-none text-[#111111] font-geist placeholder:text-[#666666] transition-all"
               placeholder="Nhập tên hiển thị..."
+            />
+          </div>
+
+          {/* Address 1 Section */}
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <label className="font-geist text-base font-semibold text-[#111111]">
+                Địa chỉ 1
+              </label>
+              {!canUpdateAddress() && (
+                <span className="text-xs text-[#EF4444] font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Có thể cập nhật sau 24h
+                </span>
+              )}
+            </div>
+            <input 
+              type="text" 
+              value={address1}
+              disabled={!canUpdateAddress()}
+              onChange={(e) => setAddress1(e.target.value)}
+              className="w-full px-4 py-3 border border-[#CBCCC9] rounded-lg focus:border-[#FF8400] focus:ring-1 focus:ring-[#FF8400] outline-none text-[#111111] font-geist placeholder:text-[#666666] transition-all disabled:bg-[#F2F3F0] disabled:cursor-not-allowed"
+              placeholder="Nhập địa chỉ 1..."
+            />
+          </div>
+
+          {/* Address 2 Section */}
+          <div className="flex flex-col gap-4">
+            <label className="font-geist text-base font-semibold text-[#111111]">
+              Địa chỉ 2
+            </label>
+            <input 
+              type="text" 
+              value={address2}
+              disabled={!canUpdateAddress()}
+              onChange={(e) => setAddress2(e.target.value)}
+              className="w-full px-4 py-3 border border-[#CBCCC9] rounded-lg focus:border-[#FF8400] focus:ring-1 focus:ring-[#FF8400] outline-none text-[#111111] font-geist placeholder:text-[#666666] transition-all disabled:bg-[#F2F3F0] disabled:cursor-not-allowed"
+              placeholder="Nhập địa chỉ 2..."
             />
           </div>
 

@@ -6,6 +6,8 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { parseEther } from 'viem';
 import { useRouter } from 'next/navigation';
 import { uploadAuctionMedia, createAuction, type AuctionCategory, type ShippingPayer } from '@/services/api/auction';
+import { fetchMe } from '@/services/api/auth';
+import { useQuery } from '@tanstack/react-query';
 import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
 import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/components/auth/ToastContainer';
@@ -19,35 +21,56 @@ interface MediaFile {
 export default function CreateAuction() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { address, isConnected } = useAccount();
-  const { user } = useAuthStore();
+  const { address, isConnected, isConnecting, isReconnecting } = useAccount();
+  const { user, _hasHydrated, token, updateUser } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+
+  // Fetch latest user info to ensure KYC status is up to date
+  const { data: latestUser, isLoading: isFetchingMe } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => fetchMe(token!),
+    enabled: !!token && _hasHydrated,
+    staleTime: 0,
+  });
+
+  // Update store when fresh data arrives
+  useEffect(() => {
+    if (latestUser) {
+      updateUser(latestUser);
+    }
+  }, [latestUser, updateUser]);
+
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check KYC status
-  const isKycApproved = user?.kycStatus === 'APPROVED';
+  // Check KYC status - use latest if available, fallback to store
+  const isKycApproved = (latestUser?.kycStatus || user?.kycStatus) === 'APPROVED';
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Redirect if not connected
   useEffect(() => {
-    if (!isConnected) {
+    if (mounted && _hasHydrated && !isConnecting && !isReconnecting && !isConnected) {
       router.push('/auth-demo');
     }
-  }, [isConnected, router]);
+  }, [isConnected, isConnecting, isReconnecting, mounted, _hasHydrated, router]);
 
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<AuctionCategory>('ELECTRONICS');
-  const [startingPrice, setStartingPrice] = useState('');
+  const [startingPrice, setStartingPrice] = useState('0.000000');
   const [hasBuyNow, setHasBuyNow] = useState(false);
-  const [buyNowPrice, setBuyNowPrice] = useState('');
+  const [buyNowPrice, setBuyNowPrice] = useState('0.000000');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState('86400'); // 1 day in seconds
-  const [shippingCost, setShippingCost] = useState('0');
+  const [shippingCost, setShippingCost] = useState('0.000000');
   const [shippingPayer, setShippingPayer] = useState<ShippingPayer>('BUYER');
 
   const { writeContract, data: txHash } = useWriteContract();
@@ -56,6 +79,57 @@ export default function CreateAuction() {
   });
 
   const [uploadedFilenames, setUploadedFilenames] = useState<string[]>([]);
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isTxConfirmed && txHash && uploadedFilenames.length > 0 && isCreating) {
+      const registerAuction = async () => {
+        try {
+          console.log('Transaction confirmed, registering auction in backend...', {
+            txHash,
+            uploadedFilenames
+          });
+          setError(null);
+          // 3. Register auction in backend
+          const { auctionId } = await createAuction({
+            title,
+            description,
+            category,
+            startingPriceWei: parseEther(startingPrice).toString(),
+            buyNowPriceWei: (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice).toString() : undefined,
+            startTime: startTime ? new Date(startTime).toISOString() : undefined,
+            durationSeconds: parseInt(duration),
+            shippingCostWei: parseEther(shippingCost).toString(),
+            shippingPayer,
+            createTxHash: txHash,
+            mediaKeys: uploadedFilenames,
+          });
+
+          console.log('Auction registered successfully:', auctionId);
+          showToast('success', 'Auction created successfully!');
+          // Success - redirect to auction page
+          router.push(`/auctions/${auctionId}`);
+        } catch (error: any) {
+          console.error('Error registering auction:', error);
+          const msg = `Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`;
+          setError(msg);
+          showToast('error', 'Backend registration failed. Please contact support.');
+          setIsCreating(false);
+        }
+      };
+      
+      registerAuction();
+    }
+  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, hasBuyNow, duration, shippingCost, shippingPayer, router, showToast]);
+
+  // If not ready, show loading to prevent flicker and incorrect KYC warnings
+  if (!mounted || !_hasHydrated || isConnecting || isReconnecting || (!!token && isFetchingMe)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#F2F3F0]">
+        <div className="animate-pulse font-jetbrains text-[#FF8400]">Loading authentication state...</div>
+      </div>
+    );
+  }
 
   const validateFile = (file: File): { valid: boolean; error?: string } => {
     const imageTypes = ['image/jpeg', 'image/jpg', 'image/png'];
@@ -218,9 +292,19 @@ export default function CreateAuction() {
       const buyNowPriceWei = (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice) : BigInt(0);
       const durationSeconds = parseInt(duration);
 
-      const startTimestamp = startTime 
+      // ── Timestamp Buffer ────────────────────────────────────────────────
+      // Để tránh lỗi "startTime must be >= now" do lệch múi giờ giữa Browser và Ganache,
+      // chúng ta sẽ trừ đi 60 giây nếu startTime được chọn là 'bây giờ'.
+      const now = Math.floor(Date.now() / 1000);
+      let startTimestamp = startTime 
         ? Math.floor(new Date(startTime).getTime() / 1000) 
-        : Math.floor(Date.now() / 1000);
+        : now;
+
+      if (startTimestamp <= now) {
+        // Cộng thêm 60 giây để đảm bảo startTime >= block.timestamp trên chuỗi
+        // Phiên sẽ ở trạng thái 'UPCOMING' trong tối đa 1 phút trước khi chuyển sang 'ACTIVE'
+        startTimestamp = now + 60; 
+      }
 
       // Match Smart Contract logic: 10% of starting price, min 0.01 ETH
       const collateralBps = BigInt(1000); // 10%
@@ -247,9 +331,11 @@ export default function CreateAuction() {
           BigInt(durationSeconds),
           JSON.stringify(filenames),
           buyNowPriceWei,
+          shippingPayer === 'BUYER' ? 0 : 1, // 0: Buyer, 1: Seller
         ],
         value: requiredCollateral,
       }, {
+
         onError: (error: any) => {
           console.error('Wallet error:', error);
           const msg = error.shortMessage || error.message || 'Transaction rejected by wallet';
@@ -267,48 +353,6 @@ export default function CreateAuction() {
       setIsCreating(false);
     }
   };
-
-  // Handle transaction confirmation
-  useEffect(() => {
-    if (isTxConfirmed && txHash && uploadedFilenames.length > 0 && isCreating) {
-      const registerAuction = async () => {
-        try {
-          console.log('Transaction confirmed, registering auction in backend...', {
-            txHash,
-            uploadedFilenames
-          });
-          setError(null);
-          // 3. Register auction in backend
-          const { auctionId } = await createAuction({
-            title,
-            description,
-            category,
-            startingPriceWei: parseEther(startingPrice).toString(),
-            buyNowPriceWei: (hasBuyNow && buyNowPrice) ? parseEther(buyNowPrice).toString() : undefined,
-            startTime: startTime ? new Date(startTime).toISOString() : undefined,
-            durationSeconds: parseInt(duration),
-            shippingCostWei: parseEther(shippingCost).toString(),
-            shippingPayer,
-            createTxHash: txHash,
-            mediaKeys: uploadedFilenames,
-          });
-
-          console.log('Auction registered successfully:', auctionId);
-          showToast('success', 'Auction created successfully!');
-          // Success - redirect to auction page
-          router.push(`/auctions/${auctionId}`);
-        } catch (error: any) {
-          console.error('Error registering auction:', error);
-          const msg = `Transaction confirmed on blockchain, but failed to register in backend: ${error.message}. Please contact support with TX hash: ${txHash}`;
-          setError(msg);
-          showToast('error', 'Backend registration failed. Please contact support.');
-          setIsCreating(false);
-        }
-      };
-      
-      registerAuction();
-    }
-  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, hasBuyNow, duration, shippingCost, shippingPayer, router, showToast]);
 
   // Helper function to get status text
   const getStatusText = () => {
@@ -537,13 +581,13 @@ export default function CreateAuction() {
                 <label className="font-jetbrains text-sm font-semibold text-[#111111]">Starting Price (ETH) *</label>
                 <input 
                   type="number" 
-                  step="0.001"
+                  step="0.000001"
                   value={startingPrice}
                   onChange={(e) => setStartingPrice(e.target.value)}
                   required
-                  min="0.001"
+                  min="0.000001"
                   className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-                  placeholder="0.00" 
+                  placeholder="0.000000" 
                 />
               </div>
               <div className="flex flex-col gap-2 flex-1">
@@ -562,13 +606,13 @@ export default function CreateAuction() {
                 </div>
                 <input 
                   type="number" 
-                  step="0.001"
+                  step="0.000001"
                   value={buyNowPrice}
                   onChange={(e) => setBuyNowPrice(e.target.value)}
                   disabled={!hasBuyNow}
                   min="0"
                   className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full disabled:bg-[#F2F3F0] disabled:cursor-not-allowed" 
-                  placeholder={hasBuyNow ? "0.00" : "Disabled"} 
+                  placeholder={hasBuyNow ? "0.000000" : "Disabled"} 
                 />
               </div>
             </div>
@@ -583,31 +627,20 @@ export default function CreateAuction() {
             )}
           </div>
           {/* Shipping */}
-          <div className="flex gap-6 w-full">
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Cost (ETH)</label>
-              <input 
-                type="number" 
-                step="0.001"
-                value={shippingCost}
-                onChange={(e) => setShippingCost(e.target.value)}
-                min="0"
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-                placeholder="0.00" 
-              />
-            </div>
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Paid By</label>
-              <select
-                value={shippingPayer}
-                onChange={(e) => setShippingPayer(e.target.value as ShippingPayer)}
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
-              >
-                <option value="BUYER">Buyer</option>
-                <option value="SELLER">Seller</option>
-                <option value="PLATFORM">Platform</option>
-              </select>
-            </div>
+          <div className="flex flex-col gap-2 w-full">
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Paid By *</label>
+            <select
+              value={shippingPayer}
+              onChange={(e) => setShippingPayer(e.target.value as ShippingPayer)}
+              required
+              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full appearance-none"
+            >
+              <option value="BUYER">Buyer</option>
+              <option value="SELLER">Seller</option>
+            </select>
+            <p className="font-geist text-[10px] text-[#666666]">
+              Shipping fee will be calculated and set by the shipping provider after the auction ends.
+            </p>
           </div>
 
           {/* Submit Button */}

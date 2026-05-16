@@ -12,31 +12,30 @@ export const getMediaUrl = (filename: string): string => {
   if (!filename) return '';
   if (filename.startsWith('http') || filename.startsWith('/')) return filename;
   
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://127.0.0.1:3001';
   return `${baseUrl}/uploads/auctions/${filename}`;
 };
 
-export const getThumbnail = (ipfsCid: string | null): string => {
-  if (!ipfsCid) return '';
-  
+export const getFirstImageFilename = (ipfsCid: string | null): string | null => {
+  if (!ipfsCid) return null;
   try {
-    const media = JSON.parse(ipfsCid);
-    if (Array.isArray(media)) {
-      // Tìm ảnh đầu tiên để làm thumbnail
-      const firstImage = media.find(item => !isVideo(item));
-      if (firstImage) {
-        return getMediaUrl(firstImage);
-      }
-      // Nếu không có ảnh, lấy item đầu tiên (có thể là video)
-      if (media.length > 0) {
-        return getMediaUrl(media[0]);
-      }
-    }
-  } catch (e) {
-    console.error('Failed to parse ipfsCid for thumbnail:', e);
+    const media: string[] = JSON.parse(ipfsCid);
+    if (!Array.isArray(media)) return null;
+    const firstImage = media.find((f) => !isVideo(f));
+    return firstImage ?? media[0] ?? null;
+  } catch {
+    return null;
   }
-  
-  return '';
+};
+
+/**
+ * Trả về URL ảnh gốc của auction (backward compatible).
+ * Để sử dụng thumbnail tự sinh (có fallback), hãy dùng getFirstImageFilename() kết hợp với <AuctionImage />.
+ */
+export const getThumbnail = (ipfsCid: string | null): string => {
+  const filename = getFirstImageFilename(ipfsCid);
+  if (!filename) return '';
+  return getMediaUrl(filename);
 };
 
 export const getReorderedMedia = (ipfsCid: string | null): string[] => {

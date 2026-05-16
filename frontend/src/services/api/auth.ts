@@ -8,6 +8,9 @@ export type UserProfile = {
   role: 'USER' | 'ADMIN';
   kycStatus: string;
   isActive: boolean;
+  address1?: string | null;
+  address2?: string | null;
+  lastAddressUpdate?: string | null;
 };
 
 export type NonceResponse = {

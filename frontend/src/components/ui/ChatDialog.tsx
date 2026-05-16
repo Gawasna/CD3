@@ -1,94 +1,30 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MoreHorizontal, X, Send } from 'lucide-react';
+import { Search, MoreHorizontal, X, Send, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface Conversation {
-  id: string;
-  name: string;
-  preview: string;
-  time: string;
-  unread?: number;
-  active?: boolean;
-}
-
-interface Message {
-  id: string;
-  role: 'bot' | 'user';
-  content: string;
-  time: string;
-}
-
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: '1',
-    name: 'inkspire_3d',
-    preview: 'Đen ạ',
-    time: '22:18',
-    active: true,
-  },
-  {
-    id: '2',
-    name: 'Topick Global',
-    preview: 'Hôm nay top 50 sản phẩm...',
-    time: 'Hôm qua',
-  },
-  {
-    id: '3',
-    name: 'top1k.sale',
-    preview: 'TỔNG HỢP...',
-    time: 'Thứ 3',
-  },
-  {
-    id: '4',
-    name: 'maytinhvietnhat',
-    preview: 'Là sao ạ',
-    time: '09/04',
-  },
-];
-
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: 'm1',
-    role: 'bot',
-    content: 'Xin chào! Bạn cần hỗ trợ gì ạ?',
-    time: '22:00',
-  },
-  {
-    id: 'm2',
-    role: 'user',
-    content: 'Đen ạ',
-    time: '22:18',
-  },
-  {
-    id: 'm3',
-    role: 'bot',
-    content: 'Dạ, bạn có thể xem chi tiết đơn hàng trong mục "Quản lý đơn hàng" nhé!',
-    time: '22:19',
-  },
-  {
-    id: 'm4',
-    role: 'user',
-    content: 'Cảm ơn bạn nhiều!',
-    time: '22:20',
-  },
-];
+import { chatApi, Conversation, Message, ChatParticipant } from '@/services/api/chat';
+import { useAuthStore } from '@/store/auth.store';
+import { useChatStore } from '@/store/chat.store';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-/** Avatar placeholder với gradient cam brand */
-function Avatar({ size = 36 }: { size?: number }) {
+/** Avatar placeholder với gradient cam brand hoặc ảnh thực */
+function Avatar({ src, size = 36 }: { src?: string | null; size?: number }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt="Avatar"
+        className="rounded-full flex-shrink-0 object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   return (
     <div
       className="rounded-full flex-shrink-0"
@@ -111,6 +47,10 @@ function ConvItem({
   isActive: boolean;
   onClick: () => void;
 }) {
+  const lastMsg = conv.lastMessage;
+  const timeStr = lastMsg ? format(new Date(lastMsg.createdAt), 'HH:mm') : '';
+  const isUnread = lastMsg && !lastMsg.isRead && lastMsg.senderId === conv.otherParticipant.id;
+
   return (
     <button
       type="button"
@@ -121,38 +61,40 @@ function ConvItem({
           : 'hover:bg-[var(--color-secondary)]/60'
       } border-t border-[var(--color-border)] first:border-t-0`}
     >
-      <Avatar size={36} />
+      <Avatar src={conv.otherParticipant.avatarUrl} size={36} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-[var(--color-foreground)] truncate">
-            {conv.name}
+          <span className={`text-[13px] truncate ${isUnread ? 'font-bold' : 'font-semibold'} text-[var(--color-foreground)]`}>
+            {conv.otherParticipant.displayName || 
+             (conv.otherParticipant.walletAddress ? 
+              conv.otherParticipant.walletAddress.slice(0, 6) + '...' + conv.otherParticipant.walletAddress.slice(-4) : 
+              'Người dùng ẩn danh')}
           </span>
           <span className="text-[11px] text-[var(--color-muted-foreground)] flex-shrink-0 ml-2">
-            {conv.time}
+            {timeStr}
           </span>
         </div>
-        <p className="text-[12px] text-[var(--color-muted-foreground)] truncate mt-0.5">
-          {conv.preview}
+        <p className={`text-[12px] truncate mt-0.5 ${isUnread ? 'text-[var(--color-foreground)] font-medium' : 'text-[var(--color-muted-foreground)]'}`}>
+          {lastMsg?.content || 'Chưa có tin nhắn'}
         </p>
       </div>
-      {conv.unread && conv.unread > 0 ? (
-        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-[10px] font-bold flex items-center justify-center">
-          {conv.unread}
-        </span>
+      {isUnread ? (
+        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-[var(--color-primary)]" />
       ) : null}
     </button>
   );
 }
 
 /** Bubble tin nhắn */
-function MessageBubble({ message }: { message: Message }) {
-  const isUser = message.role === 'user';
+function MessageBubble({ message, currentUserId }: { message: Message; currentUserId: string }) {
+  const isMe = message.senderId === currentUserId;
+  const timeStr = format(new Date(message.createdAt), 'HH:mm');
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[70%] px-3.5 py-2.5 text-[13px] leading-relaxed break-words ${
-          isUser
+          isMe
             ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] rounded-[14px_14px_4px_14px]'
             : 'bg-[var(--color-card)] text-[var(--color-foreground)] border border-[var(--color-border)] rounded-[14px_14px_14px_4px]'
         }`}
@@ -161,12 +103,12 @@ function MessageBubble({ message }: { message: Message }) {
         {message.content}
         <span
           className={`block text-[10px] mt-1 ${
-            isUser
+            isMe
               ? 'text-[var(--color-primary-foreground)]/70 text-right'
               : 'text-[var(--color-muted-foreground)] text-right'
           }`}
         >
-          {message.time}
+          {timeStr}
         </span>
       </div>
     </div>
@@ -182,62 +124,127 @@ interface ChatDialogProps {
 }
 
 export default function ChatDialog({ onClose }: ChatDialogProps) {
-  const [activeConvId, setActiveConvId] = useState<string>('1');
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const { user } = useAuthStore();
+  const { targetUserId } = useChatStore();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingConvs, setIsLoadingConvs] = useState(true);
+  const [isLoadingMsgs, setIsLoadingMsgs] = useState(false);
+  
+  // State cho hội thoại mới (chưa có trong list)
+  const [newChatTarget, setNewChatTarget] = useState<ChatParticipant | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 1. Fetch Conversations + Polling
+  useEffect(() => {
+    const fetchConvs = async () => {
+      try {
+        const { conversations } = await chatApi.getConversations();
+        setConversations(conversations);
+        
+        // Logic chọn hội thoại active
+        if (targetUserId) {
+          const existing = conversations.find(c => c.otherParticipant.id === targetUserId);
+          if (existing) {
+            setActiveConvId(existing.id);
+            setNewChatTarget(null);
+          } else if (!newChatTarget || newChatTarget.id !== targetUserId) {
+            // Lấy thông tin user của targetUserId để hiển thị đúng tên
+            try {
+              const { user: targetUserInfo } = await chatApi.getUserInfo(targetUserId);
+              setNewChatTarget(targetUserInfo);
+            } catch (err) {
+              console.error('Failed to fetch target user info:', err);
+              setNewChatTarget({ id: targetUserId, displayName: 'Người dùng', avatarUrl: null, walletAddress: '' });
+            }
+            setActiveConvId(null);
+            setMessages([]);
+          }
+        } else if (conversations.length > 0 && !activeConvId) {
+          setActiveConvId(conversations[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch conversations:', err);
+      } finally {
+        setIsLoadingConvs(false);
+      }
+    };
+
+    fetchConvs();
+    const interval = setInterval(fetchConvs, 5000); // Polling 5s
+    return () => clearInterval(interval);
+  }, [activeConvId, targetUserId, newChatTarget]);
+
+  // 2. Fetch Messages + Polling for active conversation
+  useEffect(() => {
+    if (!activeConvId) return;
+
+    const fetchMsgs = async (showLoading = false) => {
+      if (showLoading) setIsLoadingMsgs(true);
+      try {
+        const { messages } = await chatApi.getMessages(activeConvId);
+        setMessages(messages);
+        
+        // Mark as read if there are unread messages from others
+        const hasUnread = messages.some(m => !m.isRead && m.senderId !== user?.id);
+        if (hasUnread) {
+          await chatApi.markAsRead(activeConvId);
+        }
+      } catch (err) {
+        console.error('Failed to fetch messages:', err);
+      } finally {
+        if (showLoading) setIsLoadingMsgs(false);
+      }
+    };
+
+    fetchMsgs(true);
+    const interval = setInterval(() => fetchMsgs(false), 3000); // Polling tin nhắn nhanh hơn (3s)
+    return () => clearInterval(interval);
+  }, [activeConvId, user?.id]);
 
   // Cuộn xuống cuối mỗi khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input khi mở dialog
+  // Focus input khi mở dialog hoặc đổi hội thoại
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+  }, [activeConvId, targetUserId]);
 
-  const activeConv = MOCK_CONVERSATIONS.find((c) => c.id === activeConvId);
+  const activeConv = conversations.find((c) => c.id === activeConvId);
+  const headerUser = activeConv?.otherParticipant || newChatTarget;
 
-  const filteredConvs = MOCK_CONVERSATIONS.filter((c) => {
-    const matchSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchFilter = filter === 'all' || (filter === 'unread' && (c.unread ?? 0) > 0);
-    return matchSearch && matchFilter;
+  const filteredConvs = conversations.filter((c) => {
+    const name = c.otherParticipant.displayName || c.otherParticipant.walletAddress;
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = inputValue.trim();
-    if (!text) return;
+    if (!text || !user) return;
+    
+    const receiverId = activeConv?.otherParticipant.id || targetUserId;
+    if (!receiverId) return;
 
-    const now = new Date();
-    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-    const newMsg: Message = {
-      id: `m${Date.now()}`,
-      role: 'user',
-      content: text,
-      time,
-    };
-
-    setMessages((prev) => [...prev, newMsg]);
-    setInputValue('');
-
-    // Mock bot reply sau 800ms
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `m${Date.now()}-bot`,
-          role: 'bot',
-          content: 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.',
-          time,
-        },
-      ]);
-    }, 800);
+    try {
+      const { message } = await chatApi.sendMessage(receiverId, text);
+      setMessages((prev) => [...prev, message]);
+      setInputValue('');
+      
+      // Nếu là tin nhắn đầu tiên của hội thoại mới
+      if (!activeConvId) {
+        setActiveConvId(message.conversationId);
+        setNewChatTarget(null);
+      }
+    } catch (err: any) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -247,13 +254,20 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="w-[760px] h-[560px] bg-[var(--color-card)] rounded-2xl flex items-center justify-center border border-[var(--color-border)]">
+        <p className="text-[var(--color-muted-foreground)]">Vui lòng đăng nhập để sử dụng chat</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 16 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 16 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      // Origin góc dưới phải - khớp với vị trí FAB
       style={{ transformOrigin: 'bottom right' }}
       className="
         flex overflow-hidden
@@ -289,32 +303,17 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
               style={{ fontFamily: 'var(--font-geist), sans-serif' }}
             />
           </div>
-
-          {/* Filter pills */}
-          <div className="flex gap-1.5">
-            {(['all', 'unread'] as const).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 rounded-full text-[12px] font-semibold transition-colors ${
-                  filter === f
-                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                    : 'bg-[var(--color-secondary)] text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]'
-                }`}
-                style={{ fontFamily: 'var(--font-geist), sans-serif' }}
-              >
-                {f === 'all' ? 'Tất cả' : 'Chưa đọc'}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto">
-          {filteredConvs.length === 0 ? (
+          {isLoadingConvs ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--color-muted-foreground)]" />
+            </div>
+          ) : filteredConvs.length === 0 ? (
             <p className="text-center text-[12px] text-[var(--color-muted-foreground)] py-8">
-              Không tìm thấy
+              Không có cuộc hội thoại nào
             </p>
           ) : (
             filteredConvs.map((conv) => (
@@ -336,13 +335,16 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
         {/* Chat header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-2.5">
-            <Avatar size={36} />
+            <Avatar src={headerUser?.avatarUrl} size={36} />
             <div className="flex flex-col gap-0.5">
               <span
                 className="text-[14px] font-bold text-[var(--color-foreground)]"
                 style={{ fontFamily: 'var(--font-geist), sans-serif' }}
               >
-                {activeConv?.name ?? '—'}
+                {headerUser?.displayName || 
+                 (headerUser?.walletAddress ? 
+                  headerUser.walletAddress.slice(0, 6) + '...' + headerUser.walletAddress.slice(-4) : 
+                  '—')}
               </span>
               <div className="flex items-center gap-1">
                 <span className="w-[7px] h-[7px] rounded-full bg-green-500 flex-shrink-0" />
@@ -350,27 +352,13 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
                   className="text-[11px] text-green-500"
                   style={{ fontFamily: 'var(--font-geist), sans-serif' }}
                 >
-                  Đang hoạt động
+                  Trực tuyến
                 </span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3.5">
-            <button
-              type="button"
-              title="Tìm kiếm trong cuộc trò chuyện"
-              className="text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
-            >
-              <Search className="w-[18px] h-[18px]" />
-            </button>
-            <button
-              type="button"
-              title="Tuỳ chọn thêm"
-              className="text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors"
-            >
-              <MoreHorizontal className="w-[18px] h-[18px]" />
-            </button>
             <button
               type="button"
               onClick={onClose}
@@ -384,19 +372,19 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
 
         {/* Message area */}
         <div className="flex-1 overflow-y-auto flex flex-col gap-3.5 px-4 py-5 bg-[var(--color-background)]">
-          {/* Timestamp separator */}
-          <div className="flex justify-center">
-            <span
-              className="text-[11px] text-[var(--color-muted-foreground)]"
-              style={{ fontFamily: 'var(--font-geist), sans-serif' }}
-            >
-              Thứ 4, 22:00
-            </span>
-          </div>
-
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
-          ))}
+          {isLoadingMsgs ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-[var(--color-muted-foreground)]" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+              <p className="text-[13px]">Bắt đầu cuộc trò chuyện ngay!</p>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <MessageBubble key={msg.id} message={msg} currentUserId={user.id} />
+            ))
+          )}
 
           {/* Scroll anchor */}
           <div ref={messagesEndRef} />
@@ -412,6 +400,7 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              disabled={!activeConvId && !targetUserId}
               className="flex-1 bg-transparent text-[13px] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] outline-none"
               style={{ fontFamily: 'var(--font-geist), sans-serif' }}
             />
@@ -420,7 +409,7 @@ export default function ChatDialog({ onClose }: ChatDialogProps) {
           <button
             type="button"
             onClick={handleSend}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || (!activeConvId && !targetUserId)}
             aria-label="Gửi tin nhắn"
             className="
               w-[38px] h-[38px] flex-shrink-0
