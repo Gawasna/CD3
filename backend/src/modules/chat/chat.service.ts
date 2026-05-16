@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import { Message } from '@prisma/client';
+import { notificationService } from '../notification/notification.service';
 
 export interface ChatParticipant {
   id: string;
@@ -143,12 +144,36 @@ export async function sendMessage(senderId: string, receiverId: string, content:
     },
   });
 
+  // Tạo thông báo cho người nhận sử dụng service chung của platform
+  const sender = await prisma.user.findUnique({ where: { id: senderId } });
+  await notificationService.createNotification(receiverId, {
+    type: 'INFO',
+    title: 'Tin nhắn mới',
+    message: `${sender?.displayName || 'Ai đó'} đã gửi cho bạn một tin nhắn mới`,
+    actionUrl: `/auctions`, // Platform logic link
+  });
+
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
   });
 
   return message;
+}
+
+export async function getUnreadCount(userId: string): Promise<number> {
+  return prisma.message.count({
+    where: {
+      conversation: {
+        OR: [
+          { participant1Id: userId },
+          { participant2Id: userId },
+        ],
+      },
+      senderId: { not: userId },
+      isRead: false,
+    },
+  });
 }
 
 export async function markAsRead(conversationId: string, userId: string) {

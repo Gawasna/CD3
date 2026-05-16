@@ -301,8 +301,9 @@ export default function CreateAuction() {
         : now;
 
       if (startTimestamp <= now) {
-        // Gán bằng now - 60 để Smart Contract hiểu là phiên đã bắt đầu (Active)
-        startTimestamp = now - 60; 
+        // Cộng thêm 60 giây để đảm bảo startTime >= block.timestamp trên chuỗi
+        // Phiên sẽ ở trạng thái 'UPCOMING' trong tối đa 1 phút trước khi chuyển sang 'ACTIVE'
+        startTimestamp = now + 60; 
       }
 
       // Match Smart Contract logic: 10% of starting price, min 0.01 ETH
@@ -626,30 +627,20 @@ export default function CreateAuction() {
             )}
           </div>
           {/* Shipping */}
-          <div className="flex gap-6 w-full">
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Cost (ETH)</label>
-              <input 
-                type="number" 
-                step="0.000001"
-                value={shippingCost}
-                onChange={(e) => setShippingCost(e.target.value)}
-                min="0"
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist w-full" 
-                placeholder="0.000000" 
-              />
-            </div>
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Paid By</label>
-              <select
-                value={shippingPayer}
-                onChange={(e) => setShippingPayer(e.target.value as ShippingPayer)}
-                className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full"
-              >
-                <option value="BUYER">Buyer</option>
-                <option value="SELLER">Seller</option>
-              </select>
-            </div>
+          <div className="flex flex-col gap-2 w-full">
+            <label className="font-jetbrains text-sm font-semibold text-[#111111]">Shipping Paid By *</label>
+            <select
+              value={shippingPayer}
+              onChange={(e) => setShippingPayer(e.target.value as ShippingPayer)}
+              required
+              className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full appearance-none"
+            >
+              <option value="BUYER">Buyer</option>
+              <option value="SELLER">Seller</option>
+            </select>
+            <p className="font-geist text-[10px] text-[#666666]">
+              Shipping fee will be calculated and set by the shipping provider after the auction ends.
+            </p>
           </div>
 
           {/* Submit Button */}

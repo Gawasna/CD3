@@ -10,6 +10,7 @@ router.use(authenticate);
 
 router.get('/users/:userId', chatController.getUserInfo);
 router.get('/conversations', chatController.getConversations);
+router.get('/unread-count', chatController.getUnreadCount);
 router.get('/conversations/:conversationId/messages', validate(getMessagesSchema, 'params'), chatController.getMessages);
 router.post('/messages', validate(sendMessageSchema, 'body'), chatController.sendMessage);
 router.patch('/conversations/:conversationId/read', chatController.markAsRead);

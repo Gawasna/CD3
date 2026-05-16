@@ -21,6 +21,15 @@ export async function getConversations(req: Request, res: Response, next: NextFu
   }
 }
 
+export async function getUnreadCount(req: Request, res: Response, next: NextFunction) {
+  try {
+    const count = await chatService.getUnreadCount(req.user!.id);
+    res.status(200).json({ count });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getMessages(req: Request, res: Response, next: NextFunction) {
   try {
     const { conversationId } = req.params as { conversationId: string };

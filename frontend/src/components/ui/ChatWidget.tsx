@@ -4,16 +4,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ChatDialog from './ChatDialog';
-
 import { useChatStore } from '@/store/chat.store';
+import { chatApi } from '@/services/api/chat';
+import { useAuthStore } from '@/store/auth.store';
 
 /**
  * ChatWidget - FAB tròn góc dưới phải, toggle ChatDialog.
  * Mount component này trong layout.tsx để hiển thị toàn cục.
  */
 export default function ChatWidget() {
+  const { user } = useAuthStore();
   const { isOpen, setIsOpen, closeChat } = useChatStore();
-  const [unreadCount] = useState(0); // TODO: Lấy từ API nếu cần
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count polling
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      try {
+        const { count } = await chatApi.getUnreadCount();
+        setUnreadCount(count);
+      } catch (err) {
+        console.error('Failed to fetch unread count:', err);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000); // Polling 10s
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Reset unread count locally when opening chat (for UX)
+  useEffect(() => {
+    if (isOpen) setUnreadCount(0);
+  }, [isOpen]);
 
   const widgetRef = useRef<HTMLDivElement>(null);
 

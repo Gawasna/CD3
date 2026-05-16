@@ -38,6 +38,8 @@ export const chatApi = {
 
   getConversations: () => authFetch<{ conversations: Conversation[] }>('/v1/chat/conversations'),
 
+  getUnreadCount: () => authFetch<{ count: number }>('/v1/chat/unread-count'),
+
   getMessages: (conversationId: string) =>
     authFetch<{ messages: Message[] }>(`/v1/chat/conversations/${conversationId}/messages`),
 

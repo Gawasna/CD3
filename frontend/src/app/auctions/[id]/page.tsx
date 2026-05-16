@@ -42,7 +42,7 @@ const AuctionTimer = memo(function AuctionTimer({
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60)) / (1000 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
     const parts = [];
@@ -86,6 +86,7 @@ export default function AuctionDetail() {
     containerWidth: 0,
     containerHeight: 0
   });
+  const [bidAmount, setBidAmount] = useState('');
   
   const magnifierHeight = 250;
   const magnifierWidth = 250;
@@ -583,11 +584,31 @@ export default function AuctionDetail() {
               <div className="flex flex-col gap-4">
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.000001"
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
                   disabled={auction.status !== 'ACTIVE'}
                   placeholder="Enter bid amount"
                   className="w-full h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist disabled:opacity-50"
                 />
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 5, 10].map((percent) => (
+                    <button
+                      key={percent}
+                      disabled={auction.status !== 'ACTIVE'}
+                      onClick={() => {
+                        const current = parseFloat(highestBid);
+                        const nextBid = current * (1 + percent / 100);
+                        setBidAmount(nextBid.toFixed(6));
+                      }}
+                      className="h-9 rounded-xl border border-[#CBCCC9] bg-white font-jetbrains text-xs font-bold text-[#111111] hover:border-[#FF8400] hover:text-[#FF8400] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +{percent}%
+                    </button>
+                  ))}
+                </div>
+
                 <button 
                   disabled={auction.status !== 'ACTIVE'}
                   className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"

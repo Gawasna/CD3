@@ -35,7 +35,7 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: env.NODE_ENV === 'production' ? env.SIWE_URI : '*',
+    origin: env.SIWE_URI,
     credentials: true,
   }),
 );
