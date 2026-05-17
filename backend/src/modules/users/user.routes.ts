@@ -19,4 +19,11 @@ router.put('/me', validate(updateProfileBodySchema), updateMe);
 // POST /api/users/me/avatar
 router.post('/me/avatar', uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 
+// Follow logic
+router.get('/me/following', getFollowing);
+router.get('/me/followers', getFollowers);
+router.get('/:id/is-following', checkFollowing);
+router.post('/:id/follow', follow);
+router.delete('/:id/follow', unfollow);
+
 export default router;

@@ -49,5 +49,30 @@ export const profileApi = {
     }
 
     return res.json();
+  },
+
+  // Follow logic
+  follow: async (userId: string) => {
+    return authFetch<{ message: string }>(`/users/${userId}/follow`, {
+      method: 'POST',
+    });
+  },
+
+  unfollow: async (userId: string) => {
+    return authFetch<{ message: string }>(`/users/${userId}/follow`, {
+      method: 'DELETE',
+    });
+  },
+
+  getFollowing: async () => {
+    return authFetch<{ users: any[] }>('/users/me/following');
+  },
+
+  getFollowers: async () => {
+    return authFetch<{ users: any[] }>('/users/me/followers');
+  },
+
+  checkFollowing: async (userId: string) => {
+    return authFetch<{ isFollowing: boolean }>(`/users/${userId}/is-following`);
   }
 };
