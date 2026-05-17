@@ -35,6 +35,7 @@ describe("AuctionPlatform - Upcoming Auctions", function () {
       DURATION,
       PRODUCT_CID,
       BUY_NOW_PRICE,
+      0, // ShippingPayer.Buyer
       { value: COLLATERAL }
     );
 
@@ -53,6 +54,7 @@ describe("AuctionPlatform - Upcoming Auctions", function () {
       DURATION,
       PRODUCT_CID,
       BUY_NOW_PRICE,
+      0, // ShippingPayer.Buyer
       { value: COLLATERAL }
     );
 
@@ -71,6 +73,7 @@ describe("AuctionPlatform - Upcoming Auctions", function () {
       DURATION,
       PRODUCT_CID,
       BUY_NOW_PRICE,
+      0, // ShippingPayer.Buyer
       { value: COLLATERAL }
     );
 

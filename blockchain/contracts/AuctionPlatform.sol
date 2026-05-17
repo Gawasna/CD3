@@ -64,14 +64,12 @@ contract AuctionPlatform is ReentrancyGuard {
     uint256 public auctionCount;
     uint256 public adminFeeBalance; // Added: Platform fees collected
 
-    // Collateral ratio: 10% of startingPrice (in basis points: 1000 / 10000)
-    uint256 public constant COLLATERAL_BPS = 1000;
-    
-    // Task 1: Minimum Bid Increment (5%)
-    uint256 public constant MIN_BID_INCREMENT_BPS = 500;
-    
-    // Task 2: Minimum Absolute Collateral
-    uint256 public constant MIN_COLLATERAL = 0.01 ether;
+    // Economic parameters (made flexible)
+    uint256 public collateralBps = 1000;          // 10%
+    uint256 public minBidIncrementBps = 500;      // 5%
+    uint256 public minCollateral = 0.01 ether;
+    uint256 public platformFeeBps = 200;          // 2%
+    uint256 public disputeBond = 0.005 ether;
     
     // Consensus C-03: Auto-release Timeout reduced to 7 days (was 14 days)
     uint256 public constant AUTO_RELEASE_TIMEOUT = 7 days;
@@ -88,22 +86,14 @@ contract AuctionPlatform is ReentrancyGuard {
     // Task 4: Anti-sniping
     uint256 public constant EXTENSION_WINDOW = 5 minutes;
     uint256 public constant EXTENSION_DURATION = 5 minutes;
-    
-    // Task 5: Dispute Bond
-    uint256 public constant DISPUTE_BOND = 0.005 ether;
 
     // Option B (A-Questionable): Minimum delay from auction end before buyer can dispute
-    // in AwaitingShipment. Gives seller 48h to ship; closes abuse path where buyer uses
-    // raiseDispute() to escape forfeitWin() penalty. Buyer with genuine fraud claim waits 48h.
     uint256 public constant DISPUTE_MIN_DELAY_SHIPMENT = 2 days;
-    
-    // Task 8: Platform Fee (2%)
-    uint256 public constant PLATFORM_FEE_BPS = 200;
 
     mapping(uint256 => Auction) public auctions;
 
-    // Pull-payment pattern: tracks refundable amounts per bidder per auction
-    mapping(uint256 => mapping(address => uint256)) public pendingReturns;
+    // Global Pull-payment pattern: tracks refundable amounts per user across all auctions
+    mapping(address => uint256) public pendingReturns;
 
     // ── Events ───────────────────────────────────────────────────────────────
 
@@ -222,10 +212,10 @@ contract AuctionPlatform is ReentrancyGuard {
             "AuctionPlatform: buyNowPrice must exceed startingPrice"
         );
 
-        // Task 2: Minimum Absolute Collateral
-        uint256 calcCollateral = (_startingPrice * COLLATERAL_BPS) / 10000;
-        uint256 minCollateral = calcCollateral > MIN_COLLATERAL ? calcCollateral : MIN_COLLATERAL;
-        require(msg.value >= minCollateral, "AuctionPlatform: insufficient collateral");
+        // Task 2: Minimum Absolute Collateral (Flexible)
+        uint256 calcCollateral = (_startingPrice * collateralBps) / 10000;
+        uint256 requiredCol = calcCollateral > minCollateral ? calcCollateral : minCollateral;
+        require(msg.value >= requiredCol, "AuctionPlatform: insufficient collateral");
 
         auctionCount++;
         uint256 newAuctionId = auctionCount;
@@ -261,7 +251,7 @@ contract AuctionPlatform is ReentrancyGuard {
     }
 
     /**
-     * @notice Place a bid. Bid amount = msg.value. Must exceed current highest bid.
+     * @notice Place a bid. Supports Credit-based Bidding (using pendingReturns).
      * @param _auctionId Target auction
      */
     function bid(uint256 _auctionId) external payable nonReentrant auctionExists(_auctionId) {
@@ -275,25 +265,48 @@ contract AuctionPlatform is ReentrancyGuard {
         require(block.timestamp < auction.endTime, "AuctionPlatform: auction has ended");
         require(msg.sender != auction.seller, "AuctionPlatform: seller cannot bid");
         
+        // Credit-based Bidding: Combine msg.value with global pendingReturns
+        uint256 availableFunds = msg.value + pendingReturns[msg.sender];
+        uint256 bidAmount;
+
         // Task 1: Minimum Bid Increment
         if (auction.highestBid == 0) {
-            require(msg.value >= auction.startingPrice, "AuctionPlatform: bid too low");
+            require(availableFunds >= auction.startingPrice, "AuctionPlatform: bid too low");
+            bidAmount = availableFunds; // Use all available funds for the first bid or specified amount?
+            // Usually, we use the amount intended. To keep it simple, we use availableFunds.
+            // In a real app, we might take a `_bidAmount` parameter.
+            // For now, following "only need top-up", we assume bidAmount = availableFunds.
         } else {
-            uint256 minBid = auction.highestBid + (auction.highestBid * MIN_BID_INCREMENT_BPS) / 10000;
-            require(msg.value >= minBid, "AuctionPlatform: bid must meet minimum increment");
+            uint256 minBid = auction.highestBid + (auction.highestBid * minBidIncrementBps) / 10000;
+            require(availableFunds >= minBid, "AuctionPlatform: bid must meet minimum increment");
+            bidAmount = availableFunds;
         }
+
+        // Deduct from pendingReturns (Credit-based)
+        // If msg.value was 0, it means we used only pendingReturns.
+        // availableFunds = msg.value + pendingReturns[msg.sender]
+        // Since we use bidAmount = availableFunds, new pendingReturns will be 0.
+        pendingReturns[msg.sender] = 0;
 
         // Task 4: Anti-sniping
         if (auction.endTime - block.timestamp <= EXTENSION_WINDOW) {
             auction.endTime += EXTENSION_DURATION;
         }
 
-        // Queue previous highest bidder's refund (pull pattern)
+        // Push-Pull Fallback: Try to refund previous highest bidder immediately
         if (auction.highestBidder != address(0)) {
-            pendingReturns[_auctionId][auction.highestBidder] += auction.highestBid;
+            address payable prevBidder = auction.highestBidder;
+            uint256 prevBid = auction.highestBid;
+            
+            // Try to push (automatic refund)
+            (bool success, ) = prevBidder.call{value: prevBid, gas: 3000}("");
+            if (!success) {
+                // Fallback to pull (store in pendingReturns)
+                pendingReturns[prevBidder] += prevBid;
+            }
         }
 
-        auction.highestBid = msg.value;
+        auction.highestBid = bidAmount;
         auction.highestBidder = payable(msg.sender);
         
         // If it was Upcoming, mark it as Active now that it has started
@@ -301,33 +314,37 @@ contract AuctionPlatform is ReentrancyGuard {
             auction.status = AuctionStatus.Active;
         }
 
-        emit BidPlaced(_auctionId, msg.sender, msg.value);
+        emit BidPlaced(_auctionId, msg.sender, bidAmount);
 
-        // Consensus C-01: Buy Now — if bid meets buyNowPrice, end auction immediately.
-        // Seller declared this threshold at creation; all bidders knew the rule upfront.
-        if (auction.buyNowPrice > 0 && msg.value >= auction.buyNowPrice) {
+        // Consensus C-01: Buy Now
+        if (auction.buyNowPrice > 0 && bidAmount >= auction.buyNowPrice) {
             auction.status = AuctionStatus.Ended;
             auction.endTime = block.timestamp;
             auction.escrowStatus = EscrowStatus.AwaitingShipment;
-            emit AuctionEnded(_auctionId, msg.sender, msg.value);
+            emit AuctionEnded(_auctionId, msg.sender, bidAmount);
         }
     }
 
     /**
-     * @notice Withdraw outbid funds. Pull pattern — bidder must call this themselves.
-     * @param _auctionId Auction to withdraw from
+     * @notice Withdraw outbid funds. Pull pattern.
      */
-    function withdraw(uint256 _auctionId) external nonReentrant auctionExists(_auctionId) {
-        uint256 amount = pendingReturns[_auctionId][msg.sender];
+    function withdraw() public nonReentrant {
+        uint256 amount = pendingReturns[msg.sender];
         require(amount > 0, "AuctionPlatform: nothing to withdraw");
 
-        // Reset before transfer — prevent reentrancy
-        pendingReturns[_auctionId][msg.sender] = 0;
+        pendingReturns[msg.sender] = 0;
 
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "AuctionPlatform: withdrawal failed");
 
         emit Withdrawal(msg.sender, amount);
+    }
+
+    /**
+     * @notice Alias for withdraw() to support batch withdrawal from all auctions.
+     */
+    function withdrawAll() external {
+        withdraw();
     }
 
     /**
@@ -452,8 +469,8 @@ contract AuctionPlatform is ReentrancyGuard {
 
         auction.escrowStatus = EscrowStatus.Completed;
 
-        // Task 8: Platform Fee
-        uint256 platformFee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        // Task 8: Platform Fee (Flexible)
+        uint256 platformFee = (auction.highestBid * platformFeeBps) / 10000;
         adminFeeBalance += platformFee;
 
         uint256 payout;
@@ -494,8 +511,8 @@ contract AuctionPlatform is ReentrancyGuard {
 
         auction.escrowStatus = EscrowStatus.Completed;
 
-        // Task 8: Platform Fee
-        uint256 platformFee = (auction.highestBid * PLATFORM_FEE_BPS) / 10000;
+        // Task 8: Platform Fee (Flexible)
+        uint256 platformFee = (auction.highestBid * platformFeeBps) / 10000;
         adminFeeBalance += platformFee;
 
         uint256 payout;
@@ -576,9 +593,9 @@ contract AuctionPlatform is ReentrancyGuard {
         auction.highestBid   = 0;
         auction.collateral   = 0;
 
-        // Penalty = max(10% bid, DISPUTE_BOND) — minimum deterrent against tiny bids
+        // Penalty = max(10% bid, disputeBond) — minimum deterrent against tiny bids
         uint256 pctPenalty = (bidAmount * FORFEIT_PENALTY_BPS) / 10000;
-        uint256 penalty    = pctPenalty > DISPUTE_BOND ? pctPenalty : DISPUTE_BOND;
+        uint256 penalty    = pctPenalty > disputeBond ? pctPenalty : disputeBond;
         require(penalty <= bidAmount, "AuctionPlatform: penalty exceeds bid");
 
         // Split: 20% → platform, 80% → seller
@@ -610,8 +627,8 @@ contract AuctionPlatform is ReentrancyGuard {
      * @param _auctionId Target auction
      */
     function raiseDispute(uint256 _auctionId) external payable nonReentrant onlyWinner(_auctionId) auctionExists(_auctionId) {
-        // Task 5: Dispute Bond
-        require(msg.value == DISPUTE_BOND, "AuctionPlatform: must pay dispute bond");
+        // Task 5: Dispute Bond (Flexible)
+        require(msg.value == disputeBond, "AuctionPlatform: must pay dispute bond");
         Auction storage auction = auctions[_auctionId];
 
         require(
@@ -662,10 +679,10 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 buyerRefund = (highestBid * _buyerRefundPercentage) / 100;
         uint256 sellerShareFromBid = highestBid - buyerRefund;
         
-        // Take platform fee from seller's share of the bid (Task 8)
+        // Take platform fee from seller's share of the bid (Task 8 - Flexible)
         uint256 fee = 0;
         if (sellerShareFromBid > 0) {
-            fee = (sellerShareFromBid * PLATFORM_FEE_BPS) / 10000;
+            fee = (sellerShareFromBid * platformFeeBps) / 10000;
             adminFeeBalance += fee;
             sellerShareFromBid -= fee;
         }
@@ -674,16 +691,16 @@ contract AuctionPlatform is ReentrancyGuard {
         uint256 totalSellerPayout = sellerShareFromBid;
 
         if (_buyerRefundPercentage > 0) {
-            // Task 5: Buyer wins partially or fully, return dispute bond
-            totalBuyerPayout += DISPUTE_BOND;
+            // Task 5: Buyer wins partially or fully, return dispute bond (Flexible)
+            totalBuyerPayout += disputeBond;
             
             // Task 7: Proportional refund of collateral
             uint256 buyerCollateralShare = (collateral * _buyerRefundPercentage) / 100;
             totalBuyerPayout += buyerCollateralShare;
             totalSellerPayout += (collateral - buyerCollateralShare);
         } else {
-            // Task 5: Buyer loses, forfeit dispute bond to admin
-            adminFeeBalance += DISPUTE_BOND;
+            // Task 5: Buyer loses, forfeit dispute bond to admin (Flexible)
+            adminFeeBalance += disputeBond;
             totalSellerPayout += collateral;
         }
 
@@ -766,16 +783,32 @@ contract AuctionPlatform is ReentrancyGuard {
     /**
      * @notice Calculate required collateral for a given starting price.
      */
-    function requiredCollateral(uint256 _startingPrice) external pure returns (uint256) {
-        uint256 calcCollateral = (_startingPrice * COLLATERAL_BPS) / 10000;
-        return calcCollateral > MIN_COLLATERAL ? calcCollateral : MIN_COLLATERAL;
+    function requiredCollateral(uint256 _startingPrice) public view returns (uint256) {
+        uint256 calcCollateral = (_startingPrice * collateralBps) / 10000;
+        return calcCollateral > minCollateral ? calcCollateral : minCollateral;
     }
 
     // ── Admin Functions ───────────────────────────────────────────────────────
 
     /**
-     * @notice Transfer admin role. Two-step ownership transfer should be used in production
-     *         (OpenZeppelin Ownable2Step), but for demo single-step is acceptable.
+     * @notice Admin configures economic parameters.
+     */
+    function setEconomicParams(
+        uint256 _collateralBps,
+        uint256 _minBidIncrementBps,
+        uint256 _minCollateral,
+        uint256 _platformFeeBps,
+        uint256 _disputeBond
+    ) external onlyAdmin {
+        collateralBps = _collateralBps;
+        minBidIncrementBps = _minBidIncrementBps;
+        minCollateral = _minCollateral;
+        platformFeeBps = _platformFeeBps;
+        disputeBond = _disputeBond;
+    }
+
+    /**
+     * @notice Transfer admin role.
      */
     function transferAdmin(address _newAdmin) external onlyAdmin {
         require(_newAdmin != address(0), "AuctionPlatform: zero address");

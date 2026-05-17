@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef, memo, MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useRef, memo, MouseEvent as ReactMouseEvent, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Image as ImageIcon, User, Star, Clock, Loader2, AlertCircle, ChevronLeft, ChevronRight, Edit3, XCircle, Power } from 'lucide-react';
-import { getAuction, type Auction } from '@/services/api/auction';
-import { formatEther } from 'viem';
+import { getAuction, recordBid, type Auction } from '@/services/api/auction';
+import { formatEther, parseEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
 import WatchlistButton from '@/components/shared/WatchlistButton';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
+import { useToast } from '@/components/auth/ToastContainer';
 
 // --- Sub-components ---
 const AuctionTimer = memo(function AuctionTimer({ 
@@ -68,12 +71,114 @@ export default function AuctionDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showToast } = useToast();
+  const { address, isConnected } = useAccount();
+  
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  
+  const [bidAmount, setBidAmount] = useState('');
+  const lastBidAmountRef = useRef<string>('');
+
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+
+  // Blockchain Hooks
+  const { writeContract, data: hash, isPending: isWaitConfirm, error: writeError } = useWriteContract();
+  const { isLoading: isWaitingForTx, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ hash });
+
+  const { data: pendingReturns, refetch: refetchPending } = useReadContract({
+    address: contractAddress,
+    abi: AuctionPlatformABI.abi,
+    functionName: 'pendingReturns',
+    args: [address],
+    query: { enabled: !!address },
+  });
+
+  const fetchAuction = async () => {
+    try {
+      setLoading(true);
+      const { auction: data } = await getAuction(id as string);
+      setAuction(data);
+    } catch (err: any) {
+      console.error('Error fetching auction:', err);
+      setError(err.message || 'Failed to load auction details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    fetchAuction();
+  }, [id]);
+
+  // Handle transaction success
+  useEffect(() => {
+    const syncBid = async () => {
+      if (isTxSuccess && hash && auction) {
+        try {
+          // Sync with backend relay
+          await recordBid(auction.id, {
+            onChainAuctionId: auction.onChainAuctionId || '0',
+            txHash: hash,
+            amountWei: parseEther(lastBidAmountRef.current).toString(),
+          });
+          
+          showToast('Bid placed successfully!', 'success');
+          setBidAmount('');
+          fetchAuction();
+          refetchPending();
+        } catch (err) {
+          console.error('Error syncing bid:', err);
+          showToast('Bid confirmed on-chain but failed to sync with backend', 'warning');
+          fetchAuction(); // Try to refresh anyway
+        }
+      }
+    };
+
+    syncBid();
+  }, [isTxSuccess, hash]);
+
+  useEffect(() => {
+    if (writeError) {
+      showToast(writeError.message || 'Failed to place bid', 'error');
+    }
+  }, [writeError]);
+
+  const handlePlaceBid = async () => {
+    if (!isConnected) {
+      showToast('Please connect your wallet first', 'error');
+      return;
+    }
+    if (!auction) return;
+    if (!bidAmount || isNaN(parseFloat(bidAmount))) {
+      showToast('Please enter a valid bid amount', 'error');
+      return;
+    }
+
+    const bidValue = parseEther(bidAmount);
+    const credit = (pendingReturns as bigint) || 0n;
+    
+    // Logic Credit-based: User only needs to top up the difference
+    const topUp = bidValue > credit ? bidValue - credit : 0n;
+
+    lastBidAmountRef.current = bidAmount; // Store for sync
+
+    try {
+      writeContract({
+        address: contractAddress,
+        abi: AuctionPlatformABI.abi,
+        functionName: 'bid',
+        args: [BigInt(auction.onChainAuctionId || '0')],
+        value: topUp,
+      });
+    } catch (err) {
+      console.error('Bid error:', err);
+    }
+  };
+
   // Magnifier state
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [[x, y], setXY] = useState([0, 0]);
@@ -86,7 +191,6 @@ export default function AuctionDetail() {
     containerWidth: 0,
     containerHeight: 0
   });
-  const [bidAmount, setBidAmount] = useState('');
   
   const magnifierHeight = 250;
   const magnifierWidth = 250;
@@ -94,25 +198,6 @@ export default function AuctionDetail() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchAuction = async () => {
-      try {
-        setLoading(true);
-        const { auction: data } = await getAuction(id as string);
-        setAuction(data);
-      } catch (err: any) {
-        console.error('Error fetching auction:', err);
-        setError(err.message || 'Failed to load auction details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAuction();
-  }, [id]);
 
   const reorderedMedia = getReorderedMedia(auction?.ipfsCid || '[]');
 
@@ -575,9 +660,19 @@ export default function AuctionDetail() {
             <>
               {/* Bid section for Buyers */}
               <div className="flex flex-col gap-2">
-                <span className="font-jetbrains text-xl font-bold text-[#111111]">
-                  Highest Bid: {highestBid} ETH
-                </span>
+                <div className="flex justify-between items-end">
+                  <span className="font-jetbrains text-xl font-bold text-[#111111]">
+                    Highest Bid: {highestBid} ETH
+                  </span>
+                  {pendingReturns && BigInt(pendingReturns as string) > 0n && (
+                    <div className="flex flex-col items-end">
+                      <span className="font-geist text-[10px] text-[#666666]">Credit available</span>
+                      <span className="font-jetbrains text-xs font-bold text-[#FF8400]">
+                        {formatEther(BigInt(pendingReturns as string))} ETH
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <span className="font-geist text-sm text-[#666666]">Bid Amount (ETH)</span>
               </div>
 
@@ -587,7 +682,7 @@ export default function AuctionDetail() {
                   step="0.000001"
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
-                  disabled={auction.status !== 'ACTIVE'}
+                  disabled={auction.status !== 'ACTIVE' || isWaitConfirm || isWaitingForTx}
                   placeholder="Enter bid amount"
                   className="w-full h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist disabled:opacity-50"
                 />
@@ -596,7 +691,7 @@ export default function AuctionDetail() {
                   {[1, 2, 5, 10].map((percent) => (
                     <button
                       key={percent}
-                      disabled={auction.status !== 'ACTIVE'}
+                      disabled={auction.status !== 'ACTIVE' || isWaitConfirm || isWaitingForTx}
                       onClick={() => {
                         const current = parseFloat(highestBid);
                         const nextBid = current * (1 + percent / 100);
@@ -610,12 +705,20 @@ export default function AuctionDetail() {
                 </div>
 
                 <button 
-                  disabled={auction.status !== 'ACTIVE'}
-                  className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  disabled={auction.status !== 'ACTIVE' || isWaitConfirm || isWaitingForTx}
+                  onClick={handlePlaceBid}
+                  className="w-full h-10 bg-[#FF8400] rounded-full font-jetbrains text-base font-medium text-[#111111] hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {auction.status === 'ACTIVE' ? 'Place Bid' : 
-                   auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
-                   'Auction Not Active'}
+                  {(isWaitConfirm || isWaitingForTx) ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {isWaitConfirm ? 'Confirm in Wallet...' : 'Placing Bid...'}
+                    </>
+                  ) : (
+                    auction.status === 'ACTIVE' ? 'Place Bid' : 
+                    auction.status === 'UPCOMING' ? 'Auction Starts Soon' : 
+                    'Auction Not Active'
+                  )}
                 </button>
               </div>
 

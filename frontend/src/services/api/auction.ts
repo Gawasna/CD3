@@ -145,6 +145,20 @@ export async function listAuctions(params: {
 }
 
 /**
+ * Ghi bid vào off-chain mirror sau khi BidPlaced event confirm on-chain.
+ */
+export async function recordBid(auctionId: string, payload: {
+  onChainAuctionId: string;
+  txHash: string;
+  amountWei: string;
+}): Promise<{ message: string }> {
+  return authFetch<{ message: string }>(`/v1/auctions/${auctionId}/bids`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * Lấy chi tiết auction theo ID.
  */
 export async function getAuction(auctionId: string): Promise<{ auction: Auction }> {
