@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SiweMessage } from 'siwe';
 
 vi.mock('../../src/config/database', () => ({
   prisma: {
@@ -16,9 +17,17 @@ vi.mock('../../src/config/database', () => ({
   },
 }));
 
-vi.mock('ethers', () => ({
-  isAddress: (addr: string) => /^0x[0-9a-fA-F]{40}$/.test(addr),
-  verifyMessage: vi.fn(),
+vi.mock('siwe', () => ({
+  SiweMessage: vi.fn().mockImplementation((msg) => ({
+    verify: vi.fn().mockResolvedValue({
+      data: {
+        address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+        uri: 'http://localhost:3000',
+        chainId: 1,
+      },
+    }),
+    nonce: 'abc123def456abc1',
+  })),
 }));
 
 vi.mock('../../src/config/env', () => ({
@@ -26,11 +35,19 @@ vi.mock('../../src/config/env', () => ({
     SIWE_NONCE_TTL_MINUTES: 10,
     JWT_SECRET: 'test-secret-for-unit-tests-only',
     JWT_EXPIRES_IN: '24h',
+    SIWE_DOMAIN: 'localhost',
+    SIWE_URI: 'http://localhost:3000',
+    SIWE_CHAIN_ID: 1,
+  },
+}));
+
+vi.mock('../../src/modules/users/activity.service', () => ({
+  activityService: {
+    logActivity: vi.fn().mockResolvedValue({}),
   },
 }));
 
 import { prisma } from '../../src/config/database';
-import { verifyMessage } from 'ethers';
 import { generateNonce, verifySignature, cleanupExpiredNonces } from '../../src/modules/auth/auth.service';
 
 const WALLET = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
@@ -95,11 +112,21 @@ describe('auth.service - verifySignature', () => {
     vi.mocked(prisma.$transaction).mockImplementation(async (fn) => fn(prisma as never));
     vi.mocked(prisma.authNonce.update).mockResolvedValue({} as never);
     vi.mocked(prisma.user.upsert).mockResolvedValue(validUser as never);
+    
+    vi.mocked(SiweMessage).mockImplementation((msg) => ({
+      verify: vi.fn().mockResolvedValue({
+        data: {
+          address: WALLET,
+          uri: 'http://localhost:3000',
+          chainId: 1,
+        },
+      }),
+      nonce: NONCE,
+    }) as any);
   });
 
   it('returns a JWT and upserts the user when the signature is valid', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
-    vi.mocked(verifyMessage).mockReturnValue(WALLET);
 
     const result = await verifySignature(validInput);
 
@@ -134,7 +161,6 @@ describe('auth.service - verifySignature', () => {
       status: 401,
       code: 'INVALID_NONCE',
     });
-    expect(verifyMessage).not.toHaveBeenCalled();
   });
 
   it('rejects nonce issued for a different wallet before signature verification', async () => {
@@ -147,7 +173,6 @@ describe('auth.service - verifySignature', () => {
       status: 401,
       code: 'INVALID_NONCE',
     });
-    expect(verifyMessage).not.toHaveBeenCalled();
   });
 
   it('rejects expired nonce before signature verification', async () => {
@@ -160,18 +185,17 @@ describe('auth.service - verifySignature', () => {
       status: 401,
       code: 'INVALID_NONCE',
     });
-    expect(verifyMessage).not.toHaveBeenCalled();
   });
 
   it('rejects malformed signatures without consuming the nonce', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
-    vi.mocked(verifyMessage).mockImplementation(() => {
-      throw new Error('invalid signature');
+    vi.mocked(SiweMessage).mockImplementation(() => {
+      throw new Error('invalid message');
     });
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({
-      status: 401,
-      code: 'INVALID_SIGNATURE',
+      status: 400,
+      code: 'INVALID_MESSAGE',
     });
     expect(prisma.authNonce.update).not.toHaveBeenCalled();
     expect(prisma.user.upsert).not.toHaveBeenCalled();
@@ -179,7 +203,16 @@ describe('auth.service - verifySignature', () => {
 
   it('rejects signatures recovered from a different wallet', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
-    vi.mocked(verifyMessage).mockReturnValue(OTHER_WALLET);
+    vi.mocked(SiweMessage).mockImplementation((msg) => ({
+      verify: vi.fn().mockResolvedValue({
+        data: {
+          address: OTHER_WALLET,
+          uri: 'http://localhost:3000',
+          chainId: 1,
+        },
+      }),
+      nonce: NONCE,
+    }) as any);
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({
       status: 401,
@@ -189,7 +222,6 @@ describe('auth.service - verifySignature', () => {
 
   it('rejects suspended users', async () => {
     vi.mocked(prisma.authNonce.findUnique).mockResolvedValue(validNonceRecord as never);
-    vi.mocked(verifyMessage).mockReturnValue(WALLET);
     vi.mocked(prisma.user.upsert).mockResolvedValue({ ...validUser, isActive: false } as never);
 
     await expect(verifySignature(validInput)).rejects.toMatchObject({

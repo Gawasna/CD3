@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import { Message } from '@prisma/client';
-import { notificationService } from '../notification/notification.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 export interface ChatParticipant {
   id: string;
@@ -144,13 +144,14 @@ export async function sendMessage(senderId: string, receiverId: string, content:
     },
   });
 
-  // Tạo thông báo cho người nhận sử dụng service chung của platform
+  // Emit event để hệ thống Notification xử lý (Asynchronous)
   const sender = await prisma.user.findUnique({ where: { id: senderId } });
-  await notificationService.createNotification(receiverId, {
-    type: 'INFO',
-    title: 'Tin nhắn mới',
-    message: `${sender?.displayName || 'Ai đó'} đã gửi cho bạn một tin nhắn mới`,
-    actionUrl: `/auctions`, // Platform logic link
+  eventEmitter.emit(Events.CHAT.MESSAGE_SENT, {
+    recipientId: receiverId,
+    senderId: senderId,
+    senderName: sender?.displayName || 'Ai đó',
+    content: content,
+    conversationId: conversation.id,
   });
 
   await prisma.conversation.update({

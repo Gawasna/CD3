@@ -141,7 +141,3 @@ export async function cleanupExpiredNonces(): Promise<number> {
   });
   return result.count;
 }
-t: { lt: new Date() } },
-  });
-  return result.count;
-}

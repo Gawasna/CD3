@@ -29,7 +29,7 @@ export const notificationService = {
   async listUserNotifications(userId: string, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
+    const [items, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where: { userId },
         skip,
@@ -39,16 +39,18 @@ export const notificationService = {
       prisma.notification.count({
         where: { userId },
       }),
+      prisma.notification.count({
+        where: { userId, isRead: false },
+      }),
     ]);
 
     return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      items,
+      total,
+      page,
+      limit,
+      unreadCount,
+      totalPages: Math.ceil(total / limit),
     };
   },
 
@@ -78,6 +80,18 @@ export const notificationService = {
       },
       data: {
         isRead: true,
+      },
+    });
+  },
+
+  /**
+   * Đếm số lượng thông báo chưa đọc của user.
+   */
+  async countUnread(userId: string) {
+    return prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
       },
     });
   },

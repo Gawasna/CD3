@@ -13,8 +13,8 @@ export class NotificationListener {
       const { followerName, followingId } = data;
       await notificationService.createNotification(followingId, {
         type: NotificationType.INFO,
-        title: 'New Follower',
-        message: `${followerName} is now following you!`,
+        title: 'Người theo dõi mới',
+        message: `${followerName} đã bắt đầu theo dõi bạn!`,
         actionUrl: `/profile/${data.followerId}`,
       });
     });
@@ -23,30 +23,30 @@ export class NotificationListener {
       const { userId } = data;
       await notificationService.createNotification(userId, {
         type: NotificationType.WARNING,
-        title: 'Security Alert',
-        message: 'Your shipping address has been updated.',
+        title: 'Cảnh báo bảo mật',
+        message: 'Địa chỉ giao hàng của bạn đã được cập nhật.',
       });
     });
 
     // --- KYC EVENTS ---
     eventEmitter.on(Events.KYC.STATUS_UPDATED, async (data) => {
       const { userId, status, reason } = data;
-      let type = NotificationType.INFO;
-      let title = 'KYC Update';
-      let message = `Your KYC status has been updated to ${status}.`;
+      let type: NotificationType = NotificationType.INFO;
+      let title = 'Cập nhật KYC';
+      let message = `Trạng thái KYC của bạn đã được cập nhật thành ${status}.`;
 
       if (status === 'PENDING') {
         type = NotificationType.INFO;
-        title = 'KYC Received';
-        message = 'We have received your KYC documents and are reviewing them.';
+        title = 'Đã nhận hồ sơ KYC';
+        message = 'Chúng tôi đã nhận được tài liệu KYC của bạn và đang tiến hành kiểm tra.';
       } else if (status === 'APPROVED') {
         type = NotificationType.SUCCESS;
-        title = 'KYC Approved';
-        message = 'Congratulations! Your identity has been verified.';
+        title = 'KYC đã được duyệt';
+        message = 'Chúc mừng! Danh tính của bạn đã được xác minh thành công.';
       } else if (status === 'REJECTED') {
         type = NotificationType.ERROR;
-        title = 'KYC Rejected';
-        message = `Your KYC request was rejected. Reason: ${reason || 'N/A'}`;
+        title = 'KYC bị từ chối';
+        message = `Yêu cầu KYC của bạn bị từ chối. Lý do: ${reason || 'Không xác định'}`;
       }
 
       await notificationService.createNotification(userId, {
@@ -69,8 +69,8 @@ export class NotificationListener {
       // Notify Seller
       await notificationService.createNotification(sellerId, {
         type: NotificationType.INFO,
-        title: 'Auction Started',
-        message: `Your auction "${title}" is now active!`,
+        title: 'Phiên đấu giá bắt đầu',
+        message: `Phiên đấu giá "${title}" của bạn hiện đã bắt đầu nhận giá!`,
         actionUrl: `/auctions/${auctionId}`,
       });
 
@@ -79,11 +79,55 @@ export class NotificationListener {
         for (const watcherId of watcherIds) {
           await notificationService.createNotification(watcherId, {
             type: NotificationType.INFO,
-            title: 'Auction Active',
-            message: `An auction you are watching "${title}" has started.`,
+            title: 'Phiên đấu giá đang diễn ra',
+            message: `Phiên đấu giá "${title}" mà bạn đang theo dõi đã bắt đầu.`,
             actionUrl: `/auctions/${auctionId}`,
           });
         }
+      }
+    });
+
+    eventEmitter.on(Events.AUCTION.ENDED, async (data) => {
+      const { auctionId, sellerId, title, hasWinner } = data;
+      await notificationService.createNotification(sellerId, {
+        type: hasWinner ? NotificationType.SUCCESS : NotificationType.INFO,
+        title: hasWinner ? 'Đã bán thành công!' : 'Phiên đấu giá kết thúc',
+        message: hasWinner 
+          ? `Phiên đấu giá "${title}" đã có người thắng cuộc! Hãy chuẩn bị gửi hàng.`
+          : `Phiên đấu giá "${title}" đã kết thúc mà không có lượt đặt giá nào.`,
+        actionUrl: `/auctions/${auctionId}`,
+      });
+    });
+
+    eventEmitter.on(Events.AUCTION.CANCELED, async (data) => {
+      const { auctionId, sellerId, title } = data;
+      await notificationService.createNotification(sellerId, {
+        type: NotificationType.INFO,
+        title: 'Đã hủy phiên đấu giá',
+        message: `Phiên đấu giá "${title}" của bạn đã được hủy thành công.`,
+        actionUrl: `/auctions/${auctionId}`,
+      });
+    });
+
+    eventEmitter.on(Events.AUCTION.FORFEITED, async (data) => {
+      const { auctionId, sellerId, winnerId, title, penalty } = data;
+      
+      // Notify Seller
+      await notificationService.createNotification(sellerId, {
+        type: NotificationType.ERROR,
+        title: 'Người thắng từ bỏ quyền mua',
+        message: `Người thắng cuộc của "${title}" đã từ bỏ quyền mua. Bạn nhận được khoản bồi thường ${penalty} ETH.`,
+        actionUrl: `/auctions/${auctionId}`,
+      });
+
+      // Notify Winner
+      if (winnerId) {
+        await notificationService.createNotification(winnerId, {
+          type: NotificationType.WARNING,
+          title: 'Đã từ bỏ quyền mua',
+          message: `Bạn đã từ bỏ quyền mua cho "${title}". Khoản phí phạt ${penalty} ETH đã được khấu trừ.`,
+          actionUrl: `/auctions/${auctionId}`,
+        });
       }
     });
 
@@ -94,8 +138,8 @@ export class NotificationListener {
       // Notify Bidder
       await notificationService.createNotification(bidderId, {
         type: NotificationType.SUCCESS,
-        title: 'Bid Placed',
-        message: `You successfully placed a bid of ${amount} on "${title}".`,
+        title: 'Đặt giá thành công',
+        message: `Bạn đã đặt giá thành công ${amount} cho "${title}".`,
         actionUrl: `/auctions/${auctionId}`,
       });
 
@@ -103,8 +147,8 @@ export class NotificationListener {
       if (previousBidderId && previousBidderId !== bidderId) {
         await notificationService.createNotification(previousBidderId, {
           type: NotificationType.WARNING,
-          title: 'Outbid!',
-          message: `Someone placed a higher bid on "${title}".`,
+          title: 'Bị đặt giá cao hơn!',
+          message: `Ai đó đã đặt giá cao hơn bạn cho phiên đấu giá "${title}".`,
           actionUrl: `/auctions/${auctionId}`,
         });
       }
@@ -114,20 +158,24 @@ export class NotificationListener {
       const { auctionId, winnerId, title, amount } = data;
       await notificationService.createNotification(winnerId, {
         type: NotificationType.SUCCESS,
-        title: 'Auction Won!',
-        message: `Congratulations! You won the auction "${title}" with a bid of ${amount}.`,
+        title: 'Thắng đấu giá!',
+        message: `Chúc mừng! Bạn đã thắng phiên đấu giá "${title}" với mức giá ${amount}.`,
         actionUrl: `/auctions/${auctionId}`,
       });
     });
 
     // --- SHIPPING EVENTS ---
     eventEmitter.on(Events.SHIPPING.STATUS_UPDATED, async (data) => {
-      const { auctionId, userId, status, title } = data;
-      let message = `Shipping status for "${title}" updated to ${status}.`;
+      const { auctionId, userId, status, title, feeEth } = data;
+      let message = `Trạng thái vận chuyển cho "${title}" đã cập nhật thành ${status}.`;
       
+      if (status === 'FEE_ESTIMATED') {
+        message = `Phí vận chuyển cho "${title}" đã được ước tính là ${feeEth} ETH.`;
+      }
+
       await notificationService.createNotification(userId, {
         type: NotificationType.INFO,
-        title: 'Shipping Update',
+        title: 'Cập nhật vận chuyển',
         message,
         actionUrl: `/orders/${auctionId}`,
       });
@@ -138,7 +186,7 @@ export class NotificationListener {
       const { recipientId, senderName, content, conversationId } = data;
       await notificationService.createNotification(recipientId, {
         type: NotificationType.INFO,
-        title: 'New Message',
+        title: 'Tin nhắn mới',
         message: `${senderName}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`,
         actionUrl: `/chat/${conversationId}`,
       });

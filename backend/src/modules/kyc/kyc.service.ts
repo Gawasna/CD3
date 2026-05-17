@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { KycSubmitInput } from './kyc.schema';
+import { activityService } from '../users/activity.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 export async function submitKyc(userId: string, input: KycSubmitInput) {
   // Check if user already has a pending or approved KYC

@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { eventEmitter, Events } from '../shared/utils/event-emitter';
 import { notificationService } from '../modules/notification/notification.service';
 
 /**
@@ -16,21 +17,45 @@ export async function startAuctionStatusJob() {
       const now = new Date();
 
       // 1. Chuyển UPCOMING -> ACTIVE
-      const upcomingToActive = await prisma.auctionMetadata.updateMany({
+      // Tìm các auction sắp chuyển trạng thái để phát sự kiện
+      const auctionsToStart = await prisma.auctionMetadata.findMany({
         where: {
           status: 'UPCOMING',
           startTime: { lte: now },
         },
-        data: {
-          status: 'ACTIVE',
+        include: {
+          watchers: { select: { userId: true } },
         },
       });
 
-      if (upcomingToActive.count > 0) {
-        console.log(`[AuctionJob] Transferred ${upcomingToActive.count} auctions from UPCOMING to ACTIVE`);
+      if (auctionsToStart.length > 0) {
+        await prisma.auctionMetadata.updateMany({
+          where: {
+            id: { in: auctionsToStart.map(a => a.id) },
+          },
+          data: { status: 'ACTIVE' },
+        });
+
+        // Phát sự kiện AUCTION.STARTED cho từng auction
+        for (const auction of auctionsToStart) {
+          eventEmitter.emit(Events.AUCTION.STARTED, {
+            auctionId: auction.id,
+            sellerId: auction.sellerId,
+            title: auction.title,
+            watcherIds: auction.watchers.map(w => w.userId),
+          });
+        }
+        
+        console.log(`[AuctionJob] Transferred ${auctionsToStart.length} auctions from UPCOMING to ACTIVE`);
       }
 
       // 2. Thông báo "Sắp bắt đầu" (15 phút trước khi start)
+      // Dùng trực tiếp eventEmitter nếu muốn, nhưng ở đây có logic message đặc thù
+      // Để đơn giản, ta vẫn dùng notificationService cho các job notify đặc thù 
+      // HOẶC tạo sự kiện mới. Ở đây tôi sẽ giữ nguyên cấu trúc phát sự kiện.
+      // Tuy nhiên, NotificationListener hiện tại chưa có sự kiện "SẮP BẮT ĐẦU".
+      // Tôi sẽ import notificationService lại chỉ cho các thông báo "SOON" này 
+      // hoặc mở rộng Events.
       const startingSoonThreshold = new Date(now.getTime() + 15 * 60 * 1000);
       const startingSoonLower = new Date(now.getTime() + 14 * 60 * 1000);
 

@@ -63,29 +63,35 @@ export const shippingService = {
       },
     });
 
-    // Gửi thông báo cho bên chịu phí
+    // Ghi activity cho Seller
+    await activityService.logActivity(userId, 'SHIPPING_SHIPPED', auctionId, 'AUCTION', {
+      carrier: 'CD3 Mock Logistics',
+    });
+
+    // Gửi thông báo cho bên chịu phí qua sự kiện
     const feeEth = ethers.formatEther(feeWei);
     if (auction.shippingPayer === 'BUYER') {
-      // Tìm winner để thông báo (nếu auction đã kết thúc)
       const winningBid = await prisma.bid.findFirst({
         where: { auctionId, isWinning: true },
         select: { bidderId: true },
       });
 
       if (winningBid) {
-        await notificationService.createNotification(winningBid.bidderId, {
-          type: 'INFO',
-          title: 'Cập nhật phí vận chuyển',
-          message: `Phí vận chuyển cho sản phẩm "${auction.title}" đã được xác định là ${feeEth} ETH. Bạn là người chi trả khoản này.`,
-          actionUrl: `/auctions/${auctionId}`,
+        eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {
+          auctionId,
+          userId: winningBid.bidderId,
+          status: 'FEE_ESTIMATED',
+          title: auction.title,
+          feeEth,
         });
       }
     } else if (auction.shippingPayer === 'SELLER') {
-      await notificationService.createNotification(auction.sellerId, {
-        type: 'INFO',
-        title: 'Báo giá vận chuyển',
-        message: `Phí vận chuyển cho sản phẩm "${auction.title}" là ${feeEth} ETH. Khoản này sẽ được khấu trừ vào số tiền bạn nhận được.`,
-        actionUrl: `/auctions/${auctionId}`,
+      eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {
+        auctionId,
+        userId: auction.sellerId,
+        status: 'FEE_ESTIMATED',
+        title: auction.title,
+        feeEth,
       });
     }
 
@@ -99,6 +105,19 @@ export const shippingService = {
 
   async getShippingDetails(auctionId: string) {
     const logs = await prisma.shippingLog.findMany({
+      where: { auctionId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        updatedBy: {
+          select: { displayName: true, walletAddress: true },
+        },
+      },
+    });
+
+    return logs;
+  }
+};
+= await prisma.shippingLog.findMany({
       where: { auctionId },
       orderBy: { createdAt: 'desc' },
       include: {

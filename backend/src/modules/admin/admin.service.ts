@@ -3,7 +3,7 @@ import { Prisma, KycStatus } from '@prisma/client';
 import { ApiError } from '../../shared/utils/api-error';
 import fs from 'fs';
 import path from 'path';
-import { notificationService } from '../notification/notification.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 export class AdminService {
   /**
@@ -131,12 +131,10 @@ export class AdminService {
     // 4. Xóa tất cả documents sau khi approve thành công (bảo vệ privacy)
     this.deleteAllKycDocuments(request.frontIdUrl, request.backIdUrl, request.selfieUrl);
 
-    // 5. Gửi thông báo cho user
-    await notificationService.createNotification(request.userId, {
-      type: 'SUCCESS',
-      title: 'Hồ sơ KYC đã được duyệt!',
-      message: 'Chúc mừng! Tài khoản của bạn đã được xác thực thành công. Bây giờ bạn có thể tham gia đấu giá và tạo phiên đấu giá mới.',
-      actionUrl: '/dashboard',
+    // 5. Phát sự kiện để gửi thông báo cho user (Asynchronous)
+    eventEmitter.emit(Events.KYC.STATUS_UPDATED, {
+      userId: request.userId,
+      status: KycStatus.APPROVED,
     });
 
     return result;
@@ -200,13 +198,6 @@ export class AdminService {
       userId: request.userId,
       status: KycStatus.REJECTED,
       reason,
-    });
-
-    return result;
-  }
-}
-�ược chấp nhận. Lý do: ${reason}. Vui lòng cập nhật lại hồ sơ.`,
-      actionUrl: '/kyc',
     });
 
     return result;

@@ -21,6 +21,22 @@ export async function getNotifications(
 }
 
 /**
+ * Lấy số lượng thông báo chưa đọc (Badge count).
+ */
+export async function getUnreadCount(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const count = await notificationService.countUnread(req.user!.id);
+    res.status(200).json({ count });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * Đánh dấu một thông báo là đã đọc.
  */
 export async function patchMarkAsRead(

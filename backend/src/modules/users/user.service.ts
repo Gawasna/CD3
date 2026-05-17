@@ -1,5 +1,7 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
+import { activityService } from './activity.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 /** Shape trả về cho profile — không expose field nhạy cảm */
 export type UserProfile = {
