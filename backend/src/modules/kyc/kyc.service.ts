@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import type { KycSubmitInput } from './kyc.schema';
+import { activityService } from '../users/activity.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 export async function submitKyc(userId: string, input: KycSubmitInput) {
   // Check if user already has a pending or approved KYC
@@ -61,6 +63,15 @@ export async function submitKyc(userId: string, input: KycSubmitInput) {
     });
 
     return request;
+  });
+
+  // Ghi hoạt động KYC_SUBMITTED
+  await activityService.logActivity(userId, 'KYC_SUBMITTED', kycRequest.id, 'KYC_REQUEST');
+
+  // Phát sự kiện để gửi thông báo xác nhận (KYC_RECEIVED)
+  eventEmitter.emit(Events.KYC.STATUS_UPDATED, {
+    userId,
+    status: 'PENDING',
   });
 
   return kycRequest;

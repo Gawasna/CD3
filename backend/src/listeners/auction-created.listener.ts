@@ -2,7 +2,8 @@ import { ethers } from 'ethers';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import AuctionPlatformABI from '../abi/AuctionPlatform.json';
-import { notificationService } from '../modules/notification/notification.service';
+import { eventEmitter, Events } from '../shared/utils/event-emitter';
+import { activityService } from '../modules/users/activity.service';
 
 /**
  * Auction Events Listener
@@ -137,23 +138,25 @@ export function startAuctionCreatedListener() {
             data: { isWinning: true },
           });
 
-          // 3. Thông báo cho Winner
-          await notificationService.createNotification(winnerUser.id, {
-            type: 'SUCCESS',
-            title: 'Chúc mừng! Bạn đã thắng đấu giá!',
-            message: `Bạn đã thắng sản phẩm "${auction.title}" với giá ${ethers.formatEther(winningBid)} ETH. Vui lòng chờ người bán gửi hàng.`,
-            actionUrl: `/auctions/${auction.id}`,
+          // 3. Phát sự kiện thắng cuộc
+          await activityService.logActivity(winnerUser.id, 'AUCTION_WON', auction.id, 'AUCTION', {
+            amount: winningBid.toString(),
+          });
+
+          eventEmitter.emit(Events.BID.WON, {
+            auctionId: auction.id,
+            winnerId: winnerUser.id,
+            title: auction.title,
+            amount: ethers.formatEther(winningBid),
           });
         }
 
-        // 4. Thông báo cho Seller
-        await notificationService.createNotification(auction.sellerId, {
-          type: winnerUser ? 'SUCCESS' : 'INFO',
-          title: winnerUser ? 'Sản phẩm đã được bán!' : 'Đấu giá kết thúc',
-          message: winnerUser 
-            ? `Sản phẩm "${auction.title}" của bạn đã có người thắng cuộc. Vui lòng chuẩn bị gửi hàng.`
-            : `Sản phẩm "${auction.title}" đã kết thúc mà không có ai đặt giá.`,
-          actionUrl: `/auctions/${auction.id}`,
+        // 4. Phát sự kiện kết thúc đấu giá (để thông báo cho Seller)
+        eventEmitter.emit(Events.AUCTION.ENDED, {
+          auctionId: auction.id,
+          sellerId: auction.sellerId,
+          title: auction.title,
+          hasWinner: !!winnerUser,
         });
 
       } catch (error) {
@@ -183,12 +186,11 @@ export function startAuctionCreatedListener() {
           },
         });
 
-        // Thông báo cho Seller (Người thực hiện cancel)
-        await notificationService.createNotification(auction.sellerId, {
-          type: 'INFO',
-          title: 'Đã hủy phiên đấu giá',
-          message: `Phiên đấu giá cho sản phẩm "${auction.title}" đã được hủy thành công. Tài sản thế chấp đã được hoàn trả.`,
-          actionUrl: `/auctions/${auction.id}`,
+        // Phát sự kiện AUCTION.CANCELED
+        eventEmitter.emit(Events.AUCTION.CANCELED, {
+          auctionId: auction.id,
+          sellerId: auction.sellerId,
+          title: auction.title,
         });
       } catch (error) {
         console.error('[AuctionListener] Error processing AuctionCanceled event:', error);
@@ -228,22 +230,13 @@ export function startAuctionCreatedListener() {
           },
         });
 
-        // Thông báo cho Winner (người forfeit)
-        if (winnerUser) {
-          await notificationService.createNotification(winnerUser.id, {
-            type: 'WARNING',
-            title: 'Bạn đã hủy quyền nhận sản phẩm',
-            message: `Bạn đã thực hiện từ bỏ quyền nhận sản phẩm "${auction.title}". Phí phạt 10% (${ethers.formatEther(penalty)} ETH) đã được khấu trừ.`,
-            actionUrl: `/auctions/${auction.id}`,
-          });
-        }
-
-        // Thông báo cho Seller
-        await notificationService.createNotification(auction.sellerId, {
-          type: 'ERROR',
-          title: 'Người thắng cuộc đã từ bỏ sản phẩm',
-          message: `Rất tiếc, người thắng cuộc phiên đấu giá "${auction.title}" đã từ bỏ sản phẩm. Bạn nhận được bồi thường từ phí phạt của người thắng.`,
-          actionUrl: `/auctions/${auction.id}`,
+        // Phát sự kiện AUCTION.FORFEITED
+        eventEmitter.emit(Events.AUCTION.FORFEITED, {
+          auctionId: auction.id,
+          sellerId: auction.sellerId,
+          winnerId: winnerUser?.id,
+          title: auction.title,
+          penalty: ethers.formatEther(penalty),
         });
 
       } catch (error) {

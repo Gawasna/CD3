@@ -2,8 +2,9 @@ import { ethers } from 'ethers';
 import { Prisma, AuctionStatus, EscrowStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
+import { activityService } from '../users/activity.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 import type { RecordBidBody, RequestExtensionBody, CreateAuctionBody } from './auction.schema';
-import { notificationService } from '../notification/notification.service';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -158,26 +159,19 @@ export async function recordBid(
     select: { id: true, isWinning: true },
   });
 
-  // 5. Gửi thông báo Outbid nếu cần
-  if (
-    currentHighestBid && 
-    currentHighestBid.bidderId !== bidderId && // Không tự thông báo chính mình
-    bid.id // Upsert thành công
-  ) {
-    await notificationService.createNotification(currentHighestBid.bidderId, {
-      type: 'WARNING',
-      title: 'Bạn đã bị vượt giá!',
-      message: `Giá của bạn cho sản phẩm "${auction.title}" đã bị vượt qua. Đặt giá mới ngay để giành lại ưu thế!`,
-      actionUrl: `/auctions/${auction.id}`,
-    });
-  }
+  // 5. Ghi activity BID_PLACED
+  await activityService.logActivity(bidderId, 'BID_PLACED', auction.id, 'AUCTION', {
+    amount: input.amountWei,
+    txHash: input.txHash,
+  });
 
-  // 6. Gửi thông báo cho Seller
-  await notificationService.createNotification(auction.sellerId, {
-    type: 'INFO',
-    title: 'Có lượt đặt giá mới!',
-    message: `Sản phẩm "${auction.title}" của bạn vừa nhận được một lượt đặt giá mới: ${ethers.formatEther(input.amountWei)} ETH.`,
-    actionUrl: `/auctions/${auction.id}`,
+  // 6. Phát sự kiện BID.PLACED để gửi thông báo (Bidder success & Outbid warning)
+  eventEmitter.emit(Events.BID.PLACED, {
+    auctionId: auction.id,
+    bidderId,
+    amount: ethers.formatEther(input.amountWei),
+    title: auction.title,
+    previousBidderId: currentHighestBid?.bidderId,
   });
 
   return { bidId: bid.id, isWinning: bid.isWinning };
@@ -669,6 +663,17 @@ export async function createPendingAuction(
       ipfsCid: JSON.stringify(input.mediaKeys),
     },
     select: { id: true },
+  });
+
+  // Ghi activity AUCTION_CREATED
+  await activityService.logActivity(sellerId, 'AUCTION_CREATED', auction.id, 'AUCTION', {
+    title: input.title,
+  });
+
+  // Phát sự kiện để gửi thông báo (nếu cần cho admin hoặc followers sau này)
+  eventEmitter.emit(Events.AUCTION.CREATED, {
+    auctionId: auction.id,
+    sellerId,
   });
 
   return { auctionId: auction.id };

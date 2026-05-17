@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { ApiError } from '../../shared/utils/api-error';
+import { activityService } from '../users/activity.service';
 import type { NonceQuery, VerifyBody } from './auth.schema';
 
 const NONCE_TTL_MS = env.SIWE_NONCE_TTL_MINUTES * 60 * 1000;

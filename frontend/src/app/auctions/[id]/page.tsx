@@ -82,6 +82,7 @@ export default function AuctionDetail() {
   const [isPaused, setIsPaused] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
   const lastBidAmountRef = useRef<string>('');
+  const [pendingAction, setPendingAction] = useState<'bid' | 'cancel' | 'end' | null>(null);
 
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -123,34 +124,50 @@ export default function AuctionDetail() {
 
   // Handle transaction success
   useEffect(() => {
-    const syncBid = async () => {
+    const syncAction = async () => {
       if (isTxSuccess && hash && auction) {
         try {
-          // Sync with backend relay
-          await recordBid(auction.id, {
-            onChainAuctionId: auction.onChainAuctionId || '0',
-            txHash: hash,
-            amountWei: parseEther(lastBidAmountRef.current).toString(),
-          });
+          if (pendingAction === 'bid') {
+            // Sync with backend relay
+            await recordBid(auction.id, {
+              onChainAuctionId: auction.onChainAuctionId || '0',
+              txHash: hash,
+              amountWei: parseEther(lastBidAmountRef.current || '0').toString(),
+            });
+            
+            showToast('success', 'Bid placed successfully!');
+            setBidAmount('');
+            lastBidAmountRef.current = '';
+          } else if (pendingAction === 'cancel') {
+            showToast('success', 'Auction canceled successfully!');
+          } else if (pendingAction === 'end') {
+            showToast('success', 'Auction ended successfully!');
+          } else {
+            showToast('success', 'Transaction confirmed!');
+          }
           
-          showToast('success', 'Bid placed successfully!');
-          setBidAmount('');
           fetchAuction();
           refetchPending();
         } catch (err) {
-          console.error('Error syncing bid:', err);
-          showToast('warning', 'Bid confirmed on-chain but failed to sync with backend');
-          fetchAuction(); // Try to refresh anyway
+          console.error('Error syncing action:', err);
+          showToast('warning', 'Action confirmed on-chain but failed to sync with backend');
+          fetchAuction(); 
+        } finally {
+          setPendingAction(null);
         }
       }
     };
 
-    syncBid();
+    syncAction();
   }, [isTxSuccess, hash]);
 
   useEffect(() => {
     if (writeError) {
-      showToast('error', writeError.message || 'Failed to place bid');
+      const actionName = pendingAction === 'bid' ? 'place bid' : 
+                         pendingAction === 'cancel' ? 'cancel auction' : 
+                         pendingAction === 'end' ? 'end auction' : 'execute transaction';
+      showToast('error', writeError.message || `Failed to ${actionName}`);
+      setPendingAction(null);
     }
   }, [writeError]);
 
@@ -191,6 +208,7 @@ export default function AuctionDetail() {
     }
 
     lastBidAmountRef.current = bidAmount; // Store for sync
+    setPendingAction('bid');
 
     try {
       writeContract({
@@ -202,6 +220,72 @@ export default function AuctionDetail() {
       });
     } catch (err) {
       console.error('Bid error:', err);
+      setPendingAction(null);
+    }
+  };
+
+  const handleCancelAuction = async () => {
+    if (!isConnected) {
+      showToast('error', 'Please connect your wallet first');
+      return;
+    }
+    if (!auction || !auction.onChainAuctionId) {
+      showToast('error', 'Auction data not ready');
+      return;
+    }
+
+    // Logic: Seller can only cancel if NO BIDS have been placed
+    if (auction._count.bids > 0) {
+      showToast('error', 'Cannot cancel auction after bids have been placed');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to cancel this auction? This will refund your collateral.')) {
+      return;
+    }
+
+    setPendingAction('cancel');
+    try {
+      writeContract({
+        address: contractAddress,
+        abi: AuctionPlatformABI.abi,
+        functionName: 'cancelAuction',
+        args: [BigInt(auction.onChainAuctionId)],
+      });
+      showToast('info', 'Please confirm the cancellation in your wallet');
+    } catch (err) {
+      console.error('Cancel error:', err);
+      setPendingAction(null);
+    }
+  };
+
+  const handleEndAuction = async () => {
+    if (!isConnected) {
+      showToast('error', 'Please connect your wallet first');
+      return;
+    }
+    if (!auction || !auction.onChainAuctionId) return;
+
+    const now = new Date().getTime();
+    const end = new Date(auction.endTime).getTime();
+    
+    if (now < end) {
+      showToast('error', 'Auction has not ended yet');
+      return;
+    }
+
+    setPendingAction('end');
+    try {
+      writeContract({
+        address: contractAddress,
+        abi: AuctionPlatformABI.abi,
+        functionName: 'endAuction',
+        args: [BigInt(auction.onChainAuctionId)],
+      });
+      showToast('info', 'Ending auction... Please confirm in your wallet');
+    } catch (err) {
+      console.error('End auction error:', err);
+      setPendingAction(null);
     }
   };
 
@@ -670,12 +754,28 @@ export default function AuctionDetail() {
                   <Edit3 className="w-4 h-4" />
                   Edit Auction
                 </button>
-                <button className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors">
-                  <Power className="w-4 h-4" />
-                  End Auction Early
+                <button 
+                  disabled={isWaitConfirm || isWaitingForTx || auction.status === 'ENDED' || auction.status === 'CANCELED'}
+                  onClick={handleEndAuction}
+                  className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors disabled:opacity-50"
+                >
+                  {pendingAction === 'end' && (isWaitConfirm || isWaitingForTx) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Power className="w-4 h-4" />
+                  )}
+                  End Auction
                 </button>
-                <button className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors">
-                  <XCircle className="w-4 h-4" />
+                <button 
+                  disabled={isWaitConfirm || isWaitingForTx || (auction.status !== 'ACTIVE' && auction.status !== 'UPCOMING')}
+                  onClick={handleCancelAuction}
+                  className="w-full h-11 bg-[#E7E8E5] border border-[#CBCCC9] rounded-full font-jetbrains text-sm font-bold text-[#111111] flex items-center justify-center gap-2 hover:bg-[#CBCCC9] transition-colors disabled:opacity-50"
+                >
+                  {pendingAction === 'cancel' && (isWaitConfirm || isWaitingForTx) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
                   Cancel Auction
                 </button>
               </div>

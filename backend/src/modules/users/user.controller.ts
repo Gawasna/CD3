@@ -50,7 +50,7 @@ export async function uploadAvatar(req: Request, res: Response, next: NextFuncti
 /** POST /api/users/:id/follow */
 export async function follow(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const followingId = req.params.id;
+    const followingId = req.params.id as string;
     const followerId = req.user!.id;
     await userService.followUser(followerId, followingId);
     res.status(200).json({ message: 'Follow thành công' });
@@ -62,7 +62,7 @@ export async function follow(req: Request, res: Response, next: NextFunction): P
 /** DELETE /api/users/:id/follow */
 export async function unfollow(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const followingId = req.params.id;
+    const followingId = req.params.id as string;
     const followerId = req.user!.id;
     await userService.unfollowUser(followerId, followingId);
     res.status(200).json({ message: 'Unfollow thành công' });
@@ -94,7 +94,7 @@ export async function getFollowers(req: Request, res: Response, next: NextFuncti
 /** GET /api/users/:id/is-following */
 export async function checkFollowing(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const followingId = req.params.id;
+    const followingId = req.params.id as string;
     const followerId = req.user!.id;
     const isFollowing = await userService.checkFollowingStatus(followerId, followingId);
     res.status(200).json({ isFollowing });

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import {
   getNotifications,
+  getUnreadCount,
   patchMarkAsRead,
   patchMarkAllAsRead,
   deleteNotification,
@@ -14,6 +15,9 @@ router.use(authenticate);
 
 // GET /api/v1/notifications
 router.get('/', getNotifications);
+
+// GET /api/v1/notifications/unread-count
+router.get('/unread-count', getUnreadCount);
 
 // PATCH /api/v1/notifications/read-all
 router.patch('/read-all', patchMarkAllAsRead);
