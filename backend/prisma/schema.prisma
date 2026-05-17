@@ -142,10 +142,52 @@ model User {
   sentMessages     Message[]         @relation("SentMessages")
   conversations1   Conversation[]    @relation("Participant1")
   conversations2   Conversation[]    @relation("Participant2")
+  // Activity logs
+  activities       UserActivity[]
+  // Follows
+  followers        Follow[]          @relation("UserFollowing")
+  following        Follow[]          @relation("UserFollowers")
 
   // DB-IDX-01: Admin filter by KYC status
   @@index([kycStatus])
   @@map("users")
+}
+
+// ---- UserActivity ----
+// Lưu vết mọi hành động quan trọng của người dùng (Place bid, create auction, v.v.)
+model UserActivity {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  // "BID_PLACED", "AUCTION_CREATED", "PROFILE_UPDATED", "FOLLOW_USER", etc.
+  action     String
+  // ID của entity bị tác động (auctionId, targetUserId, etc.)
+  targetId   String?  @map("target_id")
+  // Loại entity: "AUCTION", "USER", "BID", etc.
+  targetType String?  @map("target_type")
+  // Metadata bổ sung dạng JSON (giá trị bid, data cũ/mới...)
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@map("user_activities")
+}
+
+// ---- Follow ----
+// Mối quan hệ N-M tự thân (Self-referential) để người dùng theo dõi nhau
+model Follow {
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id])
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+  @@map("follows")
 }
 
 // ---- Conversation ----

@@ -39,7 +39,7 @@ export default function WatchlistButton({ auctionId, className = '', onToggle }:
     e.stopPropagation();
 
     if (!user) {
-      showToast('info', 'Please login to add to watchlist');
+      showToast('warning', 'Please login to add to watchlist');
       return;
     }
 

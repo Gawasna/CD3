@@ -21,11 +21,13 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { listAuctions, getWatchlist, type Auction } from '@/services/api/auction';
+import { profileApi } from '@/services/api/profile';
 import { useAuthStore } from '@/store/auth.store';
 import { formatEther } from 'viem';
 import { getThumbnail } from '@/features/auction/utils/media';
+import FollowButton from '@/components/shared/FollowButton';
 
-type TabType = 'my-bids' | 'my-auctions' | 'won-items' | 'watchlist' | 'orders';
+type TabType = 'my-bids' | 'my-auctions' | 'won-items' | 'watchlist' | 'orders' | 'following';
 
 type OrderStatus = 'pending' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -81,6 +83,12 @@ export default function DashboardPage() {
     queryKey: ['watchlist', user?.id],
     queryFn: () => getWatchlist({ limit: 10 }),
     enabled: !!user?.id,
+  });
+
+  const { data: followingData, isLoading: isLoadingFollowing, refetch: refetchFollowing } = useQuery({
+    queryKey: ['following', user?.id],
+    queryFn: () => profileApi.getFollowing(),
+    enabled: !!user?.id && activeTab === 'following',
   });
 
   // Calculate stats
@@ -148,7 +156,8 @@ export default function DashboardPage() {
     const isLoading = 
       (activeTab === 'my-bids' && isLoadingBids) || 
       (activeTab === 'my-auctions' && isLoadingAuctions) || 
-      (activeTab === 'watchlist' && isLoadingWatchlist);
+      (activeTab === 'watchlist' && isLoadingWatchlist) ||
+      (activeTab === 'following' && isLoadingFollowing);
 
     if (isLoading) {
       return (
@@ -230,6 +239,26 @@ export default function DashboardPage() {
           </div>
         );
 
+      case 'following':
+        return (
+          <div className="flex flex-col gap-4">
+            <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Following</h2>
+            <div className="flex flex-col gap-4">
+              {followingData?.users.length === 0 ? (
+                <EmptyState icon={<Check />} message="You are not following anyone yet." />
+              ) : (
+                followingData?.users.map((u) => (
+                  <UserListItem 
+                    key={u.id} 
+                    user={u} 
+                    onToggle={() => refetchFollowing()}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        );
+
       case 'orders':
         return (
           <div className="flex flex-col gap-6">
@@ -288,6 +317,12 @@ export default function DashboardPage() {
           onClick={() => setActiveTab('watchlist')} 
           icon={<Heart className="w-5 h-5" />} 
           label="Watchlist" 
+        />
+        <SidebarButton 
+          active={activeTab === 'following'} 
+          onClick={() => setActiveTab('following')} 
+          icon={<Check className="w-5 h-5" />} 
+          label="Following" 
         />
         <SidebarButton 
           active={activeTab === 'orders'} 
@@ -402,6 +437,43 @@ function AuctionListItem({
             Retry Sync
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function UserListItem({ 
+  user, 
+  onToggle 
+}: { 
+  user: any, 
+  onToggle: () => void 
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#CBCCC9] p-5 flex items-center gap-4">
+      <div className="w-16 h-16 bg-[#E7E8E5] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+        {user.avatarUrl ? (
+          <img src={user.avatarUrl} className="w-full h-full object-cover" />
+        ) : (
+          <User className="w-8 h-8 text-[#666666]" />
+        )}
+      </div>
+
+      <div className="flex-1 flex flex-col gap-1">
+        <h3 className="font-jetbrains text-lg font-semibold text-[#111111]">
+          {user.displayName || user.walletAddress.slice(0, 6) + '...' + user.walletAddress.slice(-4)}
+        </h3>
+        <span className="font-geist text-sm text-[#666666]">
+          {user.walletAddress.slice(0, 10)}...{user.walletAddress.slice(-8)}
+        </span>
+      </div>
+
+      <div className="flex gap-3 items-center">
+        <FollowButton 
+          userId={user.id} 
+          onToggle={onToggle}
+          className="px-6 py-2"
+        />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { getAuction, recordBid, type Auction } from '@/services/api/auction';
 import { formatEther, parseEther } from 'viem';
 import { isVideo, getMediaUrl, getReorderedMedia } from '@/features/auction/utils/media';
 import WatchlistButton from '@/components/shared/WatchlistButton';
+import FollowButton from '@/components/shared/FollowButton';
 import { useAuthStore } from '@/store/auth.store';
 import { useChatStore } from '@/store/chat.store';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
@@ -96,6 +97,12 @@ export default function AuctionDetail() {
     query: { enabled: !!address },
   });
 
+  const { data: minBidIncrementBps } = useReadContract({
+    address: contractAddress,
+    abi: AuctionPlatformABI.abi,
+    functionName: 'minBidIncrementBps',
+  });
+
   const fetchAuction = async () => {
     try {
       setLoading(true);
@@ -126,13 +133,13 @@ export default function AuctionDetail() {
             amountWei: parseEther(lastBidAmountRef.current).toString(),
           });
           
-          showToast('Bid placed successfully!', 'success');
+          showToast('success', 'Bid placed successfully!');
           setBidAmount('');
           fetchAuction();
           refetchPending();
         } catch (err) {
           console.error('Error syncing bid:', err);
-          showToast('Bid confirmed on-chain but failed to sync with backend', 'warning');
+          showToast('warning', 'Bid confirmed on-chain but failed to sync with backend');
           fetchAuction(); // Try to refresh anyway
         }
       }
@@ -143,26 +150,45 @@ export default function AuctionDetail() {
 
   useEffect(() => {
     if (writeError) {
-      showToast(writeError.message || 'Failed to place bid', 'error');
+      showToast('error', writeError.message || 'Failed to place bid');
     }
   }, [writeError]);
 
   const handlePlaceBid = async () => {
     if (!isConnected) {
-      showToast('Please connect your wallet first', 'error');
+      showToast('error', 'Please connect your wallet first');
       return;
     }
     if (!auction) return;
     if (!bidAmount || isNaN(parseFloat(bidAmount))) {
-      showToast('Please enter a valid bid amount', 'error');
+      showToast('error', 'Please enter a valid bid amount');
       return;
     }
 
     const bidValue = parseEther(bidAmount);
     const credit = (pendingReturns as bigint) || 0n;
     
+    const currentHighest = auction.bids && auction.bids.length > 0
+      ? BigInt(auction.bids[0].amountWei)
+      : BigInt(auction.startingPriceWei);
+    
+    const incrementBps = (minBidIncrementBps as bigint) || 500n;
+    const minBid = auction.bids && auction.bids.length > 0 
+      ? currentHighest + (currentHighest * incrementBps) / 10000n 
+      : currentHighest;
+
+    if (bidValue < minBid) {
+      showToast('error', `Bid must be at least ${formatEther(minBid)} ETH`);
+      return;
+    }
+
     // Logic Credit-based: User only needs to top up the difference
     const topUp = bidValue > credit ? bidValue - credit : 0n;
+
+    if (!auction.onChainAuctionId) {
+      showToast('error', 'Auction is not yet synced on-chain. Please wait a moment.');
+      return;
+    }
 
     lastBidAmountRef.current = bidAmount; // Store for sync
 
@@ -171,7 +197,7 @@ export default function AuctionDetail() {
         address: contractAddress,
         abi: AuctionPlatformABI.abi,
         functionName: 'bid',
-        args: [BigInt(auction.onChainAuctionId || '0')],
+        args: [BigInt(auction.onChainAuctionId)],
         value: topUp,
       });
     } catch (err) {
@@ -491,49 +517,47 @@ export default function AuctionDetail() {
           </p>
         </div>
 
-        {/* Bid History for Buyers / More detailed for Sellers */}
-        {isOwner && (
-          <div className="flex flex-col gap-6">
-            <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Bid History</h2>
-            <div className="bg-white rounded-2xl border border-[#CBCCC9] overflow-hidden">
-              {auction.bids && auction.bids.length > 0 ? (
-                <div className="divide-y divide-[#CBCCC9]">
-                  {auction.bids.map((bid) => (
-                    <div key={bid.id} className="p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#E7E8E5] flex items-center justify-center">
-                          <User className="w-5 h-5 text-[#666666]" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-jetbrains text-sm font-semibold text-[#111111]">
-                            {bid.bidder.displayName || bid.bidder.walletAddress.slice(0, 6) + '...' + bid.bidder.walletAddress.slice(-4)}
-                          </span>
-                          <span className="font-geist text-xs text-[#666666]">
-                            {new Date(bid.createdAt).toLocaleString()}
-                          </span>
-                        </div>
+        {/* Bid History */}
+        <div className="flex flex-col gap-6">
+          <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Bid History</h2>
+          <div className="bg-white rounded-2xl border border-[#CBCCC9] overflow-hidden">
+            {auction.bids && auction.bids.length > 0 ? (
+              <div className="divide-y divide-[#CBCCC9]">
+                {auction.bids.map((bid) => (
+                  <div key={bid.id} className="p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#E7E8E5] flex items-center justify-center">
+                        <User className="w-5 h-5 text-[#666666]" />
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-jetbrains text-sm font-bold text-[#111111]">
-                          {formatEther(BigInt(bid.amountWei))} ETH
+                      <div className="flex flex-col">
+                        <span className="font-jetbrains text-sm font-semibold text-[#111111]">
+                          {bid.bidder.displayName || bid.bidder.walletAddress.slice(0, 6) + '...' + bid.bidder.walletAddress.slice(-4)}
                         </span>
-                        {bid.isWinning && (
-                          <span className="font-geist text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">
-                            HIGHEST
-                          </span>
-                        )}
+                        <span className="font-geist text-xs text-[#666666]">
+                          {new Date(bid.createdAt).toLocaleString()}
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center">
-                  <span className="font-geist text-[#666666]">No bids yet</span>
-                </div>
-              )}
-            </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-jetbrains text-sm font-bold text-[#111111]">
+                        {formatEther(BigInt(bid.amountWei))} ETH
+                      </span>
+                      {bid.isWinning && (
+                        <span className="font-geist text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">
+                          HIGHEST
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <span className="font-geist text-[#666666]">No bids yet</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Item Details */}
         <div className="flex flex-col gap-4">
@@ -783,12 +807,18 @@ export default function AuctionDetail() {
                 </div>
               </div>
             </div>
+            <div className="flex flex-col gap-2">
+                <FollowButton 
+                  userId={auction.seller.id} 
+                  className="w-full h-10"
+                />
                 <button 
                   onClick={() => useChatStore.getState().openChat(auction.seller.id)}
                   className="w-full h-10 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] font-jetbrains text-sm font-semibold text-[#111111] hover:bg-[#CBCCC9] transition-colors"
                 >
                   Contact Seller
                 </button>
+            </div>
           </div>
         )}
       </div>

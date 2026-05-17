@@ -67,7 +67,7 @@ contract AuctionPlatform is ReentrancyGuard {
     // Economic parameters (made flexible)
     uint256 public collateralBps = 1000;          // 10%
     uint256 public minBidIncrementBps = 500;      // 5%
-    uint256 public minCollateral = 0.01 ether;
+    uint256 public minCollateral = 0.0001 ether;
     uint256 public platformFeeBps = 200;          // 2%
     uint256 public disputeBond = 0.005 ether;
     
