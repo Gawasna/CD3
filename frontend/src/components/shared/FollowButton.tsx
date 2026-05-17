@@ -17,13 +17,11 @@ export default function FollowButton({ userId, className = '', onToggle }: Follo
   const { showToast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const isSelf = currentUser?.id === userId;
 
   useEffect(() => {
     if (!currentUser || isSelf) {
-      setIsInitialLoading(false);
       return;
     }
 
@@ -33,8 +31,6 @@ export default function FollowButton({ userId, className = '', onToggle }: Follo
         setIsFollowing(status);
       } catch (error) {
         console.error('Error checking follow status:', error);
-      } finally {
-        setIsInitialLoading(false);
       }
     };
 
@@ -67,21 +63,13 @@ export default function FollowButton({ userId, className = '', onToggle }: Follo
       }
     } catch (error: any) {
       console.error('Follow error:', error);
-      showToast('error', error.message || 'Failed to update follow status');
+      showToast('error', (error as any).message || 'Failed to update follow status');
     } finally {
       setIsLoading(false);
     }
   };
 
   if (isSelf) return null;
-
-  if (isInitialLoading) {
-    return (
-      <button disabled className={`flex items-center justify-center gap-2 rounded-full opacity-50 ${className}`}>
-        <Loader2 className="w-4 h-4 animate-spin" />
-      </button>
-    );
-  }
 
   return (
     <button

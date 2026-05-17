@@ -131,7 +131,7 @@ export async function getFollowing(userId: string) {
     orderBy: { createdAt: 'desc' },
   });
 
-  return follows.map((f) => f.following);
+  return follows.map((f: any) => f.following as UserProfile);
 }
 
 export async function getFollowers(userId: string) {
@@ -145,7 +145,7 @@ export async function getFollowers(userId: string) {
     orderBy: { createdAt: 'desc' },
   });
 
-  return follows.map((f) => f.follower);
+  return follows.map((f: any) => f.follower as UserProfile);
 }
 
 /** Chỉ cho phép cập nhật displayName, avatarUrl, address1, address2 (AUTH plan Step 6) */
@@ -188,6 +188,20 @@ export async function updateUserProfile(
     },
     select: profileSelect,
   });
+
+  // Ghi activity cho PROFILE_UPDATED
+  await activityService.logActivity(
+    userId,
+    isUpdatingAddress ? 'ADDRESS_UPDATED' : 'PROFILE_UPDATED',
+    userId,
+    'USER',
+    { fields: Object.keys(data) },
+  );
+
+  // Nếu cập nhật địa chỉ, phát sự kiện để gửi thông báo bảo mật
+  if (isUpdatingAddress) {
+    eventEmitter.emit(Events.USER.ADDRESS_UPDATED, { userId });
+  }
 
   return updated;
 }

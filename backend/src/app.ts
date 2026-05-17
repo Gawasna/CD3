@@ -21,8 +21,12 @@ import chatRoutes from './modules/chat/chat.routes';
 import { errorHandler } from './shared/middleware/error-handler';
 
 import path from 'path';
+import { NotificationListener } from './modules/notification/notification.listener';
 
 const app = express();
+
+// Register Event Listeners
+NotificationListener.register();
 
 // Phân phối static file cho chức năng upload (Lấy từ storage folder ngoài project root)
 app.use('/uploads/avatars', express.static(path.join(process.cwd(), '../storage/avatars')));

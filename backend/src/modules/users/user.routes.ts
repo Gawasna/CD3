@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { validate } from '../../shared/middleware/validate';
 import { updateProfileBodySchema } from './user.schema';
-import { getMe, updateMe, uploadAvatar } from './user.controller';
+import { getMe, updateMe, uploadAvatar, getFollowing, getFollowers, checkFollowing, follow, unfollow } from './user.controller';
 import { uploadAvatarMiddleware } from '../../shared/middleware/upload';
 
 const router = Router();

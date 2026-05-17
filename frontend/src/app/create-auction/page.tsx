@@ -79,7 +79,7 @@ export default function CreateAuction() {
   // Redirect if not connected
   useEffect(() => {
     if (mounted && _hasHydrated && !isConnecting && !isReconnecting && !isConnected) {
-      router.push('/auth-demo');
+      router.push('/');
     }
   }, [isConnected, isConnecting, isReconnecting, mounted, _hasHydrated, router]);
 
