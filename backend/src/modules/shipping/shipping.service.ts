@@ -1,9 +1,10 @@
 import { prisma } from '../../config/database';
 import { ApiError } from '../../shared/utils/api-error';
 import { ethers, Contract, Wallet } from 'ethers';
-import { notificationService } from '../notification/notification.service';
 import { env } from '../../config/env';
 import AuctionPlatformABI from '../../abi/AuctionPlatform.json';
+import { activityService } from '../users/activity.service';
+import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 
 /**
  * Mock Shipping Provider Service
@@ -105,19 +106,6 @@ export const shippingService = {
 
   async getShippingDetails(auctionId: string) {
     const logs = await prisma.shippingLog.findMany({
-      where: { auctionId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        updatedBy: {
-          select: { displayName: true, walletAddress: true },
-        },
-      },
-    });
-
-    return logs;
-  }
-};
-= await prisma.shippingLog.findMany({
       where: { auctionId },
       orderBy: { createdAt: 'desc' },
       include: {

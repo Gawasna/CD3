@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from './user.service';
+import { activityService } from './activity.service';
 import type { UpdateProfileBody } from './user.schema';
 import { ApiError } from '../../shared/utils/api-error';
 
@@ -98,6 +99,20 @@ export async function checkFollowing(req: Request, res: Response, next: NextFunc
     const followerId = req.user!.id;
     const isFollowing = await userService.checkFollowingStatus(followerId, followingId);
     res.status(200).json({ isFollowing });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** GET /api/users/me/activities */
+export async function getMyActivities(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+    
+    const activities = await activityService.getUserActivities(userId, limit, offset);
+    res.status(200).json({ activities });
   } catch (err) {
     next(err);
   }
