@@ -53,6 +53,7 @@ export default function CreateAuction() {
   });
 
   const [uploadedFilenames, setUploadedFilenames] = useState<string[]>([]);
+  const [createdAuctionId, setCreatedAuctionId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -83,12 +84,13 @@ export default function CreateAuction() {
     }
   }, [isConnected, isConnecting, isReconnecting, mounted, _hasHydrated, router]);
 
-  // Handle transaction confirmation
+  // Handle transaction hash received (Create PENDING record early)
   useEffect(() => {
-    if (isTxConfirmed && txHash && uploadedFilenames.length > 0 && isCreating) {
-      const registerAuction = async () => {
+    if (txHash && uploadedFilenames.length > 0 && isCreating && !isTxConfirmed && !error && !createdAuctionId) {
+      const registerPendingAuction = async () => {
         try {
-          setError(null);
+          console.log('Creating pending auction with TX:', txHash);
+          
           const { auctionId } = await createAuction({
             title,
             description,
@@ -102,21 +104,34 @@ export default function CreateAuction() {
             createTxHash: txHash,
             mediaKeys: uploadedFilenames,
           });
-
-          showToast('success', 'Auction created successfully!');
-          router.push(`/auctions/${auctionId}`);
-        } catch (error: any) {
-          console.error('Error registering auction:', error);
-          const msg = `Transaction confirmed but failed to register: ${error.message}`;
-          setError(msg);
-          setDialogStatus('error');
-          setIsCreating(false);
+          
+          setCreatedAuctionId(auctionId);
+          console.log('Pending auction record created successfully:', auctionId);
+        } catch (err: any) {
+          if (err.message?.includes('already exists') || err.code === 'P2002') {
+            return;
+          }
+          console.error('Error creating pending auction:', err);
         }
       };
       
-      registerAuction();
+      registerPendingAuction();
     }
-  }, [isTxConfirmed, txHash, uploadedFilenames, isCreating, title, description, category, startingPrice, buyNowPrice, hasBuyNow, duration, shippingCost, shippingPayer, router, showToast]);
+  }, [txHash, uploadedFilenames, isCreating, isTxConfirmed, error, createdAuctionId, title, description, category, startingPrice, buyNowPrice, hasBuyNow, duration, shippingCost, shippingPayer]);
+
+  // Handle transaction confirmation (Success redirection)
+  useEffect(() => {
+    if (isTxConfirmed && txHash && isCreating) {
+      showToast('success', 'Auction created and confirmed!');
+      
+      if (createdAuctionId) {
+        router.push(`/auctions/${createdAuctionId}`);
+      } else {
+        // Fallback if record creation is slow
+        router.push('/dashboard/my-products');
+      }
+    }
+  }, [isTxConfirmed, txHash, isCreating, createdAuctionId, router, showToast]);
 
   // Sync dialog status with transaction receipt
   useEffect(() => {
@@ -353,6 +368,8 @@ export default function CreateAuction() {
             <div className="flex flex-col gap-2 flex-1">
               <label className="font-jetbrains text-sm font-semibold text-[#111111]">Duration *</label>
               <select value={duration} onChange={(e) => setDuration(e.target.value)} required className="h-10 px-4 rounded-2xl border border-[#CBCCC9] focus:outline-none focus:border-[#FF8400] font-geist bg-white w-full">
+                <option value="300">5 Minutes (DEV)</option>
+                <option value="900">15 Minutes (DEV)</option>
                 <option value="3600">1 Hour (Test)</option>
                 <option value="86400">1 Day</option>
                 <option value="604800">7 Days</option>

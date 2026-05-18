@@ -1,6 +1,7 @@
 import { eventEmitter, Events } from '../../shared/utils/event-emitter';
 import { notificationService } from './notification.service';
 import { NotificationType } from '@prisma/client';
+import { prisma } from '../../config/database';
 
 /**
  * NotificationListener listens to application events and creates notifications.
@@ -59,8 +60,39 @@ export class NotificationListener {
 
     // --- AUCTION EVENTS ---
     eventEmitter.on(Events.AUCTION.CREATED, async (data) => {
-      // Typically no notification for the creator, but could notify followers
-      // For now, let's keep it simple.
+      const { auctionId, sellerId, title } = data;
+      
+      try {
+        // Tìm tất cả những người đang theo dõi Seller này
+        const followers = await prisma.follow.findMany({
+          where: { followingId: sellerId },
+          include: {
+            follower: { select: { displayName: true } }
+          }
+        });
+
+        if (followers.length === 0) return;
+
+        // Lấy tên Seller để đưa vào nội dung thông báo
+        const seller = await prisma.user.findUnique({
+          where: { id: sellerId },
+          select: { displayName: true }
+        });
+
+        const sellerName = seller?.displayName || 'Một người bạn theo dõi';
+
+        // Gửi thông báo cho từng người theo dõi
+        for (const f of followers) {
+          await notificationService.createNotification(f.followerId, {
+            type: NotificationType.INFO,
+            title: 'Sản phẩm mới từ người bạn theo dõi',
+            message: `${sellerName} vừa đăng một sản phẩm mới: "${title || 'Chưa có tiêu đề'}"`,
+            actionUrl: `/auctions/${auctionId}`,
+          });
+        }
+      } catch (error) {
+        console.error('[NotificationListener] Error notifying followers for new auction:', error);
+      }
     });
 
     eventEmitter.on(Events.AUCTION.STARTED, async (data) => {
@@ -168,14 +200,28 @@ export class NotificationListener {
     eventEmitter.on(Events.SHIPPING.STATUS_UPDATED, async (data) => {
       const { auctionId, userId, status, title, feeEth } = data;
       let message = `Trạng thái vận chuyển cho "${title}" đã cập nhật thành ${status}.`;
+      let type: NotificationType = NotificationType.INFO;
+      let notificationTitle = 'Cập nhật vận chuyển';
       
       if (status === 'FEE_ESTIMATED') {
-        message = `Phí vận chuyển cho "${title}" đã được ước tính là ${feeEth} ETH.`;
+        message = `Phí vận chuyển cho "${title}" đã được ước tính là ${feeEth} ETH. Hãy tiến hành thanh toán phí để người bán gửi hàng.`;
+      } else if (status === 'FEE_PAID') {
+        message = `Người mua đã thanh toán phí vận chuyển cho "${title}". Hãy chuẩn bị và gửi hàng ngay!`;
+        type = NotificationType.SUCCESS;
+        notificationTitle = 'Đã thanh toán phí ship';
+      } else if (status === 'SHIPPED') {
+        message = `Sản phẩm "${title}" đã được người bán gửi đi. Hãy chú ý điện thoại để nhận hàng!`;
+        type = NotificationType.SUCCESS;
+        notificationTitle = 'Đang giao hàng';
+      } else if (status === 'DELIVERED') {
+        message = `Người mua đã xác nhận nhận hàng cho "${title}". Tiền đã được chuyển vào tài khoản của bạn.`;
+        type = NotificationType.SUCCESS;
+        notificationTitle = 'Giao hàng thành công';
       }
 
       await notificationService.createNotification(userId, {
-        type: NotificationType.INFO,
-        title: 'Cập nhật vận chuyển',
+        type,
+        title: notificationTitle,
         message,
         actionUrl: `/orders/${auctionId}`,
       });

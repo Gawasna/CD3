@@ -31,7 +31,7 @@ export async function startAuctionStatusJob() {
       if (auctionsToStart.length > 0) {
         await prisma.auctionMetadata.updateMany({
           where: {
-            id: { in: auctionsToStart.map(a => a.id) },
+            id: { in: auctionsToStart.map((a: any) => a.id) },
           },
           data: { status: 'ACTIVE' },
         });
@@ -42,7 +42,7 @@ export async function startAuctionStatusJob() {
             auctionId: auction.id,
             sellerId: auction.sellerId,
             title: auction.title,
-            watcherIds: auction.watchers.map(w => w.userId),
+            watcherIds: auction.watchers.map((w: any) => w.userId),
           });
         }
         

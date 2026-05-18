@@ -259,17 +259,94 @@ export function startAuctionCreatedListener() {
     contract.on('ShippingFeePaid', async (auctionId: bigint, buyer: string, amount: bigint) => {
       try {
         console.log('[AuctionListener] ShippingFeePaid event received:', { auctionId: auctionId.toString(), buyer });
-        // Cập nhật Database để đồng bộ trạng thái thanh toán
+        const auction = await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId } });
+        if (!auction) return;
+
+        const user = await prisma.user.findUnique({ where: { walletAddress: buyer.toLowerCase() } });
+        
         await prisma.shippingLog.create({
           data: {
-            auctionId: (await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId }, select: { id: true } }))?.id || '',
-            status: 'SHIPPED', // Giả định: sau khi pay fee thì seller ship, hoặc có thể thêm trạng thái mới
-            updatedById: (await prisma.user.findUnique({ where: { walletAddress: buyer.toLowerCase() }, select: { id: true } }))?.id || '',
-            notes: `Buyer paid shipping fee: ${ethers.formatEther(amount)} ETH`,
+            auctionId: auction.id,
+            status: 'PENDING',
+            updatedById: user?.id || auction.sellerId,
+            notes: `Buyer paid shipping fee: ${ethers.formatEther(amount)} ETH. Waiting for seller to ship.`,
           },
+        });
+
+        eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {
+          auctionId: auction.id,
+          userId: auction.sellerId,
+          status: 'FEE_PAID',
+          title: auction.title,
         });
       } catch (error) {
         console.error('[AuctionListener] Error processing ShippingFeePaid event:', error);
+      }
+    });
+
+    contract.on('ItemShipped', async (auctionId: bigint, proofHash: string) => {
+      try {
+        console.log('[AuctionListener] ItemShipped event received:', { auctionId: auctionId.toString() });
+        const auction = await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId } });
+        if (!auction) return;
+
+        await prisma.auctionMetadata.update({
+          where: { id: auction.id },
+          data: { escrowStatus: 'AWAITING_DELIVERY' },
+        });
+
+        await prisma.shippingLog.create({
+          data: {
+            auctionId: auction.id,
+            status: 'SHIPPED',
+            updatedById: auction.sellerId,
+            notes: `Item marked as shipped on-chain. Proof hash: ${proofHash}`,
+          },
+        });
+
+        if (auction.winnerId) {
+          eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {
+            auctionId: auction.id,
+            userId: auction.winnerId,
+            status: 'SHIPPED',
+            title: auction.title,
+          });
+        }
+      } catch (error) {
+        console.error('[AuctionListener] Error processing ItemShipped event:', error);
+      }
+    });
+
+    contract.on('DeliveryConfirmed', async (auctionId: bigint, buyer: string) => {
+      try {
+        console.log('[AuctionListener] DeliveryConfirmed event received:', { auctionId: auctionId.toString(), buyer });
+        const auction = await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId } });
+        if (!auction) return;
+
+        const user = await prisma.user.findUnique({ where: { walletAddress: buyer.toLowerCase() } });
+
+        await prisma.auctionMetadata.update({
+          where: { id: auction.id },
+          data: { escrowStatus: 'COMPLETED' },
+        });
+
+        await prisma.shippingLog.create({
+          data: {
+            auctionId: auction.id,
+            status: 'CONFIRMED',
+            updatedById: user?.id || auction.winnerId || auction.sellerId,
+            notes: 'Buyer confirmed delivery on-chain.',
+          },
+        });
+
+        eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {
+          auctionId: auction.id,
+          userId: auction.sellerId,
+          status: 'DELIVERED',
+          title: auction.title,
+        });
+      } catch (error) {
+        console.error('[AuctionListener] Error processing DeliveryConfirmed event:', error);
       }
     });
 

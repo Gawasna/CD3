@@ -104,22 +104,47 @@ export default function AuctionDetail() {
     functionName: 'minBidIncrementBps',
   });
 
-  const fetchAuction = async () => {
+  const fetchAuction = async (isPolling = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
       const { auction: data } = await getAuction(id as string);
       setAuction(data);
     } catch (err: any) {
       console.error('Error fetching auction:', err);
-      setError(err.message || 'Failed to load auction details');
+      if (!isPolling) setError(err.message || 'Failed to load auction details');
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!id) return;
     fetchAuction();
+
+    // Live Sync / Polling logic for PENDING state
+    // Because we don't have Socket.io yet, we use polling to detect state change from PENDING -> ACTIVE/UPCOMING
+    let interval: NodeJS.Timeout;
+
+    const startPolling = () => {
+      interval = setInterval(() => {
+        // Only poll if the auction is still pending or not loaded yet
+        setAuction(currentAuction => {
+          if (!currentAuction || currentAuction.status === 'PENDING') {
+            fetchAuction(true);
+            return currentAuction;
+          }
+          // If already active/upcoming, clear polling
+          clearInterval(interval);
+          return currentAuction;
+        });
+      }, 5000); // 5 seconds polling
+    };
+
+    startPolling();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [id]);
 
   // Handle transaction success

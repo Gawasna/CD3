@@ -74,5 +74,10 @@ export const profileApi = {
 
   checkFollowing: async (userId: string) => {
     return authFetch<{ isFollowing: boolean }>(`/users/${userId}/is-following`);
+  },
+
+  // Lấy lịch sử hoạt động
+  getActivities: async (limit: number = 20, offset: number = 0) => {
+    return authFetch<{ activities: any[] }>(`/users/me/activities?limit=${limit}&offset=${offset}`);
   }
 };

@@ -91,6 +91,12 @@ export default function DashboardPage() {
     enabled: !!user?.id && activeTab === 'following',
   });
 
+  const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
+    queryKey: ['activities', user?.id],
+    queryFn: () => profileApi.getActivities(10),
+    enabled: !!user?.id,
+  });
+
   // Calculate stats
   const stats = {
     activeBids: myBidsData?.meta.total || 0,
@@ -146,10 +152,44 @@ export default function DashboardPage() {
   const getActivityIcon = (type: string) => {
     const iconProps = { className: 'w-5 h-5' };
     switch (type) {
-      case 'won': return <Check {...iconProps} />;
-      case 'outbid': return <TrendingUp {...iconProps} />;
-      default: return <Heart {...iconProps} />;
+      case 'BID_PLACED': return <Gavel {...iconProps} />;
+      case 'AUCTION_WON': return <Trophy {...iconProps} />;
+      case 'LOGIN': return <Clock {...iconProps} />;
+      case 'FOLLOW_USER': return <Check {...iconProps} />;
+      case 'KYC_SUBMITTED': return <Loader2 {...iconProps} />;
+      case 'SHIPPING_SHIPPED': return <Package {...iconProps} />;
+      case 'PROFILE_UPDATED':
+      case 'ADDRESS_UPDATED': return <Edit {...iconProps} />;
+      default: return <TrendingUp {...iconProps} />;
     }
+  };
+
+  const formatActivityText = (activity: any) => {
+    const actions: Record<string, string> = {
+      LOGIN: 'Bạn đã đăng nhập vào hệ thống',
+      BID_PLACED: 'Bạn đã đặt giá cho một sản phẩm',
+      AUCTION_CREATED: 'Bạn đã tạo một phiên đấu giá mới',
+      PROFILE_UPDATED: 'Bạn đã cập nhật thông tin cá nhân',
+      ADDRESS_UPDATED: 'Bạn đã cập nhật địa chỉ giao hàng',
+      FOLLOW_USER: 'Bạn đã theo dõi một người dùng mới',
+      UNFOLLOW_USER: 'Bạn đã bỏ theo dõi một người dùng',
+      KYC_SUBMITTED: 'Bạn đã gửi hồ sơ xác thực danh tính (KYC)',
+      SHIPPING_SHIPPED: 'Bạn đã yêu cầu báo giá vận chuyển',
+      AUCTION_WON: 'Chúc mừng! Bạn đã thắng một phiên đấu giá',
+    };
+
+    return actions[activity.action] || `Hoạt động: ${activity.action}`;
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Vừa xong';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    return date.toLocaleDateString('vi-VN');
   };
 
   const renderTabContent = () => {
@@ -349,19 +389,27 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <div className="flex flex-col gap-4">
-          <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Recent Activity</h2>
+          <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Hoạt động gần đây</h2>
           <div className="bg-white rounded-2xl border border-[#CBCCC9] p-6 flex flex-col gap-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center gap-3 py-3 border-b last:border-0 border-[#F2F3F0]">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#F2F3F0]`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="font-geist text-sm text-[#111111]">{activity.text}</span>
-                  <span className="font-geist text-xs text-[#666666]">{activity.time}</span>
-                </div>
+            {isLoadingActivities ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 text-[#FF8400] animate-spin" />
               </div>
-            ))}
+            ) : activitiesData?.activities.length === 0 ? (
+              <p className="text-center py-8 text-[#666666] font-geist">Chưa có hoạt động nào được ghi nhận.</p>
+            ) : (
+              activitiesData?.activities.map((activity: any) => (
+                <div key={activity.id} className="flex items-center gap-3 py-3 border-b last:border-0 border-[#F2F3F0]">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-[#F2F3F0]`}>
+                    {getActivityIcon(activity.action)}
+                  </div>
+                  <div className="flex-1 flex flex-col gap-1">
+                    <span className="font-geist text-sm text-[#111111]">{formatActivityText(activity)}</span>
+                    <span className="font-geist text-xs text-[#666666]">{formatTimeAgo(activity.createdAt)}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
