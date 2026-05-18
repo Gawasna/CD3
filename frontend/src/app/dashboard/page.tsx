@@ -97,11 +97,23 @@ export default function DashboardPage() {
     enabled: !!user?.id,
   });
 
+  const { data: ordersData, isLoading: isLoadingOrders } = useQuery({
+    queryKey: ['orders', user?.id],
+    queryFn: () => listAuctions({ bidderId: user?.id, variant: 'won', limit: 20 }),
+    enabled: !!user?.id && activeTab === 'orders',
+  });
+
+  const { data: salesData, isLoading: isLoadingSales } = useQuery({
+    queryKey: ['sales', user?.id],
+    queryFn: () => listAuctions({ sellerId: user?.id, status: 'ENDED', limit: 20 }),
+    enabled: !!user?.id && activeTab === 'orders',
+  });
+
   // Calculate stats
   const stats = {
     activeBids: myBidsData?.meta.total || 0,
     itemsSelling: myAuctionsData?.meta.total || 0,
-    wonAuctions: 0, // Placeholder for won items logic
+    wonAuctions: ordersData?.meta.total || 0,
     watching: watchlistData?.meta.total || 0,
   };
 
@@ -301,22 +313,50 @@ export default function DashboardPage() {
 
       case 'orders':
         return (
-          <div className="flex flex-col gap-6">
-            <div className="flex gap-2">
-              {['all', 'pending', 'shipped', 'delivered', 'cancelled'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setOrderStatusFilter(f as any)}
-                  className={`px-6 py-3 rounded-2xl font-jetbrains text-sm font-semibold transition-colors ${
-                    orderStatusFilter === f ? 'bg-[#FF8400] text-[#111111]' : 'text-[#666666] hover:bg-[#E7E8E5]'
-                  }`}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-4">
-              <EmptyState icon={<Package />} message="Order history is coming soon." />
+              <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Items You Won</h2>
+              {isLoadingOrders ? (
+                <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#FF8400]" /></div>
+              ) : ordersData?.data.length === 0 ? (
+                <EmptyState icon={<Trophy />} message="You haven't won any auctions yet." />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {ordersData?.data.map((auction) => (
+                    <AuctionListItem 
+                      key={auction.id} 
+                      auction={auction} 
+                      badge={<span className="px-3 py-1 rounded-full bg-[#DFE6E1] text-[#004D1A] font-jetbrains text-xs font-bold">WON</span>}
+                      extraInfo={`Price: ${formatEther(BigInt(auction.startingPriceWei))} ETH`}
+                      actionLabel="Track Order"
+                      actionHref={`/orders/${auction.id}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <h2 className="font-jetbrains text-2xl font-bold text-[#111111]">Items You Sold</h2>
+              {isLoadingSales ? (
+                <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-[#FF8400]" /></div>
+              ) : salesData?.data.length === 0 ? (
+                <EmptyState icon={<ShoppingBag />} message="You haven't sold any items yet." />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {salesData?.data.map((auction) => (
+                    <AuctionListItem 
+                      key={auction.id} 
+                      auction={auction} 
+                      badge={<span className="px-3 py-1 rounded-full bg-[#E9E3D8] text-[#804200] font-jetbrains text-xs font-bold">SOLD</span>}
+                      extraInfo={`Final Price: ${formatEther(BigInt(auction.startingPriceWei))} ETH`}
+                      actionLabel="Manage Shipping"
+                      actionHref={`/orders/${auction.id}`}
+                      isSeller
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -447,12 +487,14 @@ function AuctionListItem({
   badge, 
   extraInfo, 
   actionLabel = "View", 
+  actionHref,
   isSeller = false 
 }: { 
   auction: Auction, 
   badge: React.ReactNode, 
   extraInfo: string, 
   actionLabel?: string,
+  actionHref?: string,
   isSeller?: boolean
 }) {
   return (
@@ -475,7 +517,7 @@ function AuctionListItem({
 
       <div className="flex gap-3">
         <Link
-          href={`/auctions/${auction.id}`}
+          href={actionHref || `/auctions/${auction.id}`}
           className="px-6 py-2.5 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] text-[#111111] font-jetbrains text-sm font-semibold hover:bg-[#CBCCC9] transition-colors"
         >
           {actionLabel}

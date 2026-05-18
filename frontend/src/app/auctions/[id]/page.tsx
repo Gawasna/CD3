@@ -120,32 +120,23 @@ export default function AuctionDetail() {
   useEffect(() => {
     if (!id) return;
     fetchAuction();
+  }, [id]);
 
-    // Live Sync / Polling logic for PENDING state
-    // Because we don't have Socket.io yet, we use polling to detect state change from PENDING -> ACTIVE/UPCOMING
-    let interval: NodeJS.Timeout;
+  // Live Sync / Polling logic for PENDING state
+  useEffect(() => {
+    // Only poll if the auction is in PENDING status
+    if (!id || !auction || auction.status !== 'PENDING') return;
 
-    const startPolling = () => {
-      interval = setInterval(() => {
-        // Only poll if the auction is still pending or not loaded yet
-        setAuction(currentAuction => {
-          if (!currentAuction || currentAuction.status === 'PENDING') {
-            fetchAuction(true);
-            return currentAuction;
-          }
-          // If already active/upcoming, clear polling
-          clearInterval(interval);
-          return currentAuction;
-        });
-      }, 5000); // 5 seconds polling
-    };
-
-    startPolling();
+    console.log('Starting polling for pending auction:', id);
+    const interval = setInterval(() => {
+      fetchAuction(true);
+    }, 5000); // 5 seconds polling
 
     return () => {
-      if (interval) clearInterval(interval);
+      console.log('Stopping polling for auction:', id);
+      clearInterval(interval);
     };
-  }, [id]);
+  }, [id, auction?.status]);
 
   // Handle transaction success
   useEffect(() => {

@@ -374,7 +374,7 @@ export async function listAuctions(params: {
     });
   }
 
-  // 5. Variant logic (Homepage)
+  // 5. Variant logic (Homepage & Dashboard)
   if (variant === 'ending-soon') {
     const now = new Date();
     const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -397,6 +397,12 @@ export async function listAuctions(params: {
         { status: 'UPCOMING' as AuctionStatus },
         { status: 'ACTIVE' as AuctionStatus, startTime: { gt: now } }
       ]
+    });
+  } else if (variant === 'won' && bidderId) {
+    // P2 Consensus: Filter auctions where the user is the winner
+    andConditions.push({
+      winnerId: bidderId,
+      status: 'ENDED' as AuctionStatus,
     });
   }
 

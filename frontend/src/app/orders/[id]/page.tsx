@@ -9,7 +9,7 @@ import { getAuction } from '@/services/api/auction';
 import { getShippingHistory, getShippingQuote } from '@/services/api/shipping';
 import { useAuthStore } from '@/store/auth.store';
 import { formatEther } from 'viem';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import AuctionPlatformABI from '@/services/blockchain/abi/AuctionPlatform.json';
 import { useToast } from '@/components/auth/ToastContainer';
 import TransactionDialog from '@/components/shared/TransactionDialog';
@@ -40,19 +40,33 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
     enabled: !!auctionId,
   });
 
-  // 2. Fetch Shipping History
+  const auction = auctionData?.auction;
+
+  // 2. Check On-Chain Status
+  const { data: auctionCore } = useReadContract({
+    address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+    abi: AuctionPlatformABI.abi,
+    functionName: 'getAuctionCore',
+    args: auction?.onChainAuctionId ? [BigInt(auction.onChainAuctionId)] : undefined,
+    query: {
+      enabled: !!auction?.onChainAuctionId,
+    }
+  });
+
+  const onChainStatus = auctionCore ? (auctionCore as any)[8] : null; // Index 8 is status
+
+  // 3. Fetch Shipping History
   const { data: shippingHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['shipping-history', auctionId],
     queryFn: () => getShippingHistory(auctionId),
     enabled: !!auctionId,
   });
 
-  const auction = auctionData?.auction;
   const history = shippingHistory?.data || [];
   const isSeller = user?.id === auction?.sellerId;
   const isWinner = user?.id === auction?.winnerId;
 
-  // 3. Mutations
+  // 4. Mutations
   const quoteMutation = useMutation({
     mutationFn: () => getShippingQuote(auctionId, user?.address1 || 'Seller Address', 'Winner Address'),
     onSuccess: () => {
@@ -64,6 +78,26 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
   });
 
   // ── Smart Contract Interactions ──────────────────────────────────────────
+
+  const handleEndAuction = () => {
+    if (!auction?.onChainAuctionId) return;
+    setIsDialogOpen(true);
+    setDialogStatus('waiting_wallet');
+    setTxError(null);
+
+    writeContract({
+      address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+      abi: AuctionPlatformABI.abi,
+      functionName: 'endAuction',
+      args: [BigInt(auction.onChainAuctionId)],
+    }, {
+      onSuccess: () => setDialogStatus('confirming'),
+      onError: (err: any) => {
+        setTxError(err.shortMessage || err.message);
+        setDialogStatus('error');
+      }
+    });
+  };
 
   const handlePayShippingFee = () => {
     if (!auction?.onChainAuctionId || !auction.shippingCostWei) return;
@@ -259,8 +293,18 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
           <div className="bg-white rounded-2xl border border-[#CBCCC9] p-6 flex flex-col gap-4">
             <h3 className="font-jetbrains text-lg font-bold text-[#111111]">Actions</h3>
             <div className="flex flex-col gap-3">
+              {/* Finalize Action (if ended in time but not on chain) */}
+              {onChainStatus !== null && onChainStatus < 3 && new Date(auction.endTime) <= new Date() && (
+                <button 
+                  onClick={handleEndAuction}
+                  className="w-full h-11 px-4 rounded-full bg-[#FF8400] text-[#111111] font-jetbrains text-sm font-semibold flex items-center justify-center gap-2"
+                >
+                  Finalize Auction (On-Chain)
+                </button>
+              )}
+
               {/* Seller Actions */}
-              {isSeller && BigInt(auction.shippingCostWei || '0') === 0n && (
+              {isSeller && onChainStatus === 3 && BigInt(auction.shippingCostWei || '0') === 0n && (
                 <button 
                   onClick={() => quoteMutation.mutate()}
                   disabled={quoteMutation.isPending}
