@@ -7,6 +7,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 export type AuctionCategory = 'ELECTRONICS' | 'FASHION' | 'FURNITURE' | 'COLLECTIBLES' | 'OTHER';
 export type ShippingPayer = 'BUYER' | 'SELLER';
 export type AuctionStatus = 'PENDING' | 'UPCOMING' | 'ACTIVE' | 'ENDED' | 'CANCELED' | 'FORFEITED';
+export type EscrowStatus = 'NONE' | 'AWAITING_SHIPMENT' | 'AWAITING_DELIVERY' | 'DISPUTED' | 'COMPLETED' | 'REFUNDED';
 
 export type Bid = {
   id: string;
@@ -25,8 +26,10 @@ export type Bid = {
 export type Auction = {
   id: string;
   sellerId: string;
+  winnerId?: string | null;
   onChainAuctionId: string | null; // Serialized as string for JSON compatibility
   status: AuctionStatus;
+  escrowStatus: EscrowStatus;
   title: string;
   description: string;
   category: AuctionCategory;

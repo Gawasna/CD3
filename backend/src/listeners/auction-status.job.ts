@@ -115,6 +115,71 @@ export async function startAuctionStatusJob() {
         }
       }
 
+      // 4. Chuyển ACTIVE -> ENDED cho các auction đã hết giờ
+      // Tự động xác định winner từ bid cao nhất trong DB nếu seller chưa gọi endAuction trên chain
+      const expiredAuctions = await prisma.auctionMetadata.findMany({
+        where: {
+          status: 'ACTIVE',
+          endTime: { lte: now },
+        },
+        include: {
+          bids: {
+            orderBy: { amountWei: 'desc' },
+            take: 1,
+            select: { bidderId: true, amountWei: true }
+          }
+        }
+      });
+
+      if (expiredAuctions.length > 0) {
+        for (const auction of expiredAuctions) {
+          const highestBid = auction.bids[0];
+          const hasWinner = !!highestBid;
+
+          await prisma.auctionMetadata.update({
+            where: { id: auction.id },
+            data: {
+              status: 'ENDED',
+              winnerId: highestBid?.bidderId ?? null,
+              // Giữ escrowStatus là NONE cho đến khi endAuction được gọi trên chain
+              // escrowStatus: hasWinner ? 'AWAITING_SHIPMENT' : 'REFUNDED',
+            }
+          });
+
+          if (hasWinner) {
+            // Đánh dấu bid thắng cuộc
+            await prisma.bid.updateMany({
+              where: {
+                auctionId: auction.id,
+                bidderId: highestBid.bidderId,
+                amountWei: highestBid.amountWei,
+              },
+              data: { isWinning: true }
+            });
+
+            console.log(`[AuctionJob] Auto-ended auction: ${auction.title} - Winner: ${highestBid.bidderId}`);
+            
+            // Thông báo cho người thắng
+            await notificationService.createNotification(highestBid.bidderId, {
+              type: 'SUCCESS',
+              title: 'Chúc mừng! Bạn đã thắng cuộc đấu giá',
+              message: `Bạn đã thắng cuộc đấu giá "${auction.title}". Vui lòng kiểm tra Dashboard để tiến hành thanh toán phí vận chuyển (nếu có).`,
+              actionUrl: `/auctions/${auction.id}`,
+            });
+          } else {
+            console.log(`[AuctionJob] Auto-ended auction (No Bids): ${auction.title}`);
+          }
+
+          // Phát sự kiện AUCTION.ENDED
+          eventEmitter.emit(Events.AUCTION.ENDED, {
+            auctionId: auction.id,
+            sellerId: auction.sellerId,
+            title: auction.title,
+            hasWinner,
+          });
+        }
+      }
+
     } catch (error) {
       console.error('[AuctionJob] Error in status update job:', error);
     }

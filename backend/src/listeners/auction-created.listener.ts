@@ -353,8 +353,15 @@ export function startAuctionCreatedListener() {
     isListening = true;
     console.log('[AuctionListener] Started listening for Auction events');
 
-    // Tự động đồng bộ các đấu giá bị kẹt khi khởi động
-    syncPendingAuctions().catch(err => console.error('[AuctionListener] Auto-sync failed:', err));
+    // Chạy đồng bộ ngay lập tức khi khởi động
+    syncPendingAuctions().catch(err => console.error('[AuctionListener] Initial sync failed:', err));
+
+    // Thiết lập Job đồng bộ định kỳ mỗi 1 phút để tránh bị kẹt (Safety Net)
+    setInterval(() => {
+      if (isListening) {
+        syncPendingAuctions().catch(err => console.error('[AuctionListener] Periodic sync failed:', err));
+      }
+    }, 60 * 1000); 
   } catch (error) {
     console.error('[AuctionListener] Failed to start listener:', error);
     throw error;
