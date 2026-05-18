@@ -21,8 +21,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "P2P Auction",
-  description: "P2P Auction Blockchain Platform. Transparent, Fast, Secure.",
+  title: "Biddee",
+  description: "C2C Auction Blockchain Platform. Transparent, Fast, Secure.",
   other: {
     // Chặn Google Translate tự động popup
     'google': 'notranslate',

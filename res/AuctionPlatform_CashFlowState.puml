@@ -1,0 +1,54 @@
+@startuml AuctionPlatform_CashFlowState
+
+title Auction Platform - Cash Flow State Diagram (Escrow & Funds)
+
+skinparam state {
+  BackgroundColor<<Escrow>> LightCyan
+  BackgroundColor<<Terminal>> LightGreen
+  BackgroundColor<<Dispute>> LightPink
+}
+
+state "No Funds" as NoFunds
+state "Collateral Locked" as CollateralLocked <<Escrow>>
+state "Bidding (Active/Upcoming)" as Bidding <<Escrow>> {
+  state "Accepting Bids" as AcceptingBids
+  AcceptingBids --> AcceptingBids : bid()\n[New Bid deposits Funds.\nPrevious Bid refunded or added to pendingReturns]
+}
+
+state "Awaiting Shipment" as AwaitingShipment <<Escrow>>
+state "Awaiting Delivery" as AwaitingDelivery <<Escrow>>
+state "Disputed" as Disputed <<Dispute>>
+state "Pending Returns (Pull-payment)" as PendingReturns
+
+state "Refunded (No Winner)" as Refunded <<Terminal>>
+state "Completed (Success)" as Completed <<Terminal>>
+state "Forfeited" as Forfeited <<Terminal>>
+state "Dispute Resolved" as DisputeResolved <<Terminal>>
+
+[*] --> NoFunds
+
+NoFunds --> CollateralLocked : createAuction()\n[Seller deposits Collateral]
+
+CollateralLocked --> Bidding : Time reaches startTime
+CollateralLocked --> Refunded : cancelAuction()\n[Collateral -> Seller]
+Bidding --> Refunded : endAuction() (no bids)\n[Collateral -> Seller]
+
+Bidding --> AwaitingShipment : endAuction() (with bids)\n[Bid & Collateral Locked]
+Bidding --> PendingReturns : push refund fails\n[Funds moved to pendingReturns]
+PendingReturns --> [*] : withdraw()\n[Funds -> Outbid User]
+
+AwaitingShipment --> Forfeited : forfeitWin()\n[Bid - Penalty -> Buyer\nCollateral + 80% Penalty -> Seller\n20% Penalty -> Admin]
+AwaitingShipment --> AwaitingDelivery : markShipped()\n[Funds locked]
+AwaitingShipment --> Disputed : raiseDispute()\n[Buyer deposits Dispute Bond]
+
+AwaitingDelivery --> Completed : confirmDelivery() / claimFunds()\n[Bid + Collateral - Fees -> Seller\nFees -> Admin]
+AwaitingDelivery --> Disputed : raiseDispute()\n[Buyer deposits Dispute Bond]
+
+Disputed --> DisputeResolved : resolveDispute()\n[Funds (Bid+Collateral+Bond) split\nbetween Buyer, Seller, Admin\nbased on admin decision]
+
+Refunded --> [*]
+Completed --> [*]
+Forfeited --> [*]
+DisputeResolved --> [*]
+
+@enduml

@@ -1,0 +1,117 @@
+@startuml
+!theme plain
+autonumber
+skinparam style strictuml
+skinparam MaxMessageSize 200
+
+title Siêu Sơ Đồ Trình Tự Toàn Vòng Đời Đấu Giá (AuctionPlatform)
+
+actor "Seller (Người bán)" as Seller #LightGreen
+actor "Bidder 1 (Người thầu)" as B1 #LightBlue
+actor "Bidder 2 (Người thầu mới)" as B2 #LightCyan
+actor "Admin/Phân xử" as Admin #LightCoral
+
+participant "AuctionPlatform.sol" as Contract << (C,#ADD1B2) >>
+
+== 1. Khởi Tạo & Đấu Giá ==
+
+Seller -> Contract: createAuction(startingPrice, duration, collateral) + ETH Cọc
+activate Contract
+Contract --> Seller: Emit AuctionCreated(id)
+deactivate Contract
+
+B1 -> Contract: bid(id) + ETH Thầu
+activate Contract
+Contract --> B1: Emit BidPlaced(id, B1, bidAmount)
+deactivate Contract
+
+... Trong thời gian đấu giá ...
+
+B2 -> Contract: bid(id) + ETH Thầu Cao Hơn
+activate Contract
+    Contract -> Contract: Kiểm tra Chống bắn tỉa (Gia hạn nếu cần)
+    group Cơ chế Hoàn tiền (Push-Pull Fallback)
+        Contract -> B1: call{value: prevBid} (Đẩy - Push)
+        alt Đẩy thất bại
+            Contract -> Contract: pendingReturns[B1] += prevBid (Kéo - Pull)
+        end
+    end
+Contract --> B2: Emit BidPlaced(id, B2, higherBid)
+deactivate Contract
+
+B1 -> Contract: withdraw() (Nếu Đẩy thất bại)
+activate Contract
+Contract -> B1: Chuyển tiền đang chờ
+deactivate Contract
+
+== 2. Kết Thúc & Ký Quỹ (Escrow) ==
+
+... Hết thời gian đấu giá ...
+
+B2 -> Contract: endAuction(id)
+activate Contract
+Contract -> Contract: status = Ended, escrow = AwaitingShipment
+Contract --> B2: Emit AuctionEnded(id, winner, amount)
+deactivate Contract
+
+Admin -> Contract: setShippingFee(id, fee)
+activate Contract
+deactivate Contract
+
+B2 -> Contract: payShippingFee(id) + ETH
+activate Contract
+deactivate Contract
+
+Seller -> Contract: markShipped(id, proofHash)
+activate Contract
+Contract -> Contract: deliveryDeadline = now + 7 ngày
+Contract --> Seller: Emit ItemShipped(id)
+deactivate Contract
+
+== 3. Các Nhánh Kết Thúc (Kịch Bản Khác Nhau) ==
+
+alt Kịch bản A: Giao dịch thành công
+    B2 -> Contract: confirmDelivery(id)
+    activate Contract
+    Contract -> Contract: status = Completed
+    Contract -> Seller: Chuyển tiền (Thầu + Cọc - Phí Nền Tảng - Phí Ship)
+    Contract -> Contract: adminFeeBalance += Phí Nền Tảng + Phí Ship
+    deactivate Contract
+
+else Kịch bản B: Người mua "quên" xác nhận (Tự động giải ngân)
+    ... Sau 7 ngày (deliveryDeadline) ...
+    Seller -> Contract: claimFunds(id)
+    activate Contract
+    Contract -> Seller: Chuyển tiền (Thầu + Cọc - Phí)
+    deactivate Contract
+
+else Kịch bản C: Tranh chấp (Dispute)
+    B2 -> Contract: raiseDispute(id) + ETH Ký quỹ tranh chấp
+    activate Contract
+    Contract -> Contract: status = Disputed
+    deactivate Contract
+    
+    Admin -> Contract: resolveDispute(id, buyerRefund%)
+    activate Contract
+    Contract -> B2: Hoàn tiền (một phần Thầu + Cọc + Ký quỹ)
+    Contract -> Seller: Thanh toán (phần còn lại)
+    deactivate Contract
+
+else Kịch bản D: Người thắng từ bỏ (Forfeit) - Chỉ trước khi ship
+    B2 -> Contract: forfeitWin(id)
+    activate Contract
+    Contract -> Contract: Phạt = 10% giá thầu
+    Contract -> Seller: Hoàn cọc + 80% tiền phạt
+    Contract -> B2: Hoàn 90% giá thầu còn lại
+    Contract -> Contract: adminFeeBalance += 20% tiền phạt
+    deactivate Contract
+end
+
+== 4. Quản Trị Phí ==
+
+Admin -> Contract: withdrawAdminFee()
+activate Contract
+Contract -> Admin: Chuyển phí tích lũy
+deactivate Contract
+
+@enduml

@@ -1,0 +1,54 @@
+@startuml AuctionPlatform_CashFlowState_VN
+
+title Nền tảng Đấu giá - Sơ đồ Trạng thái Dòng tiền (Ký quỹ & Tài chính)
+
+skinparam state {
+  BackgroundColor<<Escrow>> LightCyan
+  BackgroundColor<<Terminal>> LightGreen
+  BackgroundColor<<Dispute>> LightPink
+}
+
+state "Không có tiền" as NoFunds
+state "Tiền cọc bị Khóa" as CollateralLocked <<Escrow>>
+state "Đang Đấu giá (Active/Upcoming)" as Bidding <<Escrow>> {
+  state "Đang nhận Thầu" as AcceptingBids
+  AcceptingBids --> AcceptingBids : bid()\n[Giao dịch thầu mới nạp tiền.\nThầu cũ được hoàn trả hoặc lưu vào pendingReturns]
+}
+
+state "Chờ Giao hàng" as AwaitingShipment <<Escrow>>
+state "Chờ Nhận hàng" as AwaitingDelivery <<Escrow>>
+state "Đang Tranh chấp" as Disputed <<Dispute>>
+state "Tiền chờ rút (Pull-payment)" as PendingReturns
+
+state "Đã Hoàn tiền (Không có người thắng)" as Refunded <<Terminal>>
+state "Hoàn tất (Thành công)" as Completed <<Terminal>>
+state "Bị Tịch thu/Phạt" as Forfeited <<Terminal>>
+state "Tranh chấp đã Giải quyết" as DisputeResolved <<Terminal>>
+
+[*] --> NoFunds
+
+NoFunds --> CollateralLocked : createAuction()\n[Người bán nạp tiền cọc]
+
+CollateralLocked --> Bidding : Đến thời gian bắt đầu (startTime)
+CollateralLocked --> Refunded : cancelAuction()\n[Cọc -> Trả lại Người bán]
+Bidding --> Refunded : endAuction() (không có ai thầu)\n[Cọc -> Trả lại Người bán]
+
+Bidding --> AwaitingShipment : endAuction() (có người thắng)\n[Tiền Thầu & Cọc bị khóa]
+Bidding --> PendingReturns : hoàn tiền tự động thất bại\n[Tiền chuyển vào pendingReturns]
+PendingReturns --> [*] : withdraw()\n[Tiền -> Người thầu bị vượt mặt]
+
+AwaitingShipment --> Forfeited : forfeitWin()\n[Thầu - Phạt -> Người mua\nCọc + 80% Phạt -> Người bán\n20% Phạt -> Admin]
+AwaitingShipment --> AwaitingDelivery : markShipped()\n[Tiền tiếp tục bị khóa]
+AwaitingShipment --> Disputed : raiseDispute()\n[Người mua nạp Ký quỹ Tranh chấp]
+
+AwaitingDelivery --> Completed : confirmDelivery() / claimFunds()\n[Thầu + Cọc - Phí -> Người bán\nPhí -> Admin]
+AwaitingDelivery --> Disputed : raiseDispute()\n[Người mua nạp Ký quỹ Tranh chấp]
+
+Disputed --> DisputeResolved : resolveDispute()\n[Toàn bộ tiền (Thầu+Cọc+Ký quỹ) được chia\ngiữa Người mua, Người bán, Admin\ndựa trên quyết định của Admin]
+
+Refunded --> [*]
+Completed --> [*]
+Forfeited --> [*]
+DisputeResolved --> [*]
+
+@enduml

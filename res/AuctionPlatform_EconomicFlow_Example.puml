@@ -1,0 +1,67 @@
+@startuml AuctionPlatform_EconomicFlow_Example
+
+title Auction Platform - Economic Flow Example (Success Case)\nValues in ETH (Example: 1 ETH Starting Price)
+
+participant "Seller" as S
+participant "Buyer 1" as B1
+participant "Buyer 2" as B2
+participant "Contract" as C
+participant "Admin/Fee Wallet" as A
+
+note over S, A: **Assumption:** Starting Price = 1 ETH, 10% Collateral, 2% Platform Fee, 5% Min Increment
+
+== 1. Create Auction ==
+S -> C: createAuction(startPrice=1.0)
+note right S: **Outflow:** 0.1 ETH (Collateral)\n**Gas Cost:** ~0.003 ETH
+C -> C: Lock 0.1 ETH
+C --> S: Status: Upcoming/Active
+
+== 2. Bidding Phase ==
+B1 -> C: bid(1.0 ETH)
+note right B1: **Outflow:** 1.0 ETH\n**Gas Cost:** ~0.002 ETH
+C -> C: Lock 1.0 ETH
+C --> B1: Highest Bidder: B1
+
+B2 -> C: bid(1.05 ETH)
+note right B2: **Outflow:** 1.05 ETH\n**Gas Cost:** ~0.0025 ETH
+C -> B1: refund(1.0 ETH)
+note left B1: **Inflow:** 1.0 ETH (Return outbid)
+C -> C: Lock 1.05 ETH
+C --> B2: Highest Bidder: B2
+
+== 3. End & Shipment ==
+... Time Passes (endTime reached) ...
+A -> C: endAuction()
+C -> C: Status: Ended, Escrow: AwaitingShipment
+
+A -> C: setShippingFee(0.01 ETH)
+note over C: Admin defines official fee
+
+B2 -> C: payShippingFee(0.01 ETH)
+note right B2: **Outflow:** 0.01 ETH\n**Gas Cost:** ~0.0015 ETH
+C -> C: shippingFeePaid = true
+
+S -> C: markShipped(proof)
+note right S: **Gas Cost:** ~0.0015 ETH
+C -> C: Escrow: AwaitingDelivery
+
+== 4. Completion & Payout ==
+B2 -> C: confirmDelivery()
+note right B2: **Gas Cost:** ~0.002 ETH
+C -> C: Escrow: Completed
+
+note over C: **Payout Calculation:**\nBid (1.05) - Fee (0.021) = 1.029\nAdd Collateral (0.1) = 1.129
+
+C -> S: transfer(1.129 ETH)
+note left S: **Inflow:** 1.129 ETH\n(1.029 profit + 0.1 collateral back)
+
+C -> A: adminFeeBalance += 0.031 ETH
+note over A: 0.021 (Platform Fee) + 0.01 (Shipping Fee)
+
+== Summary of Net Profit/Loss (Excl. Gas) ==
+note over S: **Seller:** +0.029 ETH (Bid - Fee)\n- Real item cost
+note over B1: **Buyer 1:** 0 ETH (Neutral)
+note over B2: **Buyer 2:** -1.06 ETH (1.05 Bid + 0.01 Shipping)\n+ Received item
+note over A: **Admin:** +0.031 ETH
+
+@enduml

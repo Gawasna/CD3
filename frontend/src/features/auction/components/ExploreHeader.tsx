@@ -17,7 +17,7 @@ export function ExploreHeader({ searchValue, onSearchChange }: ExploreHeaderProp
       <div className="flex items-center gap-3">
         <Box className="w-8 h-8 text-[#FF8400]" />
         <span className="text-[22px] font-extrabold tracking-wider text-[#111111] font-mono">
-          P2P AUCTION
+          Biddee
         </span>
       </div>
 

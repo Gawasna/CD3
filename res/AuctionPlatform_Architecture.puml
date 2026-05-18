@@ -1,0 +1,153 @@
+@startuml
+!theme plain
+skinparam roundcorner 10
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+title Siêu Sơ Đồ Kiến Trúc Smart Contract (AuctionPlatform.sol)
+
+package "OpenZeppelin" {
+  abstract class ReentrancyGuard << (A,#FFAAAA) >> {
+    + nonReentrant()
+  }
+}
+
+package "Auction Platform Core" {
+
+  class "AuctionPlatform" as AP << (C,#LightBlue) Contract >> {
+    .. Cấu trúc dữ liệu (Mappings) ..
+    + auctions: mapping(uint256 => Auction)
+    + pendingReturns: mapping(address => uint256)
+    
+    .. Biến Trạng Thái & Quản trị ..
+    + admin: address
+    + auctionCount: uint256
+    + adminFeeBalance: uint256
+    
+    .. Tham số Kinh Tế (Economic Params) ..
+    + collateralBps: uint256 (10%)
+    + minBidIncrementBps: uint256 (5%)
+    + minCollateral: uint256 (0.0001 ETH)
+    + platformFeeBps: uint256 (2%)
+    + disputeBond: uint256 (0.005 ETH)
+    
+    .. Hằng số (Constants) ..
+    + AUTO_RELEASE_TIMEOUT: 7 days
+    + DELIVERY_EXTENSION_DURATION: 7 days
+    + FORFEIT_PENALTY_BPS: 10%
+    + FORFEIT_PLATFORM_SHARE_BPS: 20%
+    + EXTENSION_WINDOW: 5 minutes
+    + EXTENSION_DURATION: 5 minutes
+    + DISPUTE_MIN_DELAY_SHIPMENT: 2 days
+
+    .. Modifiers ..
+    - onlyAdmin()
+    - onlySeller(_auctionId)
+    - onlyWinner(_auctionId)
+    - auctionExists(_auctionId)
+
+    .. Hàm Cốt Lõi (Core Functions) ..
+    + createAuction()
+    + bid()
+    + withdraw()
+    + withdrawAll()
+    + endAuction()
+    + cancelAuction()
+    
+    .. Hàm Ký quỹ & Vận chuyển (Escrow & Shipping) ..
+    + setShippingFee()
+    + payShippingFee()
+    + markShipped()
+    + confirmDelivery()
+    + claimFunds()
+    + requestDeliveryExtension()
+    + forfeitWin()
+    + raiseDispute()
+    + resolveDispute()
+    
+    .. Hàm Truy Vấn (View Functions) ..
+    + getAuctionCore()
+    + getAuctionEscrow()
+    + requiredCollateral()
+    
+    .. Hàm Quản Trị (Admin Functions) ..
+    + setEconomicParams()
+    + transferAdmin()
+    + withdrawAdminFee()
+  }
+
+  class "Auction" as Struct_Auction << (S,#LightGreen) Struct >> {
+    + seller: address payable
+    + startingPrice: uint256
+    + highestBid: uint256
+    + highestBidder: address payable
+    + startTime: uint256
+    + endTime: uint256
+    + collateral: uint256
+    + productCid: string
+    + status: AuctionStatus
+    + escrowStatus: EscrowStatus
+    + shippedTime: uint256
+    + shipmentProofHash: bytes32
+    + buyNowPrice: uint256
+    + deliveryDeadline: uint256
+    + deliveryExtensionUsed: bool
+    + shippingFee: uint256
+    + shippingPayer: ShippingPayer
+    + shippingFeePaid: bool
+  }
+
+  enum "AuctionStatus" as Enum_AuctionStatus << (E,#FFDDDD) Enum >> {
+    Pending (0)
+    Upcoming (1)
+    Active (2)
+    Ended (3)
+    Canceled (4)
+    Forfeited (5)
+  }
+
+  enum "EscrowStatus" as Enum_EscrowStatus << (E,#FFDDDD) Enum >> {
+    None (0)
+    AwaitingShipment (1)
+    AwaitingDelivery (2)
+    Disputed (3)
+    Completed (4)
+    Refunded (5)
+  }
+
+  enum "ShippingPayer" as Enum_ShippingPayer << (E,#FFDDDD) Enum >> {
+    Buyer (0)
+    Seller (1)
+  }
+}
+
+' Định nghĩa các mối quan hệ (Relationships)
+ReentrancyGuard <|-- AP : Kế thừa (Inherits)
+AP *-- Struct_Auction : Quản lý danh sách (auctions mapping)
+Struct_Auction o-- Enum_AuctionStatus : Sử dụng
+Struct_Auction o-- Enum_EscrowStatus : Sử dụng
+Struct_Auction o-- Enum_ShippingPayer : Sử dụng
+
+note right of AP::pendingReturns
+  **Pull-Payment Pattern**
+  Quản lý số dư hoàn trả 
+  cho người thầu bị vượt qua.
+end note
+
+note right of AP::bid
+  **Cơ chế chống bắn tỉa**
+  + Đặt thầu bằng tín dụng
+  + Hoàn tiền Tự động (Push) 
+    hoặc Kéo (Pull)
+end note
+
+note right of Struct_Auction::buyNowPrice
+  **Tính năng mua ngay**
+  Kết thúc đấu giá sớm nếu 
+  bid >= buyNowPrice
+end note
+
+@enduml

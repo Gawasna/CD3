@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title AuctionPlatform
- * @notice P2P auction platform with collateral-based escrow.
+ * @notice C2C auction platform with collateral-based escrow.
  *         Seller pays collateral to prevent fraud (no shipping).
  *         Buyer's bid is held in escrow until delivery confirmed.
  */
