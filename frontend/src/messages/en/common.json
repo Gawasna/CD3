@@ -1,11 +1,11 @@
 {
   "header": {
-    "brand": "P2P AUCTION",
+    "brand": "Biddee",
     "searchPlaceholder": "Search for items, collections...",
     "connectWallet": "Connect Wallet"
   },
   "footer": {
-    "copyright": "© 2026 P2P Auction. All rights reserved.",
+    "copyright": "© 2026 Biddee. All rights reserved.",
     "terms": "Terms",
     "privacy": "Privacy",
     "marketplace": "Marketplace",

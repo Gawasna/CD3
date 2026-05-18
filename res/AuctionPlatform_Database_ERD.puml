@@ -1,0 +1,180 @@
+@startuml AuctionPlatform_ERD
+
+!theme plain
+skinparam Linetype ortho
+skinparam nodesep 100
+skinparam ranksep 100
+
+title Auction Platform - Database Entity Relationship Diagram (ERD)
+
+entity "User" as User {
+  * id : UUID <<PK>>
+  --
+  * walletAddress : String <<unique>>
+  displayName : String
+  avatarUrl : String
+  kycStatus : Enum (KycStatus)
+  role : Enum (Role)
+  isActive : Boolean
+  kycApprovedAt : DateTime
+  kycApprovedBy : String
+  deletedAt : DateTime
+  createdAt : DateTime
+  updatedAt : DateTime
+}
+
+entity "KycRequest" as KycRequest {
+  * id : UUID <<PK>>
+  --
+  * userId : UUID <<FK, unique>>
+  fullName : String
+  idNumber : String <<unique>>
+  dateOfBirth : DateTime
+  frontIdUrl : String
+  backIdUrl : String
+  selfieUrl : String
+  status : Enum (KycStatus)
+  rejectionReason : String
+}
+
+entity "AuctionMetadata" as Auction {
+  * id : UUID <<PK>>
+  --
+  * sellerId : UUID <<FK>>
+  winnerId : UUID <<FK>>
+  onChainAuctionId : BigInt <<unique>>
+  status : Enum (AuctionStatus)
+  escrowStatus : Enum (EscrowStatus)
+  title : String
+  description : Text
+  ipfsCid : String
+  category : Enum (Category)
+  startingPriceWei : String
+  collateralWei : String
+  startTime : DateTime
+  endTime : DateTime
+  durationSeconds : Int
+  createTxHash : String <<unique>>
+  buyNowPriceWei : String
+  shippingCostWei : String
+  shippingPayer : Enum (ShippingPayer)
+}
+
+entity "Bid" as Bid {
+  * id : UUID <<PK>>
+  --
+  * auctionId : UUID <<FK>>
+  * bidderId : UUID <<FK>>
+  * amountWei : String
+  * txHash : String <<unique>>
+  isWinning : Boolean
+  createdAt : DateTime
+}
+
+entity "ShippingLog" as ShippingLog {
+  * id : UUID <<PK>>
+  --
+  * auctionId : UUID <<FK>>
+  * updatedById : UUID <<FK>>
+  status : Enum (ShippingStatus)
+  notes : Text
+  carrierName : String
+  trackingCode : String
+  createdAt : DateTime
+}
+
+entity "DisputeLog" as DisputeLog {
+  * id : UUID <<PK>>
+  --
+  * auctionId : UUID <<FK>>
+  * raisedById : UUID <<FK>>
+  resolvedById : UUID <<FK>>
+  reason : Text
+  resolution : Text
+  outcome : Enum (DisputeOutcome)
+  resolveTxHash : String <<unique>>
+  raisedAt : DateTime
+  resolvedAt : DateTime
+}
+
+entity "AdminActionLog" as AdminLog {
+  * id : UUID <<PK>>
+  --
+  * adminId : UUID <<FK>>
+  action : String
+  targetId : String
+  targetType : String
+  metadata : JSON
+  createdAt : DateTime
+}
+
+entity "Notification" as Notification {
+  * id : UUID <<PK>>
+  --
+  * userId : UUID <<FK>>
+  type : Enum (NotificationType)
+  title : String
+  message : String
+  isRead : Boolean
+  createdAt : DateTime
+}
+
+entity "Watchlist" as Watchlist {
+  * userId : UUID <<PK, FK>>
+  * auctionId : UUID <<PK, FK>>
+  --
+  createdAt : DateTime
+}
+
+entity "Conversation" as Conversation {
+  * id : UUID <<PK>>
+  --
+  * participant1Id : UUID <<FK>>
+  * participant2Id : UUID <<FK>>
+  createdAt : DateTime
+}
+
+entity "Message" as Message {
+  * id : UUID <<PK>>
+  --
+  * conversationId : UUID <<FK>>
+  * senderId : UUID <<FK>>
+  content : Text
+  isRead : Boolean
+  createdAt : DateTime
+}
+
+entity "UserActivity" as Activity {
+  * id : UUID <<PK>>
+  --
+  * userId : UUID <<FK>>
+  action : String
+  targetId : String
+  targetType : String
+  metadata : JSON
+  createdAt : DateTime
+}
+
+' Relationships
+User ||--o| KycRequest : "1-1"
+User ||--o{ Auction : "Sells"
+User ||--o{ Auction : "Wins"
+User ||--o{ Bid : "Places"
+User ||--o{ ShippingLog : "Updates"
+User ||--o{ DisputeLog : "Raises"
+User ||--o{ DisputeLog : "Resolves (Admin)"
+User ||--o{ AdminLog : "Logs Action"
+User ||--o{ Notification : "Receives"
+User ||--o{ Watchlist : "Watches"
+User ||--o{ Activity : "Performs"
+User ||--o{ Message : "Sends"
+
+Auction ||--o{ Bid : "Has"
+Auction ||--o{ ShippingLog : "Has"
+Auction ||--o{ DisputeLog : "Has"
+Auction ||--o{ Watchlist : "Is Watched"
+
+Conversation ||--o{ Message : "Contains"
+User ||--o{ Conversation : "Participates"
+
+@enduml

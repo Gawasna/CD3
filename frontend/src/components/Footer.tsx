@@ -16,14 +16,14 @@ export default function Footer() {
           <div className="flex flex-col gap-4 col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-10 h-10 bg-[#111111] rounded-xl flex items-center justify-center">
-                <span className="text-white font-jetbrains font-bold text-xl">C</span>
+                <span className="text-white font-jetbrains font-bold text-xl">B</span>
               </div>
               <span className="text-xl font-bold text-[#111111] font-jetbrains tracking-tight uppercase">
-                CD3 Auction
+                Biddee
               </span>
             </Link>
             <p className="text-[#666666] text-sm leading-relaxed max-w-xs">
-              The next generation P2P auction platform powered by blockchain technology. Transparent, fast, and secure.
+              The next generation C2C auction platform powered by blockchain technology. Transparent, fast, and secure.
             </p>
             <div className="flex items-center gap-4 mt-2">
               <a href="#" className="w-9 h-9 rounded-lg border-2 border-[#CBCCC9] flex items-center justify-center text-[#666666] hover:border-[#FF8400] hover:text-[#FF8400] transition-all">
@@ -78,7 +78,7 @@ export default function Footer() {
 
         <div className="mt-12 pt-8 border-t border-[#F2F3F0] flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-[#999999]">
-            © {currentYear} CD3 Auction Platform. Built with passion on Blockchain.
+            © {currentYear} Biddee Platform. Built with passion on Blockchain.
           </p>
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-2">

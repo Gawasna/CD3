@@ -1,0 +1,67 @@
+@startuml AuctionPlatform_EconomicFlow_Example_VN
+
+title Nền tảng Đấu giá - Ví dụ Luồng Kinh tế (Trường hợp Thành công)\nGiá trị tính bằng ETH (Ví dụ: Giá khởi điểm 1 ETH)
+
+participant "Người bán" as S
+participant "Người mua 1" as B1
+participant "Người mua 2" as B2
+participant "Smart Contract" as C
+participant "Admin/Ví Thu phí" as A
+
+note over S, A: **Giả định:** Giá khởi điểm = 1 ETH, Cọc 10%, Phí Nền tảng 2%, Bước giá 5%
+
+== 1. Khởi tạo Đấu giá ==
+S -> C: createAuction(startPrice=1.0)
+note right S: **Tiền ra:** 0.1 ETH (Tiền cọc)\n**Phí Gas:** ~0.003 ETH
+C -> C: Khóa 0.1 ETH
+C --> S: Trạng thái: Sắp diễn ra/Đang hoạt động
+
+== 2. Giai đoạn Đấu giá ==
+B1 -> C: bid(1.0 ETH)
+note right B1: **Tiền ra:** 1.0 ETH\n**Phí Gas:** ~0.002 ETH
+C -> C: Khóa 1.0 ETH
+C --> B1: Người thầu cao nhất: B1
+
+B2 -> C: bid(1.05 ETH)
+note right B2: **Tiền ra:** 1.05 ETH\n**Phí Gas:** ~0.0025 ETH
+C -> B1: refund(1.0 ETH)
+note left B1: **Tiền vào:** 1.0 ETH (Hoàn tiền thầu cũ)
+C -> C: Khóa 1.05 ETH
+C --> B2: Người thầu cao nhất: B2
+
+== 3. Kết thúc & Giao hàng ==
+... Thời gian trôi qua (Đến endTime) ...
+A -> C: endAuction()
+C -> C: Trạng thái: Kết thúc, Ký quỹ: Chờ giao hàng
+
+A -> C: setShippingFee(0.01 ETH)
+note over C: Admin xác định phí vận chuyển chính thức
+
+B2 -> C: payShippingFee(0.01 ETH)
+note right B2: **Tiền ra:** 0.01 ETH\n**Phí Gas:** ~0.0015 ETH
+C -> C: Đã thanh toán phí vận chuyển
+
+S -> C: markShipped(proof)
+note right S: **Phí Gas:** ~0.0015 ETH
+C -> C: Ký quỹ: Chờ nhận hàng
+
+== 4. Hoàn tất & Thanh toán ==
+B2 -> C: confirmDelivery()
+note right B2: **Phí Gas:** ~0.002 ETH
+C -> C: Ký quỹ: Hoàn tất
+
+note over C: **Tính toán Thanh toán:**\nTiền thầu (1.05) - Phí (0.021) = 1.029\nCộng Tiền cọc (0.1) = 1.129
+
+C -> S: transfer(1.129 ETH)
+note left S: **Tiền vào:** 1.129 ETH\n(1.029 lợi nhuận + 0.1 cọc trả lại)
+
+C -> A: adminFeeBalance += 0.031 ETH
+note over A: 0.021 (Phí Nền tảng) + 0.01 (Phí Vận chuyển)
+
+== Tổng kết Lợi nhuận/Thua lỗ ròng (Chưa tính Gas) ==
+note over S: **Người bán:** +0.029 ETH (Tiền thắng - Phí)\n- Giá trị thực tế của món hàng
+note over B1: **Người mua 1:** 0 ETH (Hòa vốn)
+note over B2: **Người mua 2:** -1.06 ETH (1.05 Thầu + 0.01 Ship)\n+ Nhận được món hàng
+note over A: **Admin:** +0.031 ETH
+
+@enduml

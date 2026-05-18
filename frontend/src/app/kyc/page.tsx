@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import KycClientPage from './KycClientPage';
 
 export const metadata: Metadata = {
-  title: 'KYC Verification | P2P Auction',
+  title: 'KYC Verification | C2C Auction',
   description:
     'Complete your mock identity verification to unlock full marketplace access.',
 };
