@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { authenticate } from '../../shared/middleware/authenticate';
 import { validate } from '../../shared/middleware/validate';
-import { getShippingQuote, getShippingHistory } from './shipping.controller';
-import { shippingQuoteSchema } from './shipping.schema';
+import { getShippingQuote, getShippingHistory, registerShippingDetails } from './shipping.controller';
+import { shippingQuoteSchema, registerShipmentSchema } from './shipping.schema';
 
 const router = Router();
 
@@ -11,6 +11,12 @@ const router = Router();
  * @desc Seller yêu cầu báo giá vận chuyển từ mock provider
  */
 router.post('/quote', authenticate, validate(shippingQuoteSchema), getShippingQuote);
+
+/**
+ * @route POST /api/v1/shipping/ship
+ * @desc Seller đăng ký thông tin vận chuyển off-chain trước khi confirm on-chain
+ */
+router.post('/ship', authenticate, validate(registerShipmentSchema), registerShippingDetails);
 
 /**
  * @route GET /api/v1/shipping/:auctionId/history
