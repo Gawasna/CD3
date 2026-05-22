@@ -104,6 +104,40 @@ export const shippingService = {
     };
   },
 
+  async registerShipment(userId: string, auctionId: string, carrierName: string, trackingCode: string) {
+    const auction = await prisma.auctionMetadata.findUnique({
+      where: { id: auctionId },
+      select: { id: true, sellerId: true, escrowStatus: true },
+    });
+
+    if (!auction) throw ApiError.notFound('AUCTION_NOT_FOUND', 'Auction not found');
+    if (auction.sellerId !== userId) throw ApiError.forbidden('NOT_SELLER', 'Only seller can register shipping details');
+    if (auction.escrowStatus !== 'AWAITING_SHIPMENT') {
+      throw ApiError.badRequest('INVALID_STATUS', 'Auction is not awaiting shipment');
+    }
+
+    // Generate proof hash using ethers v6
+    const proofHash = ethers.keccak256(ethers.toUtf8Bytes(trackingCode));
+
+    // Create a temporary PENDING log with the tracking details
+    await prisma.shippingLog.create({
+      data: {
+        auctionId,
+        status: 'PENDING',
+        updatedById: userId,
+        carrierName,
+        trackingCode,
+        notes: `Seller registered shipment details. Carrier: ${carrierName}, Tracking: ${trackingCode}. Awaiting blockchain confirmation.`,
+      },
+    });
+
+    return {
+      proofHash,
+      carrierName,
+      trackingCode,
+    };
+  },
+
   async getShippingDetails(auctionId: string) {
     const logs = await prisma.shippingLog.findMany({
       where: { auctionId },

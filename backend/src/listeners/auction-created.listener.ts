@@ -286,7 +286,7 @@ export function startAuctionCreatedListener() {
 
     contract.on('ItemShipped', async (auctionId: bigint, proofHash: string) => {
       try {
-        console.log('[AuctionListener] ItemShipped event received:', { auctionId: auctionId.toString() });
+        console.log('[AuctionListener] ItemShipped event received:', { auctionId: auctionId.toString(), proofHash });
         const auction = await prisma.auctionMetadata.findUnique({ where: { onChainAuctionId: auctionId } });
         if (!auction) return;
 
@@ -295,14 +295,36 @@ export function startAuctionCreatedListener() {
           data: { escrowStatus: 'AWAITING_DELIVERY' },
         });
 
-        await prisma.shippingLog.create({
-          data: {
+        // Tìm bản ghi PENDING log chứa thông tin vận chuyển đã đăng ký trước đó
+        const pendingShipment = await prisma.shippingLog.findFirst({
+          where: {
             auctionId: auction.id,
-            status: 'SHIPPED',
-            updatedById: auction.sellerId,
-            notes: `Item marked as shipped on-chain. Proof hash: ${proofHash}`,
+            status: 'PENDING',
+            trackingCode: { not: null },
           },
+          orderBy: { createdAt: 'desc' },
         });
+
+        if (pendingShipment) {
+          // Cập nhật bản ghi PENDING thành SHIPPED
+          await prisma.shippingLog.update({
+            where: { id: pendingShipment.id },
+            data: {
+              status: 'SHIPPED',
+              notes: `Item marked as shipped on-chain. Carrier: ${pendingShipment.carrierName}, Tracking: ${pendingShipment.trackingCode}. Proof hash: ${proofHash}`,
+            },
+          });
+        } else {
+          // Fallback nếu không có thông tin đăng ký off-chain trước
+          await prisma.shippingLog.create({
+            data: {
+              auctionId: auction.id,
+              status: 'SHIPPED',
+              updatedById: auction.sellerId,
+              notes: `Item marked as shipped on-chain. Proof hash: ${proofHash}`,
+            },
+          });
+        }
 
         if (auction.winnerId) {
           eventEmitter.emit(Events.SHIPPING.STATUS_UPDATED, {

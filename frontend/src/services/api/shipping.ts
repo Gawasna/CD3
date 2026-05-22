@@ -40,3 +40,17 @@ export async function getShippingQuote(auctionId: string, fromAddress: string, t
     body: JSON.stringify({ auctionId, fromAddress, toAddress }),
   });
 }
+
+/**
+ * Seller đăng ký thông tin vận chuyển off-chain và nhận proofHash.
+ */
+export async function registerShipment(
+  auctionId: string,
+  carrierName: string,
+  trackingCode: string
+): Promise<{ proofHash: string; carrierName: string; trackingCode: string }> {
+  return authFetch<{ proofHash: string; carrierName: string; trackingCode: string }>('/v1/shipping/ship', {
+    method: 'POST',
+    body: JSON.stringify({ auctionId, carrierName, trackingCode }),
+  });
+}

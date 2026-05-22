@@ -21,3 +21,14 @@ export const getShippingHistory = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+
+export const registerShippingDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { auctionId, carrierName, trackingCode } = req.body;
+    const result = await shippingService.registerShipment(userId, auctionId, carrierName, trackingCode);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};

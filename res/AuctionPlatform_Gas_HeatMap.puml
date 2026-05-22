@@ -1,0 +1,40 @@
+@startuml
+title Smart Contract Gas Heat Map - AuctionPlatform.sol
+
+skinparam component {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+skinparam node {
+    BackgroundColor White
+    BorderColor Black
+}
+
+node "Contract: AuctionPlatform.sol" {
+    [Economic Parameters\n(collateralBps, etc.)] as Config
+    [Struct Auction\n(19 fields)] as Struct
+    [Modifiers\n(nonReentrant, etc.)] as Modifier
+    [function createAuction()] as Func_Create
+    [function bid()] as Func_Bid
+    [function resolveDispute()] as Func_Dispute
+    [View/Pure Functions] as Func_View
+}
+
+node "Gas Cost Impact (Heat Map)" {
+    [🧊 Low Cost\n< 5,000 Gas] as Low #LightGreen
+    [🟡 Medium Cost\n15k - 40k Gas] as Mid #Yellow
+    [🟠 High Cost\n40k - 80k Gas] as High #Orange
+    [🔥 Extreme Cost\n100k+ Gas] as Extreme #FF6666
+}
+
+Config -right-> Mid : " SLOAD "
+Modifier -right-> Mid : " SLOAD + SSTORE "
+Func_View -right-> Low : " No state change "
+Func_Bid -right-> High : " Read/Write Storage "
+Struct -right-> Extreme : " Multi-slot SSTORE "
+Func_Create -right-> Extreme : " Init large struct "
+Func_Dispute -right-> Extreme : " Complex logic & ETH transfers "
+
+@enduml

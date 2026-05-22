@@ -6,7 +6,7 @@ import { Image, Check, Package, Truck, CheckCircle2, AlertCircle, Loader2 } from
 import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuction } from '@/services/api/auction';
-import { getShippingHistory, getShippingQuote } from '@/services/api/shipping';
+import { getShippingHistory, getShippingQuote, registerShipment } from '@/services/api/shipping';
 import { useAuthStore } from '@/store/auth.store';
 import { formatEther } from 'viem';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
@@ -29,6 +29,13 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogStatus, setDialogStatus] = useState<'waiting_wallet' | 'confirming' | 'finalizing' | 'error' | 'success'>('waiting_wallet');
   const [txError, setTxError] = useState<string | null>(null);
+
+  // Shipping Form State
+  const [isShipFormOpen, setIsShipFormOpen] = useState(false);
+  const [inputCarrier, setInputCarrier] = useState('');
+  const [inputTracking, setInputTracking] = useState('');
+  const [isSubmittingShip, setIsSubmittingShip] = useState(false);
+  const [shipError, setShipError] = useState<string | null>(null);
 
   const { writeContract, data: txHash } = useWriteContract();
   const { isSuccess: isTxConfirmed, isLoading: isTxConfirming } = useWaitForTransactionReceipt({ hash: txHash });
@@ -122,24 +129,45 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
 
   const handleMarkShipped = () => {
     if (!auction?.onChainAuctionId) return;
-    setIsDialogOpen(true);
-    setDialogStatus('waiting_wallet');
-    setTxError(null);
+    setInputCarrier('');
+    setInputTracking('');
+    setShipError(null);
+    setIsShipFormOpen(true);
+  };
 
-    const mockProof = '0x' + '0'.repeat(64); // Mock bytes32
+  const handleSubmitShipping = async () => {
+    if (!auction?.id || !auction?.onChainAuctionId) return;
+    setIsSubmittingShip(true);
+    setShipError(null);
 
-    writeContract({
-      address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
-      abi: AuctionPlatformABI.abi,
-      functionName: 'markShipped',
-      args: [BigInt(auction.onChainAuctionId), mockProof as `0x${string}`],
-    }, {
-      onSuccess: () => setDialogStatus('confirming'),
-      onError: (err: any) => {
-        setTxError(err.shortMessage || err.message);
-        setDialogStatus('error');
-      }
-    });
+    try {
+      // Step 1: Register shipping off-chain and get proof hash
+      const { proofHash } = await registerShipment(auction.id, inputCarrier, inputTracking);
+
+      // Step 2: Open transaction dialog and set status to waiting wallet
+      setIsShipFormOpen(false);
+      setIsDialogOpen(true);
+      setDialogStatus('waiting_wallet');
+      setTxError(null);
+
+      // Step 3: Trigger on-chain transaction with the real proof hash
+      writeContract({
+        address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`,
+        abi: AuctionPlatformABI.abi,
+        functionName: 'markShipped',
+        args: [BigInt(auction.onChainAuctionId), proofHash as `0x${string}`],
+      }, {
+        onSuccess: () => setDialogStatus('confirming'),
+        onError: (err: any) => {
+          setTxError(err.shortMessage || err.message);
+          setDialogStatus('error');
+        }
+      });
+    } catch (err: any) {
+      setShipError(err.message || 'Failed to register shipping details');
+    } finally {
+      setIsSubmittingShip(false);
+    }
   };
 
   const handleConfirmDelivery = () => {
@@ -205,6 +233,59 @@ export default function OrderStatusPage({ params }: OrderStatusPageProps) {
         error={txError || undefined}
         onClose={() => setIsDialogOpen(false)}
       />
+
+      {isShipFormOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl border border-[#CBCCC9] p-8 w-[450px] flex flex-col gap-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="font-jetbrains text-xl font-bold text-[#111111]">Enter Shipping Details</h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-jetbrains text-xs font-semibold text-[#666666]">CARRIER NAME</label>
+                <input
+                  type="text"
+                  placeholder="e.g. DHL, FedEx, Viettel Post"
+                  value={inputCarrier}
+                  onChange={(e) => setInputCarrier(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-[#CBCCC9] font-geist text-sm text-[#111111] focus:outline-none focus:border-[#FF8400]"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-jetbrains text-xs font-semibold text-[#666666]">TRACKING CODE</label>
+                <input
+                  type="text"
+                  placeholder="e.g. TRK12938102"
+                  value={inputTracking}
+                  onChange={(e) => setInputTracking(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl border border-[#CBCCC9] font-geist text-sm text-[#111111] focus:outline-none focus:border-[#FF8400]"
+                />
+              </div>
+            </div>
+            {shipError && (
+              <p className="font-geist text-sm text-red-600 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4" />
+                {shipError}
+              </p>
+            )}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setIsShipFormOpen(false)}
+                disabled={isSubmittingShip}
+                className="flex-1 h-11 rounded-full bg-[#E7E8E5] border border-[#CBCCC9] text-[#111111] font-jetbrains text-sm font-semibold hover:bg-[#D7D8D5] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitShipping}
+                disabled={isSubmittingShip || !inputCarrier.trim() || !inputTracking.trim()}
+                className="flex-1 h-11 rounded-full bg-[#FF8400] text-[#111111] font-jetbrains text-sm font-semibold hover:bg-[#E67700] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSubmittingShip && <Loader2 className="w-4 h-4 animate-spin" />}
+                Confirm & Ship
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h1 className="font-jetbrains text-4xl font-extrabold text-[#111111]">Order Status</h1>
 

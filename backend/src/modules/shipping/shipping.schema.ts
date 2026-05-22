@@ -16,3 +16,11 @@ export const updateShippingStatusSchema = z.object({
 });
 
 export type UpdateShippingStatusBody = z.infer<typeof updateShippingStatusSchema>;
+
+export const registerShipmentSchema = z.object({
+  auctionId: z.string().uuid(),
+  carrierName: z.string().min(2),
+  trackingCode: z.string().min(3),
+});
+
+export type RegisterShipmentBody = z.infer<typeof registerShipmentSchema>;
